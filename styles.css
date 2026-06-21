@@ -1,0 +1,92 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.calculadora {
+    width: 100%;
+    max-width: 360px;
+    background: #1c1c2b;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.pantalla {
+    background: #11111b;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: right;
+    overflow: hidden;
+}
+
+.historial {
+    color: #8888aa;
+    font-size: 1rem;
+    min-height: 1.2rem;
+    word-wrap: break-word;
+}
+
+.resultado {
+    color: #ffffff;
+    font-size: 2.6rem;
+    font-weight: 600;
+    word-wrap: break-word;
+    margin-top: 6px;
+}
+
+.botones {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.tecla {
+    border: none;
+    border-radius: 14px;
+    padding: 18px 0;
+    font-size: 1.3rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #ffffff;
+    background: #2a2a3d;
+    transition: transform 0.05s ease, filter 0.15s ease;
+}
+
+.tecla:hover {
+    filter: brightness(1.2);
+}
+
+.tecla:active {
+    transform: scale(0.95);
+}
+
+.tecla.operador {
+    background: #3b3b5c;
+    color: #c4b5fd;
+}
+
+.tecla.funcion {
+    background: #353548;
+    color: #f0abfc;
+}
+
+.tecla.igual {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.tecla.cero {
+    grid-column: span 2;
+}
