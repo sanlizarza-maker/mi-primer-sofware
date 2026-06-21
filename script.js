@@ -136,4 +136,27 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+// --- Cambio de tema claro/oscuro ---
+const botonTema = document.getElementById("boton-tema");
+
+function aplicarTema(tema) {
+    if (tema === "claro") {
+        document.body.classList.add("tema-claro");
+        botonTema.textContent = "☀️";
+    } else {
+        document.body.classList.remove("tema-claro");
+        botonTema.textContent = "🌙";
+    }
+}
+
+// Cargar la preferencia guardada (si existe)
+const temaGuardado = localStorage.getItem("tema") || "oscuro";
+aplicarTema(temaGuardado);
+
+botonTema.addEventListener("click", () => {
+    const nuevoTema = document.body.classList.contains("tema-claro") ? "oscuro" : "claro";
+    aplicarTema(nuevoTema);
+    localStorage.setItem("tema", nuevoTema);
+});
+
 actualizarPantalla();

@@ -10,6 +10,7 @@ No necesita instalar nada: se abre directamente en el navegador.
 - ➕ Operaciones básicas: suma, resta, multiplicación y división
 - 🔢 Cálculo de porcentajes
 - ⌫ Borrar último dígito y limpiar todo
+- 🌙☀️ Tema claro/oscuro (recuerda tu preferencia)
 - ⌨️ Soporte de teclado (números, operadores, Enter, Backspace, Escape)
 - 📱 Diseño responsive (se adapta al móvil)
 - ✅ Evaluación segura (sin riesgos del `eval` clásico)
