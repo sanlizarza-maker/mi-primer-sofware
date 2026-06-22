@@ -1,0 +1,5 @@
+node_modules/
+hotel.db
+hotel.db-journal
+hotel.db-wal
+hotel.db-shm

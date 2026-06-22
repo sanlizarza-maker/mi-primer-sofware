@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santa Catalina Villas · Administración</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="marca">
+      <span class="logo">🏝️</span>
+      <div>
+        <h1>Santa Catalina Villas</h1>
+        <p>Panel de administración · 12 villas de lujo</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab activa" data-vista="dashboard">Resumen</button>
+      <button class="tab" data-vista="reservas">Reservas</button>
+      <button class="tab" data-vista="disponibilidad">Disponibilidad</button>
+      <button class="tab" data-vista="villas">Villas</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="vista activa">
+      <h2>Resumen de hoy</h2>
+      <div class="tarjetas" id="tarjetas-stats"></div>
+      <h3>Próximas llegadas</h3>
+      <div id="proximas-llegadas" class="lista-mini"></div>
+    </section>
+
+    <!-- RESERVAS -->
+    <section id="reservas" class="vista">
+      <div class="cabecera-vista">
+        <h2>Reservas</h2>
+        <button class="btn-primario" id="btn-nueva-reserva">+ Nueva reserva</button>
+      </div>
+      <div class="filtros">
+        <input type="text" id="buscar-reserva" placeholder="Buscar por huésped o villa…">
+        <select id="filtro-estado">
+          <option value="">Todos los estados</option>
+          <option value="confirmada">Confirmada</option>
+          <option value="check-in">Check-in</option>
+          <option value="check-out">Check-out</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="tabla-wrap">
+        <table id="tabla-reservas">
+          <thead>
+            <tr>
+              <th>Villa</th><th>Huésped</th><th>Entrada</th><th>Salida</th>
+              <th>Noches</th><th>Total</th><th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DISPONIBILIDAD -->
+    <section id="disponibilidad" class="vista">
+      <h2>Comprobar disponibilidad</h2>
+      <div class="filtros">
+        <label>Entrada <input type="date" id="disp-entrada"></label>
+        <label>Salida <input type="date" id="disp-salida"></label>
+        <button class="btn-primario" id="btn-comprobar">Comprobar</button>
+      </div>
+      <div id="grid-disponibilidad" class="grid-villas"></div>
+    </section>
+
+    <!-- VILLAS -->
+    <section id="villas" class="vista">
+      <h2>Nuestras villas</h2>
+      <div id="grid-villas" class="grid-villas"></div>
+    </section>
+  </main>
+
+  <!-- Modal nueva reserva -->
+  <div class="modal-fondo" id="modal-fondo">
+    <div class="modal">
+      <h3>Nueva reserva</h3>
+      <form id="form-reserva">
+        <label>Villa
+          <select id="f-villa" required></select>
+        </label>
+        <div class="fila">
+          <label>Huésped <input type="text" id="f-huesped" required></label>
+          <label>Nº huéspedes <input type="number" id="f-num" min="1" value="2"></label>
+        </div>
+        <div class="fila">
+          <label>Email <input type="email" id="f-email"></label>
+          <label>Teléfono <input type="tel" id="f-telefono"></label>
+        </div>
+        <div class="fila">
+          <label>Entrada <input type="date" id="f-entrada" required></label>
+          <label>Salida <input type="date" id="f-salida" required></label>
+        </div>
+        <label>Notas <textarea id="f-notas" rows="2"></textarea></label>
+        <p class="error" id="form-error"></p>
+        <div class="acciones-modal">
+          <button type="button" class="btn-secundario" id="btn-cancelar">Cancelar</button>
+          <button type="submit" class="btn-primario">Guardar reserva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

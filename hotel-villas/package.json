@@ -1,0 +1,17 @@
+{
+  "name": "hotel-villas-santa-catalina",
+  "version": "1.0.0",
+  "description": "Panel de administración para un hotel de lujo de 12 villas en Santa Catalina",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node db.js --seed"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
