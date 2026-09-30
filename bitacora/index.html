@@ -1,0 +1,661 @@
+<title>Bitácora Deportiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: una columna tipo cuaderno de entreno; pestañas fijas arriba; secciones del día como hojas. */
+:root {
+  --bg: #F2F4F7; --surface: #FFFFFF; --fg: #141A26; --muted: #5A6577; --line: #DCE1E9;
+  --accent: #2446C7; --accent-soft: #E4EAFB; --on-accent: #FFFFFF;
+  --good: #1E7F4F; --good-soft: #E2F3EA; --warn: #9A5B00; --warn-soft: #FBF0DC; --bad: #B8322A; --bad-soft: #FBE5E3;
+  --c-box: #D6453D; --c-ten: #86A40F; --c-walk: #0E8C8C; --c-str: #6B4BC9; --c-cardio: #E07B1F; --c-other: #8A93A3;
+  --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F131B; --surface: #171C27; --fg: #E7EBF2; --muted: #98A2B3; --line: #2A3242;
+  --accent: #8CA2F7; --accent-soft: #1E2743; --on-accent: #0F131B;
+  --good: #4CC38A; --good-soft: #15291F; --warn: #F0A93B; --warn-soft: #2B2112; --bad: #F07167; --bad-soft: #2E1715;
+  --c-box: #F0665E; --c-ten: #B5D334; --c-walk: #2DB8B8; --c-str: #9A7CF0; --c-cardio: #F59A45; --c-other: #7D8798;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0F131B; --surface: #171C27; --fg: #E7EBF2; --muted: #98A2B3; --line: #2A3242;
+  --accent: #8CA2F7; --accent-soft: #1E2743; --on-accent: #0F131B;
+  --good: #4CC38A; --good-soft: #15291F; --warn: #F0A93B; --warn-soft: #2B2112; --bad: #F07167; --bad-soft: #2E1715;
+  --c-box: #F0665E; --c-ten: #B5D334; --c-walk: #2DB8B8; --c-str: #9A7CF0; --c-cardio: #F59A45; --c-other: #7D8798;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 64px; display: grid; gap: 16px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; letter-spacing: .01em; margin: 0; text-wrap: balance; line-height: 1.1; }
+h1 { font-size: 30px; text-transform: uppercase; }
+h2 { font-size: 22px; text-transform: uppercase; }
+h3 { font-size: 17px; text-transform: uppercase; color: var(--muted); letter-spacing: .06em; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+header.top { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.status { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status[data-s="ok"]::before { background: var(--good); }
+.status[data-s="saving"]::before { background: var(--warn); }
+.status[data-s="bad"]::before { background: var(--bad); }
+
+nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 6px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+nav.tabs button { font-family: var(--f-display); font-size: 17px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 9px 4px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; cursor: pointer; }
+nav.tabs button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.datebar { display: flex; align-items: center; gap: 8px; }
+.datebar .label { flex: 1; min-width: 0; text-align: center; }
+.datebar .label strong { display: block; font-family: var(--f-display); font-size: 22px; text-transform: capitalize; }
+.iconbtn { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 18px; cursor: pointer; flex: none; }
+.linkbtn { background: none; border: 0; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline; }
+
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.sheet > header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input[type="number"], input[type="text"], select, textarea {
+  font: inherit; font-size: 15px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 42px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 9px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.danger { color: var(--bad); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+.chip .dot, .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+
+.acts { display: grid; gap: 10px; }
+.act { border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+.act .row { display: grid; grid-template-columns: 1fr 90px 40px; gap: 8px; align-items: end; }
+.rpe { display: grid; gap: 4px; }
+.rpe .top { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.seg button { font-family: var(--f-num); padding: 8px 0; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.seg3 { grid-template-columns: repeat(3, 1fr); }
+.seg3 button { font-family: var(--f-body); font-size: 13px; }
+
+.counter { display: flex; align-items: center; gap: 10px; }
+.counter .val { font-family: var(--f-num); font-size: 22px; min-width: 2ch; text-align: center; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.check input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+
+.note { border-radius: 8px; padding: 10px 12px; font-size: 14px; border: 1px solid transparent; }
+.note.bad { background: var(--bad-soft); border-color: var(--bad); }
+.note.warn { background: var(--warn-soft); border-color: var(--warn); }
+.note.good { background: var(--good-soft); border-color: var(--good); }
+.note.info { background: var(--accent-soft); border-color: var(--accent); }
+.note strong { display: block; margin-bottom: 2px; }
+
+.empty { text-align: center; padding: 18px 8px; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.tile .k { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tile .v { font-family: var(--f-num); font-size: 24px; }
+.tile .s { font-size: 12px; color: var(--muted); }
+
+.chart { overflow-x: auto; }
+.chart svg { display: block; width: 100%; min-width: 320px; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td.n, th.n { text-align: right; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+
+.flags { display: grid; gap: 8px; }
+.hist { display: grid; gap: 8px; }
+.hist button { text-align: left; font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; display: grid; gap: 4px; }
+.hist .d { font-family: var(--f-display); font-size: 18px; text-transform: capitalize; }
+
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+pre.copy { white-space: pre-wrap; font-family: var(--f-num); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Bitácora Deportiva</h1>
+      <div class="muted small">Registro entre sesiones: boxeo, tenis, fuerza, recuperación y comida.</div>
+    </div>
+    <div class="status" id="status" data-s="">Conectando…</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-hoy" data-tab="hoy" aria-selected="true">Día</button>
+    <button role="tab" id="tab-semana" data-tab="semana" aria-selected="false">Semana</button>
+    <button role="tab" id="tab-historial" data-tab="historial" aria-selected="false">Historial</button>
+  </nav>
+
+  <div id="localNote" class="note warn" hidden><strong>Modo local</strong>Los datos se guardan solo en este navegador. Ábrelo desde claude.ai para que se guarden en tu cuenta.</div>
+
+  <section id="view-hoy" style="display:grid;gap:16px"></section>
+  <section id="view-semana" style="display:grid;gap:16px" hidden></section>
+  <section id="view-historial" style="display:grid;gap:16px" hidden></section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- constantes ----------
+  const TYPES = {
+    boxeo:      { label: "Boxeo",                     c: "--c-box",    train: true,  groups: ["Hombros", "Core", "Piernas", "Cardio alto"] },
+    tenis:      { label: "Tenis",                     c: "--c-ten",    train: true,  groups: ["Piernas", "Core", "Hombro y antebrazo", "Cardio intermitente"] },
+    caminadora: { label: "Caminadora",                c: "--c-walk",   train: true,  groups: ["Piernas", "Cardio moderado"] },
+    fuerza_sup: { label: "Fuerza · tren superior",    c: "--c-str",    train: true,  groups: ["Pecho", "Espalda", "Hombros", "Brazos"] },
+    fuerza_inf: { label: "Fuerza · tren inferior",    c: "--c-str",    train: true,  groups: ["Cuádriceps", "Glúteos", "Isquiotibiales", "Core"] },
+    fuerza_full:{ label: "Fuerza · cuerpo completo",  c: "--c-str",    train: true,  groups: ["Piernas", "Espalda", "Pecho", "Hombros", "Core"] },
+    cardio:     { label: "Cardio (otro)",             c: "--c-cardio", train: true,  groups: ["Cardio"] },
+    caminata:   { label: "Caminata",                  c: "--c-walk",   train: false, groups: ["Actividad ligera"] },
+    movilidad:  { label: "Movilidad / estiramiento",  c: "--c-other",  train: false, groups: ["Movilidad"] },
+    otro:       { label: "Otro deporte",              c: "--c-other",  train: true,  groups: [] }
+  };
+  const QUICK = [["boxeo", 60, 7], ["tenis", 60, 6], ["caminadora", 30, 4], ["fuerza_full", 40, 6], ["caminata", 30, 2]];
+  const RPE_TXT = ["", "Muy suave", "Muy suave", "Suave", "Suave", "Moderado", "Moderado", "Duro", "Duro", "Muy duro", "Máximo"];
+  const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const MON = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const DNAME = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const MEALS = [["desayuno", "Desayuno"], ["almuerzo", "Almuerzo"], ["cena", "Cena"], ["snacks", "Snacks / meriendas"], ["pre", "Antes de entrenar"], ["post", "Después de entrenar"]];
+
+  // ---------- fechas ----------
+  const pad = n => String(n).padStart(2, "0");
+  const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+  const weekStart = s => { const d = parse(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); };
+  const fmtLong = s => { const d = parse(s); return DNAME[d.getDay()] + " " + d.getDate() + " " + MON[d.getMonth()]; };
+  const fmtShort = s => { const d = parse(s); return d.getDate() + " " + MON[d.getMonth()]; };
+  const TODAY = ymd(new Date());
+
+  // ---------- helpers ----------
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const cssv = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const r1 = n => Math.round(n * 10) / 10;
+
+  function emptyDay(date) {
+    return {
+      date, activities: [],
+      sleep: { hours: null, quality: null }, energy: null, feel: null,
+      pain: { has: false, where: "" }, water: 0,
+      meals: { desayuno: "", almuerzo: "", cena: "", snacks: "", pre: "", post: "" },
+      food: { protein: false, fruitveg: false },
+      fitbit: { steps: null, restingHR: null, activeMin: null, sleepHours: null },
+      school: null, notes: ""
+    };
+  }
+  function normalize(date, data) {
+    const base = emptyDay(date);
+    if (!data) return base;
+    const d = clone(data);
+    for (const k of Object.keys(base)) {
+      if (d[k] === undefined) continue;
+      if (base[k] && typeof base[k] === "object" && !Array.isArray(base[k])) base[k] = Object.assign(base[k], d[k] || {});
+      else base[k] = d[k];
+    }
+    base.activities = Array.isArray(base.activities) ? base.activities : [];
+    return base;
+  }
+  const comparable = d => { const c = clone(d); delete c.updatedAt; return JSON.stringify(c); };
+  const hasContent = d => d && (d.activities.length || d.sleep.hours != null || d.energy != null || d.feel != null || d.water > 0 ||
+    Object.values(d.meals).some(v => v && v.trim()) || d.pain.has || d.notes.trim() || d.fitbit.steps != null || d.school);
+  const load = a => (Number(a.min) || 0) * (Number(a.rpe) || 0);
+  const dayLoad = d => d ? d.activities.reduce((s, a) => s + load(a), 0) : 0;
+  const trainMin = d => d ? d.activities.filter(a => (TYPES[a.type] || TYPES.otro).train).reduce((s, a) => s + (Number(a.min) || 0), 0) : 0;
+  const isHard = d => d && (d.activities.some(a => Number(a.rpe) >= 7 && (TYPES[a.type] || TYPES.otro).train) || dayLoad(d) >= 420);
+
+  // ---------- estado ----------
+  let days = {};          // id -> datos guardados
+  let cur = TODAY;        // día abierto
+  let draft = emptyDay(cur);
+  let dirty = false, saving = false, saveTimer = null, loaded = false;
+  let tab = "hoy";
+
+  function setStatus(txt, s) { const el = $("#status"); el.textContent = txt; el.dataset.s = s || ""; }
+
+  // ---------- almacenamiento ----------
+  const store = {
+    mode: "loading", db: null,
+    async init() {
+      let db = null;
+      try { db = (window.claude && window.claude.use) ? await window.claude.use("db") : null; } catch (e) { db = null; }
+      if (db) {
+        this.mode = "db"; this.db = db;
+        db.collection("days").limit(1000).onSnapshot(snap => {
+          const next = {};
+          snap.docs.forEach(doc => { if (doc.exists) next[doc.id] = doc.data(); });
+          onRemote(next);
+        }, err => setStatus("Sin sincronizar (" + err.code + "). Recarga la página.", "bad"));
+      } else {
+        this.mode = "local";
+        $("#localNote").hidden = false;
+        let parsed = {};
+        try { parsed = JSON.parse(localStorage.getItem("bitacora-days") || "{}") || {}; } catch (e) { parsed = {}; }
+        onRemote(parsed);
+      }
+    },
+    async save(day) {
+      const body = clone(day); body.updatedAt = new Date().toISOString();
+      if (this.mode === "db") {
+        try { await this.db.doc("days/" + day.date).set(body); }
+        catch (e) {
+          if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); await this.db.doc("days/" + day.date).set(body); }
+          else throw e;
+        }
+      } else {
+        days[day.date] = body;
+        try { localStorage.setItem("bitacora-days", JSON.stringify(days)); } catch (e) { throw { code: "local" }; }
+      }
+    },
+    async remove(date) {
+      if (this.mode === "db") await this.db.doc("days/" + date).delete();
+      else { delete days[date]; try { localStorage.setItem("bitacora-days", JSON.stringify(days)); } catch (e) {} onRemote(days); }
+    }
+  };
+
+  function onRemote(next) {
+    days = next;
+    if (!loaded) { loaded = true; setStatus(store.mode === "db" ? "Sincronizado" : "Guardado en este navegador", "ok"); }
+    if (!dirty && !saving) {
+      const remote = normalize(cur, days[cur]);
+      if (comparable(remote) !== comparable(draft)) { draft = remote; renderDay(); }
+    }
+    if (tab === "semana") renderWeek();
+    if (tab === "historial") renderHistory();
+  }
+
+  function touch() {
+    dirty = true;
+    setStatus("Guardando…", "saving");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 700);
+  }
+  async function flush() {
+    if (saving) { saveTimer = setTimeout(flush, 400); return; }
+    saving = true; dirty = false;
+    const snapshot = clone(draft);
+    try {
+      await store.save(snapshot);
+      setStatus(store.mode === "db" ? "Guardado" : "Guardado en este navegador", "ok");
+    } catch (e) {
+      dirty = true;
+      const code = e && e.code;
+      setStatus(code === "quota_exceeded" ? "Sin espacio: borra días viejos del historial." : "No se pudo guardar. Revisa tu conexión e inténtalo otra vez.", "bad");
+    } finally { saving = false; }
+  }
+
+  // ---------- vista: día ----------
+  function seg(path, val, n, labels) {
+    let h = '<div class="seg' + (n === 3 ? " seg3" : "") + '">';
+    for (let i = 1; i <= n; i++) {
+      const v = labels ? labels[i - 1][0] : i;
+      const t = labels ? labels[i - 1][1] : i;
+      h += '<button type="button" data-seg="' + path + '" data-val="' + v + '" aria-pressed="' + (String(val) === String(v)) + '">' + t + "</button>";
+    }
+    return h + "</div>";
+  }
+  function get(obj, path) { return path.split(".").reduce((o, k) => o == null ? o : o[k], obj); }
+  function set(obj, path, v) { const ks = path.split("."); const last = ks.pop(); ks.reduce((o, k) => o[k], obj)[last] = v; }
+
+  function actRow(a, i) {
+    const t = TYPES[a.type] || TYPES.otro;
+    const opts = Object.entries(TYPES).map(([k, v]) => '<option value="' + k + '"' + (k === a.type ? " selected" : "") + ">" + v.label + "</option>").join("");
+    return '<div class="act" style="--c: var(' + t.c + ')">' +
+      '<div class="row">' +
+        '<label class="f">Actividad<select id="act-type-' + i + '" data-act="' + i + '" data-field="type">' + opts + "</select></label>" +
+        '<label class="f">Minutos<input id="act-min-' + i + '" type="number" inputmode="numeric" min="0" max="600" data-act="' + i + '" data-field="min" value="' + esc(a.min) + '"></label>' +
+        '<button type="button" class="iconbtn" data-del="' + i + '" aria-label="Quitar actividad">×</button>' +
+      "</div>" +
+      '<div class="rpe"><div class="top"><span>Esfuerzo (RPE)</span><span><span class="num" data-rpeval="' + i + '">' + a.rpe + "</span>/10 · <span data-rpetxt=\"" + i + '">' + RPE_TXT[a.rpe] + "</span></span></div>" +
+        '<input id="act-rpe-' + i + '" type="range" min="1" max="10" step="1" data-act="' + i + '" data-field="rpe" value="' + a.rpe + '"></div>' +
+      '<input id="act-note-' + i + '" type="text" placeholder="Nota (qué trabajaste, cómo te sentiste)" data-act="' + i + '" data-field="note" value="' + esc(a.note) + '">' +
+    "</div>";
+  }
+
+  function renderActs() {
+    const box = $("#acts");
+    if (!box) return;
+    box.innerHTML = draft.activities.length ? draft.activities.map(actRow).join("") :
+      '<div class="empty">Sin actividades. Añade una con los botones de abajo o márcalo como día de descanso.</div>';
+    const tot = draft.activities.reduce((s, a) => s + (Number(a.min) || 0), 0);
+    $("#actSum").textContent = draft.activities.length ? tot + " min · carga " + dayLoad(draft) : "";
+  }
+
+  function renderDay() {
+    const d = draft;
+    const v = $("#view-hoy");
+    const active = document.activeElement && document.activeElement.id;
+    v.innerHTML =
+      '<div class="datebar">' +
+        '<button class="iconbtn" data-nav="-1" aria-label="Día anterior">‹</button>' +
+        '<div class="label"><strong>' + fmtLong(cur) + "</strong>" +
+          (cur === TODAY ? '<span class="muted small">Hoy</span>' : '<button class="linkbtn" data-go-today>Ir a hoy</button>') + "</div>" +
+        '<button class="iconbtn" data-nav="1" aria-label="Día siguiente">›</button>' +
+      "</div>" +
+
+      '<div class="sheet"><header><h2>Entrenamiento</h2><span class="muted small num" id="actSum"></span></header>' +
+        '<div class="acts" id="acts"></div>' +
+        '<div class="chips">' + QUICK.map(([k, m]) => '<button type="button" class="chip" data-quick="' + k + '"><span class="dot" style="background:var(' + TYPES[k].c + ')"></span>+ ' + TYPES[k].label.replace("Fuerza · cuerpo completo", "Fuerza") + " " + m + "′</button>").join("") +
+          '<button type="button" class="chip" data-quick="otro">+ Otra</button></div>' +
+        '<p class="muted small" style="margin:0">RPE = qué tan duro se sintió (1 muy suave, 10 máximo). Carga = minutos × RPE. Sirve para comparar días distintos.</p>' +
+      "</div>" +
+
+      '<div class="sheet"><header><h2>Recuperación</h2></header>' +
+        '<div class="grid2">' +
+          '<label class="f">Horas de sueño<input id="f-sleep" type="number" inputmode="decimal" step="0.25" min="0" max="16" data-path="sleep.hours" data-num value="' + esc(d.sleep.hours) + '"></label>' +
+          '<div class="f"><span class="muted small">Calidad del sueño (1–5)</span>' + seg("sleep.quality", d.sleep.quality, 5) + "</div>" +
+        "</div>" +
+        '<div class="grid2">' +
+          '<div class="f"><span class="muted small">Energía (1–5)</span>' + seg("energy", d.energy, 5) + "</div>" +
+          '<div class="f"><span class="muted small">Cómo te sentiste entrenando (1–5)</span>' + seg("feel", d.feel, 5) + "</div>" +
+        "</div>" +
+        '<label class="check"><input id="f-pain" type="checkbox" data-path="pain.has" data-bool' + (d.pain.has ? " checked" : "") + '> Tengo alguna molestia o dolor</label>' +
+        (d.pain.has ?
+          '<label class="f">¿Dónde y cómo es?<input id="f-painwhere" type="text" data-path="pain.where" value="' + esc(d.pain.where) + '" placeholder="Ej: hombro derecho al lanzar el jab"></label>' +
+          '<div class="note bad"><strong>No entrenes a través del dolor.</strong>Si es fuerte, empeora o te obliga a cambiar cómo te mueves, para esa actividad. Cuéntaselo a un adulto y a tu entrenador. Si sigue, que te vea un profesional de salud. Mareos, dolor en el pecho o dificultad para respirar: para de inmediato y avisa a un adulto.</div>' : "") +
+      "</div>" +
+
+      '<div class="sheet"><header><h2>Comida y agua</h2></header>' +
+        '<div class="grid2">' + MEALS.map(([k, t]) => '<label class="f">' + t + '<textarea id="f-meal-' + k + '" rows="2" data-path="meals.' + k + '">' + esc(d.meals[k]) + "</textarea></label>").join("") + "</div>" +
+        '<label class="check"><input id="f-protein" type="checkbox" data-path="food.protein" data-bool' + (d.food.protein ? " checked" : "") + '> Proteína en la mayoría de las comidas (huevo, carne, pollo, pescado, lácteos, legumbres)</label>' +
+        '<label class="check"><input id="f-fruitveg" type="checkbox" data-path="food.fruitveg" data-bool' + (d.food.fruitveg ? " checked" : "") + '> Fruta o verdura en al menos 2 comidas</label>' +
+        '<div class="f"><span class="muted small">Agua (vasos de 250 ml)</span><div class="counter">' +
+          '<button type="button" class="iconbtn" data-water="-1" aria-label="Un vaso menos">−</button><span class="val" id="waterVal">' + d.water + '</span>' +
+          '<button type="button" class="iconbtn" data-water="1" aria-label="Un vaso más">+</button><span class="muted small num" id="waterL">' + r1(d.water * 0.25) + " L</span></div></div>" +
+      "</div>" +
+
+      '<div class="sheet"><header><h2>Fitbit</h2><span class="muted small">Opcional</span></header>' +
+        '<div class="grid2">' +
+          '<label class="f">Pasos<input id="f-steps" type="number" inputmode="numeric" min="0" data-path="fitbit.steps" data-num value="' + esc(d.fitbit.steps) + '"></label>' +
+          '<label class="f">FC en reposo (lpm)<input id="f-hr" type="number" inputmode="numeric" min="0" data-path="fitbit.restingHR" data-num value="' + esc(d.fitbit.restingHR) + '"></label>' +
+          '<label class="f">Minutos en zona activa<input id="f-am" type="number" inputmode="numeric" min="0" data-path="fitbit.activeMin" data-num value="' + esc(d.fitbit.activeMin) + '"></label>' +
+          '<label class="f">Sueño según Fitbit (h)<input id="f-fs" type="number" inputmode="decimal" step="0.1" min="0" data-path="fitbit.sleepHours" data-num value="' + esc(d.fitbit.sleepHours) + '"></label>' +
+        "</div>" +
+      "</div>" +
+
+      '<div class="sheet"><header><h2>Colegio y notas</h2></header>' +
+        '<div class="f"><span class="muted small">Carga del colegio hoy</span>' + seg("school", d.school, 3, [["ligera", "Ligera"], ["normal", "Normal"], ["pesada", "Pesada (examen, entrega)"]]) + "</div>" +
+        '<label class="f">Notas del día<textarea id="f-notes" rows="3" data-path="notes" placeholder="Lo que dijo tu entrenador, cómo te fue, qué quieres recordar">' + esc(d.notes) + "</textarea></label>" +
+        (hasContent(d) ? '<div class="confirm" id="delBox"><button type="button" class="btn danger" data-askdel>Borrar este día</button></div>' : "") +
+      "</div>";
+    renderActs();
+    if (active) { const el = document.getElementById(active); if (el) el.focus(); }
+  }
+
+  function readInput(el) {
+    if (el.dataset.act != null) {
+      const i = Number(el.dataset.act), f = el.dataset.field, a = draft.activities[i];
+      if (!a) return;
+      if (f === "min") a.min = el.value === "" ? 0 : Math.max(0, Number(el.value));
+      else if (f === "rpe") {
+        a.rpe = Number(el.value);
+        $('[data-rpeval="' + i + '"]').textContent = a.rpe; $('[data-rpetxt="' + i + '"]').textContent = RPE_TXT[a.rpe];
+      } else if (f === "type") { a.type = el.value; renderActs(); }
+      else a[f] = el.value;
+      const tot = draft.activities.reduce((s, x) => s + (Number(x.min) || 0), 0);
+      $("#actSum").textContent = tot + " min · carga " + dayLoad(draft);
+      touch(); return;
+    }
+    const p = el.dataset.path; if (!p) return;
+    let val = el.value;
+    if (el.dataset.bool != null) val = el.checked;
+    else if (el.dataset.num != null) val = el.value === "" ? null : Number(el.value);
+    set(draft, p, val);
+    touch();
+    if (p === "pain.has") renderDay();
+  }
+
+  function onDayClick(e) {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.dataset.nav) return openDay(addDays(cur, Number(t.dataset.nav)));
+    if (t.hasAttribute("data-go-today")) return openDay(TODAY);
+    if (t.dataset.quick) {
+      const q = QUICK.find(x => x[0] === t.dataset.quick) || ["otro", 45, 5];
+      draft.activities.push({ type: q[0], min: q[1], rpe: q[2], note: "" });
+      renderActs(); touch(); return;
+    }
+    if (t.dataset.del != null) { draft.activities.splice(Number(t.dataset.del), 1); renderActs(); touch(); return; }
+    if (t.dataset.seg) {
+      const p = t.dataset.seg, raw = t.dataset.val, val = isNaN(Number(raw)) ? raw : Number(raw);
+      const next = String(get(draft, p)) === String(val) ? null : val;
+      set(draft, p, next);
+      t.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(next) === b.dataset.val ? "true" : "false"));
+      touch(); return;
+    }
+    if (t.dataset.water) {
+      draft.water = Math.max(0, draft.water + Number(t.dataset.water));
+      $("#waterVal").textContent = draft.water; $("#waterL").textContent = r1(draft.water * 0.25) + " L";
+      touch(); return;
+    }
+    if (t.hasAttribute("data-askdel")) {
+      $("#delBox").innerHTML = '<span>¿Borrar todo lo registrado el ' + fmtShort(cur) + '?</span><button type="button" class="btn danger" data-dodel>Sí, borrar</button><button type="button" class="btn" data-canceldel>Cancelar</button>';
+      return;
+    }
+    if (t.hasAttribute("data-canceldel")) return renderDay();
+    if (t.hasAttribute("data-dodel")) {
+      clearTimeout(saveTimer); dirty = false;
+      store.remove(cur).then(() => { draft = emptyDay(cur); renderDay(); setStatus("Día borrado", "ok"); })
+        .catch(() => setStatus("No se pudo borrar. Inténtalo otra vez.", "bad"));
+    }
+  }
+
+  async function openDay(date) {
+    if (dirty) { clearTimeout(saveTimer); await flush(); }
+    cur = date; draft = normalize(cur, days[cur]); renderDay();
+    if (tab !== "hoy") showTab("hoy");
+    window.scrollTo({ top: 0 });
+  }
+
+  // ---------- vista: semana ----------
+  function analyzeWeek(start) {
+    const list = [];
+    for (let i = 0; i < 7; i++) { const id = addDays(start, i); list.push({ id, d: days[id] ? normalize(id, days[id]) : null }); }
+    const logged = list.filter(x => hasContent(x.d));
+    const acts = list.flatMap(x => x.d ? x.d.activities.map(a => Object.assign({ date: x.id }, a)) : []);
+    const byType = {};
+    acts.forEach(a => { const k = a.type in TYPES ? a.type : "otro"; byType[k] = byType[k] || { n: 0, min: 0, load: 0 }; byType[k].n++; byType[k].min += Number(a.min) || 0; byType[k].load += load(a); });
+    const totalMin = acts.reduce((s, a) => s + (Number(a.min) || 0), 0);
+    const totalLoad = acts.reduce((s, a) => s + load(a), 0);
+    const trainDays = list.filter(x => trainMin(x.d) > 0).length;
+    const restDays = logged.filter(x => trainMin(x.d) === 0).length;
+    const sleeps = list.map(x => x.d && x.d.sleep.hours).filter(v => v != null && v > 0);
+    const energies = list.map(x => x.d && x.d.energy).filter(v => v != null);
+    const waters = logged.map(x => x.d.water).filter(v => v > 0);
+    const steps = list.map(x => x.d && x.d.fitbit.steps).filter(v => v != null && v > 0);
+    const groups = {};
+    acts.forEach(a => ((TYPES[a.type] || TYPES.otro).groups).forEach(g => { groups[g] = (groups[g] || 0) + 1; }));
+
+    // carga de las 3 semanas anteriores
+    const prev = [1, 2, 3].map(w => {
+      const s = addDays(start, -7 * w); let l = 0, any = false;
+      for (let i = 0; i < 7; i++) { const dd = days[addDays(s, i)]; if (dd) { any = true; l += dayLoad(normalize(s, dd)); } }
+      return any ? l : null;
+    }).filter(v => v != null);
+
+    const flags = [], goods = [];
+    if (logged.length < 4) flags.push(["info", "Análisis parcial", "Registraste " + logged.length + " de 7 días. Con pocos días registrados, lo de abajo puede no reflejar tu semana real."]);
+    const pains = list.filter(x => x.d && x.d.pain.has);
+    if (pains.length) flags.push(["bad", "Molestias reportadas", pains.map(x => DOW[(parse(x.id).getDay() + 6) % 7] + (x.d.pain.where ? " (" + x.d.pain.where + ")" : "")).join(", ") + ". Si se repite o no mejora, díselo a tu entrenador y a un adulto antes de seguir cargando esa zona."]);
+    const sAvg = avg(sleeps);
+    if (sleeps.length >= 3 && sAvg < 8) flags.push(["warn", "Poco sueño", "Promedio de " + r1(sAvg) + " h. A tu edad se recomiendan 8–10 h. El sueño es donde el cuerpo se adapta al entrenamiento; recortarlo te quita más rendimiento que saltarte una sesión."]);
+    else if (sleeps.length >= 3) goods.push("Dormiste " + r1(sAvg) + " h en promedio. Eso sostiene todo lo demás.");
+    let streak = 0, maxStreak = 0;
+    list.forEach(x => { streak = isHard(x.d) ? streak + 1 : 0; maxStreak = Math.max(maxStreak, streak); });
+    if (maxStreak >= 3) flags.push(["warn", maxStreak + " días seguidos de alta intensidad", "Encadenar días duros sin uno suave en medio acumula fatiga. Mete un día suave (caminata, movilidad) entre sesiones exigentes."]);
+    if (logged.length === 7 && restDays === 0) flags.push(["warn", "Ningún día de descanso", "Entrenaste los 7 días. Al menos 1 día a la semana sin entrenamiento es cuando realmente te recuperas."]);
+    else if (restDays >= 1 && trainDays >= 3) goods.push(restDays + (restDays === 1 ? " día" : " días") + " de descanso junto a " + trainDays + " días de entreno. Buen equilibrio.");
+    if (prev.length >= 2 && totalLoad > 0) {
+      const pAvg = avg(prev), ratio = totalLoad / pAvg;
+      if (ratio > 1.3) flags.push(["warn", "La carga subió " + Math.round((ratio - 1) * 100) + "%", "Comparado con tu promedio de las semanas anteriores. Subir más de ~30% de golpe es cuando aparecen más lesiones y cansancio. Sube de a poco."]);
+      else if (ratio >= 0.8) goods.push("Carga parecida a tus semanas anteriores (" + Math.round(ratio * 100) + "%). Progresión estable.");
+    }
+    const eAvg = avg(energies);
+    if (energies.length >= 3 && eAvg <= 2.5) flags.push(["warn", "Energía baja", "Promedio " + r1(eAvg) + "/5. Revisa primero sueño y comida antes de pensar en entrenar más."]);
+    const wAvg = avg(waters);
+    if (waters.length >= 3 && wAvg < 6) flags.push(["info", "Hidratación", "Promedio de " + r1(wAvg) + " vasos (" + r1(wAvg * 0.25) + " L). Apunta a 8 o más, y más en días de boxeo o tenis."]);
+    const underfed = list.filter(x => x.d && trainMin(x.d) >= 45 && ["desayuno", "almuerzo", "cena"].filter(k => x.d.meals[k] && x.d.meals[k].trim()).length < 3 && Object.values(x.d.meals).some(v => v && v.trim()));
+    if (underfed.length) flags.push(["warn", "Días de entreno con pocas comidas", underfed.map(x => fmtShort(x.id)).join(", ") + ": entrenaste 45+ min y registraste menos de 3 comidas principales. Estás en crecimiento y necesitas energía suficiente. Si pasa seguido, háblalo con un adulto o con un nutricionista."]);
+    const noPre = list.filter(x => x.d && trainMin(x.d) >= 45 && Object.values(x.d.meals).some(v => v && v.trim()) && !(x.d.meals.pre || "").trim());
+    if (noPre.length >= 2) flags.push(["info", "Sin comida antes de entrenar", "Algo simple 1–2 h antes (fruta, pan, yogur) mejora el rendimiento en boxeo y tenis."]);
+    const prot = logged.filter(x => x.d.food.protein).length;
+    if (logged.length >= 3 && prot >= Math.ceil(logged.length * 0.7)) goods.push("Proteína presente en la mayoría de los días registrados.");
+    const busyHard = list.filter(x => x.d && x.d.school === "pesada" && isHard(x.d));
+    if (busyHard.length) flags.push(["info", "Colegio pesado y entreno duro el mismo día", busyHard.map(x => fmtShort(x.id)).join(", ") + ". Esos días conviene bajar la intensidad o la duración para no terminar agotado."]);
+    const hasStrength = Object.keys(byType).some(k => k.startsWith("fuerza"));
+    if (!hasStrength && trainDays >= 2) flags.push(["info", "Sin trabajo de fuerza", "1–2 sesiones cortas por semana (30–40 min, técnica primero) te dan más potencia en golpes y saques y protegen hombros y rodillas."]);
+    if (logged.length >= 6) goods.push("Registraste " + logged.length + " de 7 días. Con eso el análisis es fiable.");
+
+    return { list, logged, byType, totalMin, totalLoad, trainDays, restDays, sAvg, sleeps, eAvg, wAvg, steps, groups, prev, flags, goods };
+  }
+
+  function chartSVG(w) {
+    const W = 700, H = 230, L = 40, R = 10, T = 14, B = 44;
+    const totals = w.list.map(x => x.d ? x.d.activities.reduce((s, a) => s + (Number(a.min) || 0), 0) : 0);
+    const maxV = Math.max(60, ...totals);
+    const top = Math.ceil(maxV / 30) * 30;
+    const step = top <= 120 ? 30 : top <= 240 ? 60 : 90;
+    const y = v => T + (H - T - B) * (1 - v / top);
+    const bw = (W - L - R) / 7;
+    const fg = cssv("--fg"), mu = cssv("--muted"), li = cssv("--line");
+    let s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Minutos de actividad por día">';
+    for (let v = 0; v <= top; v += step) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + li + '" stroke-width="1"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="' + mu + '" font-family="IBM Plex Mono, monospace">' + v + "</text>";
+    w.list.forEach((x, i) => {
+      const cx = L + bw * i + bw * 0.2, wd = bw * 0.6;
+      let acc = 0;
+      if (x.d) x.d.activities.forEach(a => {
+        const m = Number(a.min) || 0; if (!m) return;
+        const y0 = y(acc), y1 = y(acc + m);
+        s += '<rect x="' + cx + '" y="' + y1 + '" width="' + wd + '" height="' + Math.max(0, y0 - y1 - 1) + '" rx="2" fill="' + cssv((TYPES[a.type] || TYPES.otro).c) + '"><title>' + esc((TYPES[a.type] || TYPES.otro).label + " " + m + " min, RPE " + a.rpe) + "</title></rect>";
+        acc += m;
+      });
+      const lab = DOW[i], sub = !hasContent(x.d) ? "—" : totals[i] ? "C " + dayLoad(x.d) : "desc.";
+      s += '<text x="' + (cx + wd / 2) + '" y="' + (H - B + 17) + '" text-anchor="middle" font-size="13" fill="' + (x.id === TODAY ? cssv("--accent") : fg) + '" font-weight="600">' + lab + "</text>";
+      s += '<text x="' + (cx + wd / 2) + '" y="' + (H - B + 33) + '" text-anchor="middle" font-size="11" fill="' + mu + '" font-family="IBM Plex Mono, monospace">' + sub + "</text>";
+    });
+    return s + "</svg>";
+  }
+
+  let weekOf = weekStart(TODAY);
+  function renderWeek() {
+    const w = analyzeWeek(weekOf);
+    const end = addDays(weekOf, 6);
+    const v = $("#view-semana");
+    const usedTypes = Object.keys(w.byType);
+    const legendColors = [...new Map(usedTypes.map(k => [TYPES[k].c, k])).entries()];
+    v.innerHTML =
+      '<div class="datebar"><button class="iconbtn" data-wk="-1" aria-label="Semana anterior">‹</button>' +
+        '<div class="label"><strong>' + fmtShort(weekOf) + " – " + fmtShort(end) + "</strong>" +
+        (weekOf === weekStart(TODAY) ? '<span class="muted small">Esta semana</span>' : '<button class="linkbtn" data-wk-now>Ir a esta semana</button>') + "</div>" +
+        '<button class="iconbtn" data-wk="1" aria-label="Semana siguiente">›</button></div>' +
+      (!w.logged.length ? '<div class="empty">No hay nada registrado esta semana. Ve a <b>Día</b> y registra tu primera actividad, tu sueño o lo que comiste.</div>' :
+      '<div class="tiles">' +
+        '<div class="tile"><div class="k">Días entrenados</div><div class="v">' + w.trainDays + '<span class="muted small"> /7</span></div><div class="s">' + w.restDays + " de descanso · " + (7 - w.logged.length) + " sin registro</div></div>" +
+        '<div class="tile"><div class="k">Minutos</div><div class="v">' + w.totalMin + '</div><div class="s">Carga ' + w.totalLoad + (w.prev.length ? " · antes ~" + Math.round(avg(w.prev)) : "") + "</div></div>" +
+        '<div class="tile"><div class="k">Sueño promedio</div><div class="v">' + (w.sAvg != null ? r1(w.sAvg) + '<span class="muted small"> h</span>' : "—") + '</div><div class="s">Meta: 8–10 h</div></div>' +
+        '<div class="tile"><div class="k">Energía</div><div class="v">' + (w.eAvg != null ? r1(w.eAvg) + '<span class="muted small"> /5</span>' : "—") + '</div><div class="s">' + (w.steps.length ? "Pasos ~" + Math.round(avg(w.steps)).toLocaleString("es") + "/día" : "Sin datos de Fitbit") + "</div></div>" +
+      "</div>" +
+      '<div class="sheet"><header><h2>Minutos por día</h2><span class="muted small">C = carga del día</span></header><div class="chart">' + chartSVG(w) + "</div>" +
+        '<div class="legend">' + legendColors.map(([c, k]) => '<span><span class="dot" style="background:var(' + c + ')"></span>' + (c === "--c-str" ? "Fuerza" : TYPES[k].label) + "</span>").join("") + "</div></div>" +
+      '<div class="sheet"><header><h2>Actividad</h2></header><div class="tablewrap"><table><thead><tr><th>Actividad</th><th class="n">Sesiones</th><th class="n">Min</th><th class="n">Carga</th></tr></thead><tbody>' +
+        (usedTypes.length ? usedTypes.map(k => '<tr><td><span class="dot" style="background:var(' + TYPES[k].c + ')"></span> ' + TYPES[k].label + '</td><td class="n">' + w.byType[k].n + '</td><td class="n">' + w.byType[k].min + '</td><td class="n">' + w.byType[k].load + "</td></tr>").join("") : '<tr><td colspan="4" class="muted">Sin actividades.</td></tr>') +
+        "</tbody></table></div>" +
+        (Object.keys(w.groups).length ? '<div><h3 style="margin-bottom:6px">Zonas trabajadas (sesiones)</h3><div class="chips">' + Object.entries(w.groups).sort((a, b) => b[1] - a[1]).map(([g, n]) => '<span class="chip" style="cursor:default">' + esc(g) + ' <span class="num muted">' + n + "</span></span>").join("") + "</div></div>" : "") +
+      "</div>" +
+      '<div class="sheet"><header><h2>Lectura del coach</h2></header><div class="flags">' +
+        w.flags.map(f => '<div class="note ' + f[0] + '"><strong>' + esc(f[1]) + "</strong>" + esc(f[2]) + "</div>").join("") +
+        w.goods.map(g => '<div class="note good"><strong>Bien</strong>' + esc(g) + "</div>").join("") +
+        (!w.flags.length && !w.goods.length ? '<div class="muted">Aún no hay suficiente información para sacar conclusiones.</div>' : "") +
+      '</div><p class="muted small" style="margin:0">Son reglas simples basadas en lo que registras, no un diagnóstico. Tu entrenador y un profesional de salud tienen la última palabra.</p></div>' +
+      '<div class="sheet"><header><h2>Enviar al coach</h2></header><p class="muted small" style="margin:0">Copia este resumen y pégalo en el chat si quieres un análisis más a fondo.</p>' +
+        '<div class="chips"><button type="button" class="btn primary" data-copy>Copiar resumen</button><span class="muted small" id="copyMsg"></span></div><pre class="copy" id="copyText">' + esc(weekText(w)) + "</pre></div>");
+  }
+
+  function weekText(w) {
+    const out = ["Resumen semanal " + fmtShort(weekOf) + " – " + fmtShort(addDays(weekOf, 6))];
+    w.list.forEach((x, i) => {
+      const d = x.d;
+      if (!hasContent(d)) { out.push(DOW[i] + " " + fmtShort(x.id) + ": sin registro"); return; }
+      const parts = [];
+      parts.push(d.activities.length ? d.activities.map(a => (TYPES[a.type] || TYPES.otro).label + " " + a.min + "min RPE" + a.rpe + (a.note ? " (" + a.note + ")" : "")).join(" + ") : "Descanso");
+      if (d.sleep.hours != null) parts.push("sueño " + d.sleep.hours + "h" + (d.sleep.quality ? " cal." + d.sleep.quality + "/5" : ""));
+      if (d.energy != null) parts.push("energía " + d.energy + "/5");
+      if (d.water) parts.push("agua " + d.water + " vasos");
+      if (d.pain.has) parts.push("MOLESTIA: " + (d.pain.where || "sin detalle"));
+      if (d.school) parts.push("colegio " + d.school);
+      if (d.fitbit.steps != null) parts.push(d.fitbit.steps + " pasos");
+      if (d.fitbit.restingHR != null) parts.push("FC reposo " + d.fitbit.restingHR);
+      const meals = MEALS.filter(([k]) => d.meals[k] && d.meals[k].trim()).map(([k, t]) => t + ": " + d.meals[k].trim());
+      out.push(DOW[i] + " " + fmtShort(x.id) + ": " + parts.join(" · ") + (meals.length ? "\n   Comida: " + meals.join(" | ") : "") + (d.notes && d.notes.trim() ? "\n   Notas: " + d.notes.trim() : ""));
+    });
+    out.push("Totales: " + w.trainDays + " días entrenados, " + w.totalMin + " min, carga " + w.totalLoad + (w.sAvg != null ? ", sueño prom. " + r1(w.sAvg) + "h" : ""));
+    return out.join("\n");
+  }
+
+  function onWeekClick(e) {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.dataset.wk) { weekOf = addDays(weekOf, 7 * Number(t.dataset.wk)); renderWeek(); }
+    else if (t.hasAttribute("data-wk-now")) { weekOf = weekStart(TODAY); renderWeek(); }
+    else if (t.hasAttribute("data-copy")) {
+      const txt = $("#copyText").textContent, msg = $("#copyMsg");
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents($("#copyText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = "Texto seleccionado: cópialo manualmente."; };
+      try { navigator.clipboard.writeText(txt).then(() => { msg.textContent = "Copiado."; }, fallback); } catch (err) { fallback(); }
+    }
+  }
+
+  // ---------- vista: historial ----------
+  function renderHistory() {
+    const ids = Object.keys(days).filter(id => hasContent(normalize(id, days[id]))).sort().reverse();
+    const v = $("#view-historial");
+    v.innerHTML = '<div class="sheet"><header><h2>Historial</h2><span class="muted small num">' + ids.length + " días</span></header>" +
+      (ids.length ? '<div class="hist">' + ids.map(id => {
+        const d = normalize(id, days[id]);
+        const acts = d.activities.length ? d.activities.map(a => '<span class="chip" style="cursor:inherit"><span class="dot" style="background:var(' + (TYPES[a.type] || TYPES.otro).c + ')"></span>' + (TYPES[a.type] || TYPES.otro).label + " " + a.min + "′</span>").join("") : '<span class="muted small">Descanso</span>';
+        const meta = [d.sleep.hours != null ? "Sueño " + d.sleep.hours + " h" : "", d.energy != null ? "Energía " + d.energy + "/5" : "", d.pain.has ? "Molestia" : ""].filter(Boolean).join(" · ");
+        return '<button type="button" data-open="' + id + '"><span class="d">' + fmtLong(id) + '</span><span class="chips">' + acts + "</span>" + (meta ? '<span class="muted small">' + meta + "</span>" : "") + "</button>";
+      }).join("") + "</div>" : '<div class="empty">Todavía no hay días registrados. Lo que anotes en <b>Día</b> aparecerá aquí.</div>') + "</div>";
+  }
+
+  // ---------- pestañas ----------
+  function showTab(name) {
+    tab = name;
+    ["hoy", "semana", "historial"].forEach(t => {
+      $("#view-" + t).hidden = t !== name;
+      $("#tab-" + t).setAttribute("aria-selected", t === name ? "true" : "false");
+    });
+    if (name === "semana") { weekOf = weekStart(cur); renderWeek(); }
+    if (name === "historial") renderHistory();
+  }
+
+  document.querySelector("nav.tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) showTab(b.dataset.tab); });
+  const vh = $("#view-hoy");
+  vh.addEventListener("input", e => readInput(e.target));
+  vh.addEventListener("change", e => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") readInput(e.target); });
+  vh.addEventListener("click", onDayClick);
+  $("#view-semana").addEventListener("click", onWeekClick);
+  $("#view-historial").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) openDay(b.dataset.open); });
+  window.addEventListener("pagehide", () => { if (dirty) flush(); });
+
+  // avoid double-handling: checkbox and select fire both input and change
+  vh.addEventListener("input", e => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") e.stopImmediatePropagation(); }, true);
+
+  renderDay();
+  const h = (location.hash || "").slice(1);
+  if (h === "semana" || h === "historial") showTab(h);
+  store.init();
+})();
+</script>
