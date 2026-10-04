@@ -1,41 +1,44 @@
 # MiniCraft
 
-Un prototipo de juego de bloques tipo Minecraft que corre en el navegador. Usa [Three.js](https://threejs.org/) y todo está en un solo archivo: `index.html`.
+Un juego de bloques tipo Minecraft que corre en el navegador, en computadora o celular. Usa [Three.js](https://threejs.org/) y todo está en un solo archivo: `index.html`.
 
 ## Cómo jugar
 
-1. Abre `index.html` con doble clic en Chrome, Edge o Firefox (o en el navegador del celular). Necesitas internet porque Three.js se descarga de un CDN.
-2. Haz clic o toca la pantalla para empezar.
+1. Abre `index.html` con doble clic en Chrome, Edge o Firefox, o en el navegador del celular. Necesitas internet porque Three.js se descarga de un CDN.
+2. Haz clic o toca **Jugar**.
 
 ### En celular o tablet
 
-Usa el joystick de la izquierda para caminar y desliza el dedo por la pantalla para mirar. Los botones de la derecha sirven para romper, poner, saltar, volar y guardar. Toca un bloque de la barra de arriba para elegirlo. Se juega mejor con la pantalla en horizontal.
+Usa el joystick de la izquierda para caminar; si lo empujas hasta el borde, corres. Desliza el dedo por la pantalla para mirar. Los botones de la derecha sirven para romper, poner, saltar o nadar, volar y guardar. Mantén pulsado Romper o Poner para hacerlo seguido. Toca un bloque de la barra de arriba para elegirlo. El personaje salta solo cuando chocas con un escalón. Se juega mejor con la pantalla en horizontal.
 
 ### En computadora
 
 | Tecla | Acción |
 |---|---|
-| W A S D | Moverse |
-| Espacio | Saltar |
+| W A S D o flechas | Moverse |
+| Espacio | Saltar o nadar hacia arriba |
 | Shift | Correr |
 | F | Activar o desactivar el vuelo (Espacio sube, C baja) |
-| Clic izquierdo | Romper un bloque |
-| Clic derecho | Poner un bloque |
-| 1–8 / rueda del ratón | Elegir bloque |
+| Clic izquierdo (mantener) | Romper bloques |
+| Clic derecho (mantener) | Poner bloques |
+| 1–9 / rueda del ratón | Elegir bloque |
 | G | Guardar el mundo en el navegador |
 | Esc | Pausa |
 
 ## Qué tiene
 
-- Mundo de 128×128×48 bloques generado con ruido (colinas, playas y árboles)
-- Malla por chunks (16×16) que solo dibuja las caras visibles
-- Oclusión ambiental simple en las esquinas
-- Física con gravedad y colisiones
+- Texturas pixeladas de 16×16 generadas por código
+- Una isla de 128×128 bloques rodeada de océano, con playas, colinas, montañas nevadas, árboles, hierba alta, flores, carbón y hierro
+- Agua transparente en la que puedes nadar
+- Ciclo de día y noche de 10 minutos, con sol, luna, estrellas, atardecer y nubes
+- Oclusión ambiental en las esquinas de los bloques
+- Movimiento con aceleración suave, balanceo de cámara y zoom al correr
+- Bloque en la mano con animación y partículas al romper
+- Controles táctiles
 - Guardado en `localStorage`
-- Controles táctiles para celular y tablet
 
 ## Qué no tiene (todavía)
 
-Texturas reales, agua, mundo infinito, mobs, inventario, crafteo, ciclo de día y noche, sonido y multijugador.
+Mundo infinito, cuevas, agua que fluye, mobs, inventario, crafteo, sonido y multijugador.
 
 Para empezar de nuevo con un mundo recién generado, borra los datos del sitio en tu navegador.
