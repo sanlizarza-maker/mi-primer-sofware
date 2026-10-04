@@ -63,7 +63,8 @@
   #toast {
     position: fixed; left: 50%; top: 30%; transform: translateX(-50%);
     font: 11px var(--pixel); text-shadow: 2px 2px 0 var(--shadow); pointer-events: none;
-    transition: opacity .3s; opacity: 0; white-space: nowrap;
+    transition: opacity .3s; opacity: 0; text-align: center; line-height: 1.6;
+    width: max-content; max-width: calc(100vw - 32px);
   }
 
   #menu {
@@ -136,7 +137,7 @@
     <h1>MiniCraft</h1>
     <div class="play">Jugar</div>
     <p><b>Computadora:</b> WASD moverse · Espacio saltar o nadar · Shift correr · F volar (C baja) · Clic izquierdo romper · Clic derecho poner · 1-9 o rueda elegir bloque · G guardar · Esc pausa</p>
-    <p><b>Celular o tablet:</b> joystick para caminar, desliza el dedo para mirar y usa los botones. Mantén pulsado Romper o Poner para hacerlo seguido. Mejor con la pantalla en horizontal.</p>
+    <p><b>Celular o tablet:</b> toca un bloque en la pantalla para construir encima o al lado, y mantén el dedo sobre un bloque para romperlo. Joystick para caminar, desliza el dedo para mirar. Mejor con la pantalla en horizontal.</p>
   </div>
 </div>
 
@@ -766,7 +767,7 @@ function updateParticles(dt) {
 // ---------------------------------------------------------------------------
 const player = {
   pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-  yaw: 0, pitch: -0.1, onGround: false, flying: false, inWater: false,
+  yaw: 0, pitch: -0.4, onGround: false, flying: false, inWater: false,
 };
 const HALF_W = 0.3, HEIGHT = 1.8, EYE = 1.62;
 
@@ -832,8 +833,19 @@ let menuPointer = 'mouse';
 // Mantener pulsado repite la acción
 const held = { 0: false, 2: false };
 let repeatTimer = 0;
-function press(btn) { held[btn] = true; act(btn); repeatTimer = 0.3; }
+let heldDir = null; // null = apuntar con la cruz del centro
+function press(btn) { held[btn] = true; act(btn, heldDir); repeatTimer = 0.3; }
 function release(btn) { held[btn] = false; }
+
+// Si el navegador no deja capturar el ratón: clic sobre el bloque y arrastrar para mirar
+let freeMouse = false;
+function startFreeMouse() {
+  if (freeMouse || touchMode) return;
+  freeMouse = true;
+  menu.style.display = 'none';
+  toast('Arrastra para mirar · clic izq. rompe · clic der. pone', 4000);
+}
+document.addEventListener('pointerlockerror', startFreeMouse);
 
 menu.addEventListener('pointerdown', e => { menuPointer = e.pointerType; });
 menu.addEventListener('click', () => {
@@ -846,8 +858,8 @@ menu.addEventListener('click', () => {
   }
   try {
     const r = canvas.requestPointerLock();
-    if (r && r.catch) r.catch(() => toast('Tu navegador no dejó capturar el ratón'));
-  } catch {}
+    if (r && r.catch) r.catch(startFreeMouse);
+  } catch { startFreeMouse(); }
 });
 document.addEventListener('pointerlockchange', () => {
   if (touchMode) return;
@@ -879,6 +891,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyG') saveWorld();
   if (e.code === 'Space') e.preventDefault();
+  if (e.code === 'Escape' && freeMouse) { freeMouse = false; menu.style.display = 'flex'; }
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; held[0] = held[2] = false; });
@@ -900,19 +913,51 @@ addEventListener('mouseup', e => { if (e.button === 0 || e.button === 2) release
 
 // Táctil: deslizar para mirar, joystick para caminar
 const touch = { jump: false, down: false, x: 0, y: 0 };
-let lookId = null, lookX = 0, lookY = 0;
+// Tocar un bloque = poner; mantener el dedo = romper; arrastrar = mirar
+const TAP_SLOP = 12, TAP_TIME = 350, LONG_PRESS = 380;
+let lookId = null, lookX = 0, lookY = 0, moved = 0, downTime = 0, downButton = 0;
+let longTimer = 0, longActive = false;
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function screenDir(x, y) {
+  ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  return raycaster.ray.direction.clone();
+}
 canvas.addEventListener('pointerdown', e => {
-  if (!touchMode || e.pointerType === 'mouse' || lookId !== null) return;
+  if (!(touchMode || freeMouse) || lookId !== null) return;
   lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY;
+  moved = 0; downTime = performance.now(); downButton = e.button; longActive = false;
   canvas.setPointerCapture(e.pointerId);
+  if (e.pointerType !== 'mouse') {
+    clearTimeout(longTimer);
+    longTimer = setTimeout(() => {
+      if (lookId === null || moved >= TAP_SLOP) return;
+      longActive = true;
+      heldDir = screenDir(lookX, lookY);
+      press(0);
+    }, LONG_PRESS);
+  }
 });
 canvas.addEventListener('pointermove', e => {
   if (e.pointerId !== lookId) return;
-  look(e.clientX - lookX, e.clientY - lookY, 0.0055);
+  const dx = e.clientX - lookX, dy = e.clientY - lookY;
+  moved += Math.abs(dx) + Math.abs(dy);
   lookX = e.clientX; lookY = e.clientY;
+  if (longActive) heldDir = screenDir(lookX, lookY);
+  else if (moved >= TAP_SLOP) look(dx, dy, e.pointerType === 'mouse' ? 0.004 : 0.0055);
 });
 for (const ev of ['pointerup', 'pointercancel'])
-  canvas.addEventListener(ev, e => { if (e.pointerId === lookId) lookId = null; });
+  canvas.addEventListener(ev, e => {
+    if (e.pointerId !== lookId) return;
+    lookId = null;
+    clearTimeout(longTimer);
+    if (longActive) { longActive = false; release(0); heldDir = null; return; }
+    if (ev === 'pointerup' && moved < TAP_SLOP && performance.now() - downTime < TAP_TIME) {
+      const dir = screenDir(e.clientX, e.clientY);
+      act(e.pointerType === 'mouse' && downButton === 0 ? 0 : 2, dir);
+    }
+  });
 
 const joyEl = document.getElementById('joy');
 const knob = document.getElementById('joyKnob');
@@ -952,13 +997,20 @@ tapButton('bSave', saveWorld);
 
 // 0 = romper, 2 = poner
 let swing = 0;
-function act(button) {
-  const hit = raycast();
-  if (!hit) return;
+let lastHint = 0;
+function hint(msg) {
+  const now = performance.now();
+  if (now - lastHint < 1500) return;
+  lastHint = now;
+  toast(msg);
+}
+function act(button, dir = null) {
+  const hit = raycast(REACH, dir);
+  if (!hit) { hint(touchMode ? 'Toca un bloque cercano' : 'Apunta a un bloque cercano'); return; }
   swing = 1;
   if (button === 0) {
     const t = getBlock(hit.x, hit.y, hit.z);
-    if (t === B.BEDROCK) return;
+    if (t === B.BEDROCK) { hint('La roca madre no se puede romper'); return; }
     setBlock(hit.x, hit.y, hit.z, B.AIR);
     burst(hit.x, hit.y, hit.z, t);
     if (BLOCKS[getBlock(hit.x, hit.y + 1, hit.z)].cross) setBlock(hit.x, hit.y + 1, hit.z, B.AIR);
@@ -971,19 +1023,24 @@ function act(button) {
     let { px, py, pz } = hit;
     if (BLOCKS[getBlock(hit.x, hit.y, hit.z)].cross) { px = hit.x; py = hit.y; pz = hit.z; }
     const cur = getBlock(px, py, pz);
-    if (!inBounds(px, py, pz) || SOLID[cur]) return;
+    if (!inBounds(px, py, pz)) { hint('Ahí ya no se puede construir'); return; }
+    if (SOLID[cur]) return;
     setBlock(px, py, pz, HOTBAR[selected]);
-    if (collides(player.pos.x, player.pos.y, player.pos.z)) { setBlock(px, py, pz, cur); return; }
+    if (collides(player.pos.x, player.pos.y, player.pos.z)) {
+      setBlock(px, py, pz, cur);
+      hint('Estás parado ahí: muévete un poco');
+      return;
+    }
     rebuildAround(px, pz);
   }
 }
 
 // Recorrido de vóxeles (DDA) desde la cámara
+const REACH = 7;
 const rayDir = new THREE.Vector3();
-function raycast(maxDist = 6) {
+function raycast(maxDist = REACH, dir = null) {
   const o = camera.position;
-  camera.getWorldDirection(rayDir);
-  const d = rayDir;
+  const d = dir || camera.getWorldDirection(rayDir);
   let x = Math.floor(o.x), y = Math.floor(o.y), z = Math.floor(o.z);
   const sx = Math.sign(d.x), sy = Math.sign(d.y), sz = Math.sign(d.z);
   const tdx = Math.abs(1 / d.x), tdy = Math.abs(1 / d.y), tdz = Math.abs(1 / d.z);
@@ -1060,11 +1117,11 @@ selectSlot(0);
 const info = document.getElementById('info');
 const toastEl = document.getElementById('toast');
 let toastTimer = 0;
-function toast(msg) {
+function toast(msg, ms = 1500) {
   toastEl.textContent = msg;
   toastEl.style.opacity = 1;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toastEl.style.opacity = 0; }, 1500);
+  toastTimer = setTimeout(() => { toastEl.style.opacity = 0; }, ms);
 }
 const waterOverlay = document.getElementById('water');
 
@@ -1216,7 +1273,7 @@ function update(dt) {
 
   if (held[0] || held[2]) {
     repeatTimer -= dt;
-    if (repeatTimer <= 0) { act(held[0] ? 0 : 2); repeatTimer = 0.22; }
+    if (repeatTimer <= 0) { act(held[0] ? 0 : 2, heldDir); repeatTimer = 0.22; }
   }
 
   const cp = camera.position;

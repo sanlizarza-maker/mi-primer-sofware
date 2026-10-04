@@ -9,7 +9,7 @@ Un juego de bloques tipo Minecraft que corre en el navegador, en computadora o c
 
 ### En celular o tablet
 
-Usa el joystick de la izquierda para caminar; si lo empujas hasta el borde, corres. Desliza el dedo por la pantalla para mirar. Los botones de la derecha sirven para romper, poner, saltar o nadar, volar y guardar. Mantén pulsado Romper o Poner para hacerlo seguido. Toca un bloque de la barra de arriba para elegirlo. El personaje salta solo cuando chocas con un escalón. Se juega mejor con la pantalla en horizontal.
+**Para construir, toca el bloque en la pantalla** donde quieras poner el nuevo; se coloca pegado a la cara que tocaste. **Para romper, mantén el dedo sobre un bloque.** Usa el joystick de la izquierda para caminar; si lo empujas hasta el borde, corres. Desliza el dedo por la pantalla para mirar. Los botones de la derecha también sirven para romper o poner (apuntando con la cruz del centro), saltar o nadar, volar y guardar. Toca un bloque de la barra de arriba para elegirlo. El personaje salta solo cuando chocas con un escalón. Se juega mejor con la pantalla en horizontal.
 
 ### En computadora
 
@@ -24,6 +24,8 @@ Usa el joystick de la izquierda para caminar; si lo empujas hasta el borde, corr
 | 1–9 / rueda del ratón | Elegir bloque |
 | G | Guardar el mundo en el navegador |
 | Esc | Pausa |
+
+Si tu navegador no deja capturar el ratón, el juego cambia solo a otro modo: arrastra para mirar y haz clic directamente sobre el bloque (izquierdo rompe, derecho pone). Si apuntas a algo demasiado lejos, un aviso te lo dice.
 
 ## Qué tiene
 
