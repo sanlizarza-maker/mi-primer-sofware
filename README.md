@@ -4,8 +4,14 @@ Un prototipo de juego de bloques tipo Minecraft que corre en el navegador. Usa [
 
 ## Cómo jugar
 
-1. Abre `index.html` con doble clic en Chrome, Edge o Firefox. Necesitas internet porque Three.js se descarga de un CDN.
-2. Haz clic en la pantalla para capturar el ratón.
+1. Abre `index.html` con doble clic en Chrome, Edge o Firefox (o en el navegador del celular). Necesitas internet porque Three.js se descarga de un CDN.
+2. Haz clic o toca la pantalla para empezar.
+
+### En celular o tablet
+
+Usa el joystick de la izquierda para caminar y desliza el dedo por la pantalla para mirar. Los botones de la derecha sirven para romper, poner, saltar, volar y guardar. Toca un bloque de la barra de arriba para elegirlo. Se juega mejor con la pantalla en horizontal.
+
+### En computadora
 
 | Tecla | Acción |
 |---|---|
@@ -26,6 +32,7 @@ Un prototipo de juego de bloques tipo Minecraft que corre en el navegador. Usa [
 - Oclusión ambiental simple en las esquinas
 - Física con gravedad y colisiones
 - Guardado en `localStorage`
+- Controles táctiles para celular y tablet
 
 ## Qué no tiene (todavía)
 

@@ -37,6 +37,31 @@
   #menu h1 { font-size: 48px; margin: 0 0 12px; letter-spacing: 2px; }
   #menu p { margin: 6px 0; font-size: 16px; }
   #menu .hint { opacity: .8; font-size: 14px; }
+
+  /* Controles táctiles */
+  html, body { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #touch { position: fixed; inset: 0; pointer-events: none; }
+  #joy {
+    position: absolute; left: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 130px; height: 130px; border-radius: 50%; pointer-events: auto;
+    background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.45);
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    border-radius: 50%; background: rgba(255,255,255,.6);
+  }
+  #buttons {
+    position: absolute; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    display: grid; grid-template-columns: repeat(2, 64px); gap: 10px; pointer-events: auto;
+  }
+  .tbtn {
+    width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5);
+    background: rgba(0,0,0,.4); color: #fff; font: 600 12px system-ui, sans-serif; padding: 0;
+  }
+  .tbtn.on { background: rgba(255,255,255,.4); color: #000; }
+  body.touch #hotbar { bottom: auto; top: calc(10px + env(safe-area-inset-top, 0px)); }
+  body.touch #info { display: none; }
+  @media (max-width: 480px) { .slot { width: 36px; height: 36px; } }
 </style>
 </head>
 <body>
@@ -46,10 +71,22 @@
 <div id="menu">
   <div>
     <h1>MiniCraft</h1>
-    <p><b>Haz clic para jugar</b></p>
+    <p><b>Haz clic o toca para jugar</b></p>
+    <p class="hint">En celular o tablet: joystick para caminar, desliza el dedo para mirar y usa los botones. Mejor con la pantalla en horizontal.</p>
     <p class="hint">WASD: moverse · Espacio: saltar · Shift: correr · F: volar (Espacio/C subir/bajar)</p>
     <p class="hint">Clic izquierdo: romper · Clic derecho: poner · 1-8 o rueda: elegir bloque</p>
     <p class="hint">G: guardar mundo · Esc: pausa</p>
+  </div>
+</div>
+<div id="touch" hidden>
+  <div id="joy"><div id="joyKnob"></div></div>
+  <div id="buttons">
+    <button class="tbtn" id="bBreak">Romper</button>
+    <button class="tbtn" id="bPlace">Poner</button>
+    <button class="tbtn" id="bFly">Volar</button>
+    <button class="tbtn" id="bJump">Saltar</button>
+    <button class="tbtn" id="bSave">Guardar</button>
+    <button class="tbtn" id="bDown" hidden>Bajar</button>
   </div>
 </div>
 
@@ -332,10 +369,41 @@ let selected = 0;
 const menu = document.getElementById('menu');
 const canvas = renderer.domElement;
 
-menu.addEventListener('click', () => canvas.requestPointerLock());
+const touchUI = document.getElementById('touch');
+let touchMode = false;
+let menuPointer = 'mouse';
+menu.addEventListener('pointerdown', e => { menuPointer = e.pointerType; });
+menu.addEventListener('click', () => {
+  if (menuPointer === 'touch' || menuPointer === 'pen') {
+    touchMode = true;
+    document.body.classList.add('touch');
+    touchUI.hidden = false;
+    menu.style.display = 'none';
+    return;
+  }
+  try {
+    const r = canvas.requestPointerLock();
+    if (r && r.catch) r.catch(() => flash('Tu navegador no dejó capturar el ratón'));
+  } catch {}
+});
 document.addEventListener('pointerlockchange', () => {
+  if (touchMode) return;
   menu.style.display = document.pointerLockElement === canvas ? 'none' : 'flex';
 });
+
+function look(dx, dy, sens) {
+  player.yaw -= dx * sens;
+  player.pitch -= dy * sens;
+  player.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, player.pitch));
+}
+
+function toggleFly() {
+  player.flying = !player.flying;
+  player.vel.y = 0;
+  document.getElementById('bFly').classList.toggle('on', player.flying);
+  document.getElementById('bDown').hidden = !player.flying;
+  flash(player.flying ? 'Vuelo activado' : 'Vuelo desactivado');
+}
 
 addEventListener('keydown', e => {
   keys[e.code] = true;
@@ -343,7 +411,7 @@ addEventListener('keydown', e => {
     const n = Number(e.code.slice(5)) - 1;
     if (n >= 0 && n < HOTBAR.length) selectSlot(n);
   }
-  if (e.code === 'KeyF') { player.flying = !player.flying; player.vel.y = 0; flash(player.flying ? 'Vuelo activado' : 'Vuelo desactivado'); }
+  if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyG') saveWorld();
   if (e.code === 'Space') e.preventDefault();
 });
@@ -351,9 +419,7 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 
 addEventListener('mousemove', e => {
   if (document.pointerLockElement !== canvas) return;
-  player.yaw -= e.movementX * 0.0022;
-  player.pitch -= e.movementY * 0.0022;
-  player.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, player.pitch));
+  look(e.movementX, e.movementY, 0.0022);
 });
 
 addEventListener('wheel', e => {
@@ -364,20 +430,77 @@ addEventListener('wheel', e => {
 addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('mousedown', e => {
   if (document.pointerLockElement !== canvas) return;
+  act(e.button);
+});
+
+// Controles táctiles: deslizar para mirar, joystick para caminar, botones
+const touch = { jump: false, down: false, x: 0, y: 0 };
+let lookId = null, lookX = 0, lookY = 0;
+canvas.addEventListener('pointerdown', e => {
+  if (!touchMode || e.pointerType === 'mouse' || lookId !== null) return;
+  lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerId !== lookId) return;
+  look(e.clientX - lookX, e.clientY - lookY, 0.006);
+  lookX = e.clientX; lookY = e.clientY;
+});
+for (const ev of ['pointerup', 'pointercancel'])
+  canvas.addEventListener(ev, e => { if (e.pointerId === lookId) lookId = null; });
+
+const joyEl = document.getElementById('joy');
+const knob = document.getElementById('joyKnob');
+let joyId = null;
+function moveJoy(e) {
+  const r = joyEl.getBoundingClientRect();
+  const max = r.width / 2;
+  let dx = e.clientX - (r.left + max), dy = e.clientY - (r.top + max);
+  const l = Math.hypot(dx, dy);
+  if (l > max) { dx *= max / l; dy *= max / l; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  touch.x = dx / max; touch.y = dy / max;
+}
+joyEl.addEventListener('pointerdown', e => { joyId = e.pointerId; joyEl.setPointerCapture(e.pointerId); moveJoy(e); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joyId) moveJoy(e); });
+for (const ev of ['pointerup', 'pointercancel'])
+  joyEl.addEventListener(ev, e => {
+    if (e.pointerId !== joyId) return;
+    joyId = null; touch.x = touch.y = 0; knob.style.transform = '';
+  });
+
+function holdButton(id, set) {
+  const el = document.getElementById(id);
+  el.addEventListener('pointerdown', e => { e.preventDefault(); set(true); el.classList.add('on'); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave'])
+    el.addEventListener(ev, () => { set(false); el.classList.remove('on'); });
+}
+function tapButton(id, fn) {
+  document.getElementById(id).addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
+}
+holdButton('bJump', v => { touch.jump = v; });
+holdButton('bDown', v => { touch.down = v; });
+tapButton('bBreak', () => act(0));
+tapButton('bPlace', () => act(2));
+tapButton('bFly', toggleFly);
+tapButton('bSave', saveWorld);
+
+// 0 = romper, 2 = poner
+function act(button) {
   const hit = raycast();
   if (!hit) return;
-  if (e.button === 0) {
+  if (button === 0) {
     if (getBlock(hit.x, hit.y, hit.z) === 9) return; // la roca madre no se rompe
     setBlock(hit.x, hit.y, hit.z, AIR);
     rebuildAround(hit.x, hit.z);
-  } else if (e.button === 2) {
+  } else if (button === 2) {
     const { px, py, pz } = hit;
     if (!inBounds(px, py, pz) || isSolid(px, py, pz)) return;
     setBlock(px, py, pz, HOTBAR[selected]);
     if (collides(player.pos.x, player.pos.y, player.pos.z)) { setBlock(px, py, pz, AIR); return; }
     rebuildAround(px, pz);
   }
-});
+}
 
 // Recorrido de vóxeles (DDA) desde la cámara
 function raycast(maxDist = 6) {
@@ -413,6 +536,7 @@ HOTBAR.forEach((t, i) => {
   s.style.background = `linear-gradient(${hex(b.top)} 0 35%, ${hex(b.side)} 35% 100%)`;
   s.title = b.name;
   s.innerHTML = `<span>${i + 1}</span>`;
+  s.addEventListener('pointerdown', e => { e.preventDefault(); selectSlot(i); });
   hotbarEl.appendChild(s);
 });
 function selectSlot(i) {
@@ -438,23 +562,24 @@ let last = performance.now(), fps = 0, frames = 0, fpsTime = last;
 
 function update(dt) {
   const speed = player.flying ? 12 : (keys.ShiftLeft ? 6.5 : 4.3);
-  const fwd = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
-  const strafe = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  const fwd = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - touch.y;
+  const strafe = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + touch.x;
   const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
   let mx = -sin * fwd + cos * strafe;
   let mz = -cos * fwd - sin * strafe;
+  // El joystick da velocidad gradual; el teclado en diagonal no va más rápido
   const len = Math.hypot(mx, mz);
-  if (len > 0) { mx /= len; mz /= len; }
+  if (len > 1) { mx /= len; mz /= len; }
 
   player.vel.x = mx * speed;
   player.vel.z = mz * speed;
 
   if (player.flying) {
-    player.vel.y = ((keys.Space ? 1 : 0) - (keys.KeyC ? 1 : 0)) * speed;
+    player.vel.y = ((keys.Space || touch.jump ? 1 : 0) - (keys.KeyC || touch.down ? 1 : 0)) * speed;
   } else {
     player.vel.y -= 28 * dt;
     if (player.vel.y < -50) player.vel.y = -50;
-    if (keys.Space && player.onGround) player.vel.y = 8.4;
+    if ((keys.Space || touch.jump) && player.onGround) player.vel.y = 8.4;
   }
 
   // Sub-pasos para no atravesar bloques
@@ -495,7 +620,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Para pruebas desde la consola
-window.game = { player, getBlock, setBlock, raycast, camera };
+window.game = { player, getBlock, setBlock, raycast, camera, touch };
 </script>
 </body>
 </html>
