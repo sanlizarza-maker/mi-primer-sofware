@@ -43,7 +43,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 .keys dt{text-align:right}
 .keys dd{margin:0}
 .note{font-size:13px;color:var(--muted);margin:0}
-#touchWarn{color:var(--hot);font-weight:600}
+#touchWarn{color:var(--cyan);font-weight:600}
 
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;font-family:var(--display)}
@@ -130,6 +130,56 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 .card .row{display:flex;gap:10px;flex-wrap:wrap}
 .btn2{font-size:22px;padding:10px 22px 8px;border-radius:6px;border:0;background:var(--sun);color:var(--ink);box-shadow:0 4px 0 #c48a00}
 .btn2.ghost{background:rgba(255,255,255,.1);color:var(--paper);box-shadow:none}
+/* ---------- TÁCTIL ---------- */
+#touch{position:fixed;inset:0;z-index:12;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#joy{position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(10,20,34,.25);display:none;pointer-events:none}
+#joyKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#joyHint{position:absolute;left:calc(18px + env(safe-area-inset-left,0px));bottom:calc(64px + env(safe-area-inset-bottom,0px));width:110px;height:110px;border-radius:50%;border:2px dashed rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:14px;color:rgba(255,255,255,.6);pointer-events:none;text-align:center}
+.tb{position:absolute;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:rgba(10,20,34,.45);color:#fff;font-family:var(--display);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:0;touch-action:none;-webkit-tap-highlight-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.tb.on{background:rgba(59,232,255,.55);border-color:var(--cyan);color:var(--ink);text-shadow:none}
+.tb.down{transform:scale(.92);background:rgba(255,255,255,.35)}
+#tbFire{width:92px;height:92px;right:calc(26px + env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));font-size:18px;border-color:var(--hot);background:rgba(255,79,123,.4)}
+#tbJump{width:70px;height:70px;right:calc(134px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));font-size:15px}
+#tbAim{width:60px;height:60px;right:calc(34px + env(safe-area-inset-right,0px));bottom:calc(204px + env(safe-area-inset-bottom,0px))}
+#tbBuild{width:60px;height:60px;right:calc(136px + env(safe-area-inset-right,0px));bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+#tbPiece{width:60px;height:60px;right:calc(112px + env(safe-area-inset-right,0px));bottom:calc(196px + env(safe-area-inset-bottom,0px));font-size:13px}
+#tbReload{width:52px;height:52px;right:calc(220px + env(safe-area-inset-right,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));font-size:12px}
+#tbPick{width:52px;height:52px;right:calc(214px + env(safe-area-inset-right,0px));bottom:calc(108px + env(safe-area-inset-bottom,0px));font-size:12px}
+#tbSwap{width:52px;height:52px;right:calc(30px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
+#tbHeal{width:52px;height:52px;left:calc(146px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:var(--hp)}
+#tbUse{left:50%;top:58%;transform:translateX(-50%);border-radius:8px;width:auto;height:auto;padding:12px 18px 10px;font-size:20px;background:rgba(255,210,63,.9);color:var(--ink);border-color:#fff;text-shadow:none;white-space:nowrap}
+#tbBus{left:50%;bottom:24%;transform:translateX(-50%);border-radius:10px;width:auto;height:auto;padding:16px 30px 13px;font-size:28px;background:var(--sun);color:var(--ink);border-color:#fff;text-shadow:none}
+body.touch #busHint,body.touch #prompt,body.touch #items{display:none!important}
+body.touch #tl{gap:5px}
+body.touch #minimap{width:120px;height:120px}
+body.touch #minimap.big{width:min(62vh,420px);height:min(62vh,420px)}
+body.touch .chip{font-size:14px;padding:3px 8px 2px}
+body.touch #feed{font-size:12px;max-width:34vw}
+body.touch #feed div:nth-last-child(n+4){display:none}
+body.touch #bars{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(260px,30vw);gap:3px}
+body.touch .bar{height:15px}
+body.touch .bar span{font-size:13px;top:0}
+body.touch #right{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);align-items:center;gap:4px}
+body.touch #ammo{font-size:22px;order:3}
+body.touch #ammo small{font-size:14px}
+body.touch #slots{order:1}
+body.touch #buildRow{order:2}
+body.touch .slot{width:42px;height:38px;font-size:9px}
+body.touch .slot .ic{top:6px;font-size:14px}
+body.touch .slot.sel{transform:translateY(3px)}
+body.touch #mats{font-size:14px;padding:3px 8px 2px}
+body.touch #buildbar{display:none!important}
+body.touch #channel{top:42%}
+body.touch #glideHint{bottom:auto;top:30%;font-size:16px}
+body.touch #announce{top:18%;font-size:clamp(22px,5vw,40px)}
+body.touch .keys{display:none}
+#menu{touch-action:pan-y}
+@media (max-height:520px){
+  .menu-col{padding-top:22px;gap:12px}
+  .logo{font-size:clamp(40px,8vh,64px)}
+  .tag{font-size:14px}
+  .play{font-size:30px;padding:10px 30px 8px}
+}
 #loading{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--ink);font-family:var(--display);font-size:34px;color:var(--sun)}
 @media (max-width:640px){
   .stats{grid-template-columns:repeat(2,1fr)}
@@ -169,7 +219,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
   <div id="cross"><i></i><i></i><i></i><i></i><div class="dot"></div><div id="hitmark"></div></div>
   <div id="prompt" hidden></div>
   <div id="channel" hidden><span id="channelLbl">Curando…</span><div class="track"><div id="channelBar"></div></div></div>
-  <div id="busHint" hidden>Pulsa <kbd>ESPACIO</kbd> para saltar del autobús</div>
+  <div id="busHint" hidden>Pulsa <kbd>ESPACIO</kbd> o haz clic para saltar del autobús</div>
   <div id="glideHint" hidden></div>
   <div id="bottom">
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -210,9 +260,25 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
       <dt><kbd>E</kbd></dt><dd>Abrir cofres y recoger armas</dd>
       <dt><kbd>H</kbd> <kbd>G</kbd></dt><dd>Botiquín · poción de escudo · <kbd>B</kbd> bailar · <kbd>M</kbd> mapa</dd>
     </dl>
-    <p class="note" id="touchWarn" hidden>Este juego necesita teclado y ratón. En móvil o tablet no se puede jugar.</p>
+    <p class="note" id="touchWarn" hidden>Controles táctiles: arrastra en la mitad izquierda para moverte (empuja hasta el borde para correr) y en la derecha para mirar. Pon el dispositivo en horizontal.</p>
     <p class="note">Truco: dispara un cohete a tus pies para salir volando. Las plataformas azules te lanzan al cielo.</p>
   </div>
+</div>
+
+<div id="touch" hidden>
+  <div id="joyHint">MOVER</div>
+  <div id="joy"><div id="joyKnob"></div></div>
+  <button class="tb" id="tbFire" data-b="fire">FUEGO</button>
+  <button class="tb" id="tbJump" data-b="jump">SALTAR</button>
+  <button class="tb" id="tbAim" data-b="aim">MIRA</button>
+  <button class="tb" id="tbBuild" data-b="build">CONS<br>TRUIR</button>
+  <button class="tb" id="tbPiece" data-b="piece" hidden>MURO</button>
+  <button class="tb" id="tbReload" data-b="reload">RECAR<br>GAR</button>
+  <button class="tb" id="tbPick" data-b="pick">PICO</button>
+  <button class="tb" id="tbSwap" data-b="swap">ARMA</button>
+  <button class="tb" id="tbHeal" data-b="heal">CURAR</button>
+  <button class="tb" id="tbUse" data-b="use" hidden>Abrir</button>
+  <button class="tb" id="tbBus" data-b="bus" hidden>¡SALTAR!</button>
 </div>
 
 <div id="pause" class="screen" hidden>
@@ -277,6 +343,8 @@ const DIFF = {
   dificil: { acc: .42, dmg: .8,  react: .35 },
 };
 const settings = { diff: 'normal', quality: 'alta' };
+const IS_TOUCH = navigator.maxTouchPoints > 0 && matchMedia('(any-pointer: coarse)').matches;
+if (IS_TOUCH) settings.quality = 'baja';
 try { const s = JSON.parse(localStorage.getItem('islacaos') || '{}'); if (DIFF[s.diff]) settings.diff = s.diff; if (s.quality === 'baja' || s.quality === 'alta') settings.quality = s.quality; } catch (e) {}
 const saveSettings = () => { try { localStorage.setItem('islacaos', JSON.stringify(settings)); } catch (e) {} };
 
@@ -1334,9 +1402,15 @@ function updateHUD(dt) {
   }
   const pe = $('prompt'); if (prompt) { setHTML('prompt', `<kbd>E</kbd>${prompt}`); pe.hidden = false; } else pe.hidden = true;
   $('busHint').hidden = p.state !== 'bus';
+  if (T.on) {
+    $('tbBus').hidden = p.state !== 'bus';
+    const tu = $('tbUse'); tu.hidden = !prompt; if (prompt) setTxt('tbUse', prompt.startsWith('Abrir') ? 'Abrir cofre' : prompt.replace(/<[^>]+>/g, ''));
+    $('tbPiece').hidden = !p.building; if (p.building) setTxt('tbPiece', { wall: 'MURO', ramp: 'RAMPA', floor: 'SUELO' }[p.piece]);
+    $('tbBuild').classList.toggle('on', p.building); $('tbAim').classList.toggle('on', T.aim);
+  }
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   if (p.state === 'play' && p.skydive) { gh.hidden = false; setTxt('glideHint', `Caída libre · ${Math.round(hAbove)} m · el planeador se abre solo`); }
-  else if (p.state === 'play' && !p.onGround && !p.gliding && hAbove > 14) { gh.hidden = false; setTxt('glideHint', 'Pulsa ESPACIO para abrir el planeador'); }
+  else if (p.state === 'play' && !p.onGround && !p.gliding && hAbove > 14) { gh.hidden = false; setTxt('glideHint', T.on ? 'Toca SALTAR para abrir el planeador' : 'Pulsa ESPACIO para abrir el planeador'); }
   else gh.hidden = true;
   const ch = $('channel'); if (p.channel) { ch.hidden = false; $('channelBar').style.width = (p.channel.t / p.channel.dur * 100) + '%'; setTxt('channelLbl', p.channel.kind === 'med' ? 'Usando botiquín…' : 'Bebiendo poción de escudo…'); } else ch.hidden = true;
 }
@@ -1674,14 +1748,15 @@ function updatePlayer(dt) {
   if (p.state === 'bus') { p.pos.copy(bus.pos); return; }
   p.fireCD -= dt; p.buildCD -= dt; p.pickT -= dt; p.bloom = Math.max(0, p.bloom - dt * .08);
   const f = [Math.sin(p.yaw), Math.cos(p.yaw)], r = [-Math.cos(p.yaw), Math.sin(p.yaw)];
-  const mx = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0), mz = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
-  if ((mx || mz) && p.dance) p.dance = false;
-  let wx = f[0] * mz + r[0] * mx, wz = f[1] * mz + r[1] * mx; const L = Math.hypot(wx, wz); if (L > 0) { wx /= L; wz /= L; }
-  p.aiming = mouse.r && !p.building && !!curW() && p.state === 'play';
+  const mx = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + T.jx, -1, 1), mz = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy, -1, 1);
+  if ((Math.abs(mx) > .2 || Math.abs(mz) > .2) && p.dance) p.dance = false;
+  let wx = f[0] * mz + r[0] * mx, wz = f[1] * mz + r[1] * mx; const L = Math.hypot(wx, wz); if (L > 1) { wx /= L; wz /= L; }
+  p.aiming = (mouse.r || T.aim) && !p.building && !!curW() && p.state === 'play';
   p.aimT = lerp(p.aimT, p.aiming ? 1 : 0, Math.min(1, dt * 12));
-  const sprint = keys.ShiftLeft && mz > 0 && !p.aiming;
+  const sprint = (keys.ShiftLeft || (T.on && Math.hypot(T.jx, T.jy) > .92)) && mz > 0 && !p.aiming;
   let speed = p.aiming ? 4.6 : sprint ? 10.5 : 7.2; if (p.channel) speed = 3.5;
-  const jump = !!keys.Space && !p.jumpHeld; if (keys.Space) p.jumpHeld = true; else p.jumpHeld = false;
+  const jumpKey = !!keys.Space || T.jump; const jump = jumpKey && !p.jumpHeld; p.jumpHeld = jumpKey;
+  if (T.on && (mouse.l || p.aiming) && !p.building) aimAssist(p, dt);
   if (jump && !p.onGround && !p.skydive && p.pos.y - p.groundY > 12) { p.gliding = !p.gliding; }
   moveChar(p, wx, wz, speed, dt, jump);
   if (windGain) windGain.gain.value = lerp(windGain.gain.value, p.skydive ? .5 : p.gliding ? .18 : 0, .08);
@@ -1896,8 +1971,9 @@ function startGame() {
   gstate = 'play'; paused = false;
   $('menu').hidden = true; $('end').hidden = true; $('pause').hidden = true; hud.hidden = false; $('feed').innerHTML = '';
   $('minimap').classList.remove('big'); bigMap = false;
-  announce('¡Al autobús!', 'Elige dónde saltar con ESPACIO');
-  requestLock();
+  announce('¡Al autobús!', T.on ? 'Toca ¡SALTAR! cuando estés encima de donde quieras caer' : 'Elige dónde saltar con ESPACIO o con un clic');
+  if (!T.on) requestLock();
+  setTouchUI();
 }
 function playerJumpBus() { const p = player; if (p.state !== 'bus') return; p.state = 'play'; p.skydive = true; p.pos.copy(bus.pos); p.pos.y -= 4; p.vel.copy(bus.dir).multiplyScalar(10); p.model.root.visible = true; }
 function updateBus(dt) {
@@ -1908,7 +1984,7 @@ function updateBus(dt) {
 }
 function endGame(win, by) {
   if (gstate === 'end') return;
-  gstate = 'end'; endT = win ? 2.2 : 2.6; slowmo = win ? .3 : .6;
+  gstate = 'end'; $('touch').hidden = true; mouse.l = false; T.aim = false; T.jump = false; endT = win ? 2.2 : 2.6; slowmo = win ? .3 : .6;
   player.deathPos = player.pos.clone();
   if (win) { announce('¡VICTORIA MAGISTRAL!', 'Eres el último en pie'); sfx('win'); for (let i = 0; i < 6; i++) setTimeout(() => burst(player.pos.x + rnd(-4, 4), player.pos.y + 6, player.pos.z + rnd(-4, 4), 60, new THREE.Color().setHSL(Math.random(), 1, .6).multiplyScalar(2.5), 9, .7, 1.8, true, -6), i * 250); }
   else { sfx('lose'); }
@@ -1919,7 +1995,7 @@ function endGame(win, by) {
 }
 function toMenu() {
   gstate = 'menu'; clearDynamic(); bus.active = false; busMesh.visible = false; ghost.visible = false;
-  hud.hidden = true; $('end').hidden = true; $('pause').hidden = true; $('menu').hidden = false; paused = false;
+  $('touch').hidden = true; hud.hidden = true; $('end').hidden = true; $('pause').hidden = true; $('menu').hidden = false; paused = false;
   if (document.pointerLockElement) document.exitPointerLock();
   storm.r = 420; stormWall.scale.set(420, 1, 420); if (stormGain) stormGain.gain.value = 0; if (windGain) windGain.gain.value = 0;
 }
@@ -1945,6 +2021,7 @@ addEventListener('mousemove', e => {
 });
 canvas.addEventListener('mousedown', e => {
   if (gstate !== 'play') return;
+  if (player && player.state === 'bus' && e.button === 0 && !paused) { playerJumpBus(); if (!pointerLocked && lockSupported) requestLock(); return; }
   if (!pointerLocked && lockSupported) { requestLock(); if (paused) return; }
   if (e.button === 0) mouse.l = true; if (e.button === 2) mouse.r = true;
 });
@@ -1992,7 +2069,86 @@ $('againBtn').addEventListener('click', startGame);
 $('menuBtn').addEventListener('click', toMenu);
 $('quitBtn').addEventListener('click', toMenu);
 $('resumeBtn').addEventListener('click', () => { requestLock(); if (!lockSupported) { paused = false; $('pause').hidden = true; } });
-if (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches) $('touchWarn').hidden = false;
+
+// ---------- controles táctiles ----------
+const T = { on: false, joyId: null, ox: 0, oy: 0, jx: 0, jy: 0, lookId: null, lx: 0, ly: 0, fireId: null, jump: false, aim: false };
+function setTouchMode(on) {
+  T.on = on; document.body.classList.toggle('touch', on); $('touchWarn').hidden = !on;
+  if (!on) { T.jx = T.jy = 0; T.aim = false; T.jump = false; }
+  setTouchUI();
+}
+function setTouchUI() { $('touch').hidden = !(T.on && gstate === 'play'); }
+function touchLook(dx, dy) {
+  if (!player || paused) return;
+  const s = .0055 * (player.aiming ? (W[curW()?.type]?.scope ? .3 : .55) : 1);
+  player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * .85, -1.25, 1.35);
+}
+function aimAssist(p, dt) {
+  aimDir(p.yaw, p.pitch, _cd); let best = null, ba = .09;
+  for (const b of bots) {
+    if (!b.alive || b.state === 'bus') continue;
+    _a.set(b.pos.x - camera.position.x, b.pos.y + 1.1 - camera.position.y, b.pos.z - camera.position.z); const d = _a.length(); if (d > 120) continue;
+    const ang = Math.acos(clamp(_a.dot(_cd) / d, -1, 1)); if (ang < ba) { ba = ang; best = _a.clone(); }
+  }
+  if (!best) return;
+  const ty = Math.atan2(best.x, best.z), tp = Math.atan2(best.y, Math.hypot(best.x, best.z));
+  let dy = ty - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); const k = Math.min(1, dt * 4);
+  p.yaw += dy * k; p.pitch += (tp - p.pitch) * k;
+}
+function touchButton(b, down) {
+  if (!player || gstate !== 'play' || paused) return;
+  const p = player;
+  if (b === 'fire') { if (p.state === 'bus') { if (down) playerJumpBus(); return; } mouse.l = down; return; }
+  if (b === 'jump') { if (down && p.state === 'bus') { playerJumpBus(); return; } T.jump = down; return; }
+  if (!down) return;
+  if (b === 'bus') playerJumpBus();
+  if (b === 'aim') T.aim = !T.aim;
+  if (b === 'build') { p.building = !p.building; p.reloadT = 0; p.channel = null; if (p.building) T.aim = false; }
+  if (b === 'piece') { const ps = ['wall', 'ramp', 'floor']; p.piece = ps[(ps.indexOf(p.piece) + 1) % 3]; }
+  if (b === 'reload') startReload();
+  if (b === 'pick' && p.state === 'play' && !p.gliding && !p.skydive) pickaxeSwing();
+  if (b === 'swap') { for (let i = 1; i <= 5; i++) { const k = (p.sel + i) % 5; if (p.slots[k]) { selectSlot(k); break; } } p.building = false; }
+  if (b === 'heal') useItem(p.hp < 100 && p.items.med > 0 ? 'med' : 'pot');
+  if (b === 'use' && p.state === 'play') interact();
+}
+const tl = $('touch'), joy = $('joy'), knob = $('joyKnob');
+tl.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse') { setTouchMode(false); if (gstate === 'play' && lockSupported) requestLock(); return; }
+  e.preventDefault(); initAudio();
+  const btn = e.target.closest('.tb');
+  if (btn) {
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    btn.classList.add('down'); touchButton(btn.dataset.b, true);
+    if (btn.dataset.b === 'fire') { T.fireId = e.pointerId; T.lx = e.clientX; T.ly = e.clientY; }
+    return;
+  }
+  if (e.clientX < innerWidth * .42 && T.joyId === null) {
+    T.joyId = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; T.jx = T.jy = 0;
+    joy.style.display = 'block'; $('joyHint').style.display = 'none'; joy.style.left = T.ox + 'px'; joy.style.top = T.oy + 'px'; knob.style.transform = '';
+  } else if (T.lookId === null) { T.lookId = e.pointerId; T.lx = e.clientX; T.ly = e.clientY; }
+}, { passive: false });
+tl.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') return;
+  if (e.pointerId === T.joyId) {
+    let dx = e.clientX - T.ox, dy = e.clientY - T.oy; const L = Math.hypot(dx, dy), R = 55;
+    if (L > R) { dx *= R / L; dy *= R / L; }
+    T.jx = dx / R; T.jy = dy / R; knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  } else if (e.pointerId === T.lookId || e.pointerId === T.fireId) {
+    touchLook(e.clientX - T.lx, e.clientY - T.ly); T.lx = e.clientX; T.ly = e.clientY;
+  }
+}, { passive: false });
+function touchEnd(e) {
+  if (e.pointerType === 'mouse') return;
+  const btn = e.target.closest && e.target.closest('.tb');
+  if (btn) { btn.classList.remove('down'); touchButton(btn.dataset.b, false); }
+  if (e.pointerId === T.joyId) { T.joyId = null; T.jx = T.jy = 0; joy.style.display = 'none'; }
+  if (e.pointerId === T.lookId) T.lookId = null;
+  if (e.pointerId === T.fireId) { T.fireId = null; mouse.l = false; }
+}
+tl.addEventListener('pointerup', touchEnd); tl.addEventListener('pointercancel', touchEnd);
+tl.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('touchstart', () => { if (!T.on) setTouchMode(true); }, { passive: true });
+setTouchMode(IS_TOUCH);
 
 // =====================================================================
 // Bucle principal
