@@ -27,6 +27,7 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 | 1-5 armas, R recargar, F pico | ARMA, RECARGAR, PICO |
 | Q construir (1 muro, 2 rampa, 3 suelo) | CONSTRUIR y botón de pieza |
 | E abrir o recoger, H botiquín, G poción, B bailar, M mapa | Botón amarillo de acción, CURAR |
+| Coche: E subir/bajar, W/S acelerar y frenar, A/D girar, Espacio freno de mano, Shift turbo | Botón Conducir, joystick, FRENO, TURBO |
 
 ## Créditos de los recursos
 
@@ -35,3 +36,4 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 - Rocas, hierba 3D y texturas de tierra y hierba (`grass.jpg`): repositorio de ez-tree (MIT).
 - Cielo HDRI `quarry_01`: [Poly Haven](https://polyhaven.com) (CC0).
 - Texturas de hierba con relieve, ladrillo, madera y agua: ejemplos de three.js (MIT).
+- Coche deportivo: modelo "Ferrari 458 Italia" de vicent091036 en Sketchfab, tal y como se incluye en los ejemplos de three.js ([CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Se ha simplificado para que cargue más rápido.
