@@ -1,6 +1,6 @@
 # Isla Caos
 
-Battle royale en 3D que se juega en el navegador: un solo archivo (`index.html`) hecho con Three.js.
+Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego está en `index.html` y los modelos y texturas en `assets/`.
 
 Ábrelo con cualquier servidor estático (o con GitHub Pages) y juega con teclado y ratón, o con la pantalla táctil en móvil y tablet.
 
@@ -27,3 +27,11 @@ Battle royale en 3D que se juega en el navegador: un solo archivo (`index.html`)
 | 1-5 armas, R recargar, F pico | ARMA, RECARGAR, PICO |
 | Q construir (1 muro, 2 rampa, 3 suelo) | CONSTRUIR y botón de pieza |
 | E abrir o recoger, H botiquín, G poción, B bailar, M mapa | Botón amarillo de acción, CURAR |
+
+## Créditos de los recursos
+
+- Personajes Soldier y Xbot, con sus animaciones: ejemplos de [three.js](https://github.com/mrdoob/three.js) (MIT), creados con Mixamo.
+- Árboles: generados con [ez-tree](https://github.com/dgreenheck/ez-tree) de Daniel Greenheck (MIT). Sus texturas de corteza vienen de Poly Haven y TextureCan.
+- Rocas, hierba 3D y texturas de tierra y hierba (`grass.jpg`): repositorio de ez-tree (MIT).
+- Cielo HDRI `quarry_01`: [Poly Haven](https://polyhaven.com) (CC0).
+- Texturas de hierba con relieve, ladrillo, madera y agua: ejemplos de three.js (MIT).
