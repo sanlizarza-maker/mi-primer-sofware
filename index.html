@@ -141,7 +141,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 #end.win .card{max-width:440px;border-color:rgba(255,210,63,.6);box-shadow:0 0 60px rgba(255,200,40,.25)}
 #end.win h2{font-size:56px;font-style:italic;text-transform:uppercase;background:linear-gradient(180deg,#fff6c4,#ffd23f 50%,#ff9a1f);-webkit-background-clip:text;background-clip:text;color:transparent;animation:winpop 1s cubic-bezier(.2,1.7,.4,1) both;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
 @keyframes winpop{from{transform:scale(.3) rotate(-6deg);opacity:0}}
-#end .card{position:relative;z-index:1}
+#end .card{position:relative;z-index:1;max-height:calc(100vh - 24px);overflow:auto}
 #end .cf{position:absolute;top:-20px;width:10px;height:16px;border-radius:2px;animation:cffall linear infinite;pointer-events:none;opacity:.9}
 @keyframes cffall{to{top:105%;transform:rotate(720deg) translateX(40px)}}
 @media (max-width:760px){ #end.win{justify-content:center;padding-right:0} }
@@ -233,6 +233,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 .shopcard.daily{--rc:#ffd23f}
 .exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .exgrid .lk i{height:46px;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+@media (max-width:1280px){ .lbrand{display:none} }
 @media (max-width:980px){ .lbrand{display:none} .ltabs{justify-content:flex-start;flex-wrap:nowrap} .ltabs button{font-size:18px;padding:6px 10px 4px} }
 @media (max-width:620px){ .ltabs button{font-size:15px;padding:6px 7px 4px} .lwallet{font-size:18px;padding:4px 10px 3px} .lvlchip{display:none} }
 @media (max-height:520px){ .lobby-left .opt-row > span{display:none} .lobby-left .seg button{font-size:14px;padding:5px 9px 3px} .lobby-left .fsBtn{font-size:15px;padding:6px 10px 4px} .mode b{font-size:19px} }
@@ -310,6 +311,34 @@ body.touch #chtoast{top:34%}
   .tag{font-size:14px}
   .play{font-size:30px;padding:10px 30px 8px}
 }
+#nameGate{display:flex;align-items:center;justify-content:center;z-index:40;background:radial-gradient(circle at 50% 35%,#1d4f8f 0,#0b1a33 60%,#050b16 100%);padding:16px;box-sizing:border-box}
+.ng{align-items:center;text-align:center;max-width:440px}
+.ld-logo.small{font-size:64px}
+#nameInp{width:100%;box-sizing:border-box;font-family:var(--display);font-size:28px;padding:12px 16px;border-radius:8px;border:2px solid var(--line);background:rgba(255,255,255,.08);color:var(--paper);text-align:center;outline:none}
+#nameInp:focus{border-color:var(--sun)}
+#nameErr{color:#ff8a8a;min-height:1em}
+.ng .play{align-self:center}
+.lname{display:flex;align-items:center;gap:8px;background:rgba(5,10,20,.55);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:4px 14px 4px 5px;color:var(--paper);text-align:left}
+.lname b{display:block;font-size:18px;font-weight:600;line-height:1;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lname small{display:block;font-family:var(--body);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--rk,#cd7f32)}
+.rkico{display:inline-block;width:30px;height:34px;flex:none;background:var(--rk,#cd7f32);clip-path:polygon(50% 0,100% 18%,100% 62%,50% 100%,0 62%,0 18%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);position:relative}
+.rkico::after{content:'';position:absolute;inset:8px 9px;background:rgba(255,255,255,.55);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.rkico.big{width:48px;height:54px}
+.rkico.big::after{inset:13px 14px}
+.rkcard{display:flex;gap:12px;align-items:center}
+.rkcard > div{flex:1;display:flex;flex-direction:column;gap:4px}
+.rkcard b{font-family:var(--display);font-size:22px;font-weight:600;color:var(--rk,#cd7f32)}
+.rkcard small{color:var(--muted);font-size:12px}
+.rklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.rklist li{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.05)}
+.rklist li .rkico{width:18px;height:20px}
+.rklist li .rkico::after{inset:5px}
+.rklist li span{flex:1}
+.rklist li b{font-weight:800;color:var(--sun);white-space:nowrap}
+.rklist li.got{opacity:.55}
+.rklist li.got b{color:var(--hp)}
+#rankUp{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,rgba(138,92,255,.35),rgba(59,232,255,.2));border:1px solid rgba(59,232,255,.5);border-radius:8px;padding:10px 12px;font-size:14px}
+@media (max-width:620px){ .lname b{max-width:80px} .lname small{display:none} }
 #loading{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle at 50% 35%,#1d4f8f 0,#0b1a33 55%,#050b16 100%);font-family:var(--display);color:var(--paper);overflow:hidden}
 #loading::before{content:'';position:absolute;inset:-50%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.035) 0 8deg,transparent 8deg 16deg);animation:ldspin 40s linear infinite}
 @keyframes ldspin{to{transform:rotate(360deg)}}
@@ -339,6 +368,16 @@ body.touch #chtoast{top:34%}
 </script>
 
 <canvas id="c"></canvas>
+<div id="nameGate" class="screen" hidden>
+  <form class="card ng" id="nameForm" autocomplete="off">
+    <div class="ld-logo small">ISLA<span>CAOS</span></div>
+    <h2>¿Cómo te llamas?</h2>
+    <p>Tu nombre saldrá en la partida, en las bajas y en tu perfil.</p>
+    <input id="nameInp" maxlength="16" placeholder="Escribe tu nombre" enterkeyhint="go" autocapitalize="words" spellcheck="false">
+    <small id="nameErr"></small>
+    <button class="play" type="submit">ENTRAR</button>
+  </form>
+</div>
 <div id="loading"><div class="ld-logo">ISLA<span>CAOS</span></div><div class="ld-bar"><i id="ldBar"></i></div><div id="ldTxt">Cargando la isla…</div><div id="ldTip">Consejo: construye una rampa para ganar altura en un tiroteo.</div></div>
 
 <div id="hud" hidden>
@@ -398,6 +437,7 @@ body.touch #chtoast{top:34%}
       <button data-tab="shop">Tienda</button>
       <button data-tab="ch">Desafíos</button>
     </nav>
+    <button class="lname" id="lnameBtn" title="Cambiar nombre"><span id="rankIco" class="rkico"></span><span><b id="lnameTxt">Jugador</b><small id="rankTxt">Bronce I</small></span></button>
     <div class="lwallet" title="Monedas Caos"><span class="coin"></span><b id="coinTxt">0</b></div>
     <div class="lvlchip" title="Tu nivel"><span id="lvlChip">1</span></div>
   </header>
@@ -435,6 +475,9 @@ body.touch #chtoast{top:34%}
       <aside class="pcard" id="profile">
     <div class="pc-top"><div class="lvl" id="pcLvl">1</div><div><b>Tu nivel</b><div class="xpbar"><i id="pcBar"></i></div><small id="pcXp">0 / 500 XP</small></div></div>
     <div class="pc-stats"><span>Victorias <b id="pcWins">0</b></span><span>Bajas <b id="pcKills">0</b></span><span>Partidas <b id="pcGames">0</b></span></div>
+    <h3>Rango</h3>
+    <div class="rkcard"><span id="rkIco2" class="rkico big"></span><div><b id="rkName">Bronce I</b><div class="xpbar"><i id="rkBar"></i></div><small id="rkPts">0 PR</small></div></div>
+    <ul id="rkRewards" class="rklist"></ul>
     <h3>Desafíos</h3>
     <ul id="pcCh"></ul>
     <p class="note">Sube de nivel para desbloquear trajes. Los desafíos completados se cambian por otros nuevos.</p>
@@ -502,6 +545,7 @@ body.touch #chtoast{top:34%}
     <div class="xpbar"><i id="endBar"></i></div>
     <p id="endLvl"></p>
     <div id="endUnlock" hidden></div>
+    <div id="rankUp" hidden></div>
     <div class="row"><button class="btn2" id="againBtn">Jugar otra vez</button><button class="btn2 ghost" id="menuBtn">Menú</button></div>
   </div>
 </div>
@@ -1910,6 +1954,10 @@ const SKIN_DEFS = [
   { id: 'robo', n: 'Robo-Chispa', rar: 2, lvl: 1, model: 'robot', tint: [1, 1, 1], main: '#ffb627', visor: '#3be8ff', top: '#ffb627', acc: '#ffb627', pants: '#3d3d3d' },
   { id: 'robohielo', n: 'Robo Hielo', rar: 3, lvl: 5, model: 'robot', tint: [1, 1, 1], main: '#5ec8ff', visor: '#bff0ff', top: '#5ec8ff', acc: '#bff0ff', pants: '#2b3a4a' },
   { id: 'robolava', n: 'Robo Lava', rar: 4, lvl: 9, model: 'robot', tint: [1, 1, 1], main: '#ff4b2b', visor: '#ffd23f', top: '#ff4b2b', acc: '#ffd23f', pants: '#2a1a16', metal: .45 },
+  { id: 'oro', n: 'Soldado de Oro', rar: 4, lvl: 999, rank: 'Oro I', model: 'soldier', tint: [1.6, 1.25, .45], metal: .75, visor: '#ffd23f', top: '#e8c46a', acc: '#ffd23f', pants: '#8a6a2a' },
+  { id: 'diamante', n: 'Robo Diamante', rar: 4, lvl: 999, rank: 'Diamante I', model: 'robot', tint: [1, 1, 1], main: '#8fe9ff', metal: .7, visor: '#ffffff', top: '#8fe9ff', acc: '#ffffff', pants: '#2b3a4a' },
+  { id: 'campeon', n: 'Campeón Sombra', rar: 5, lvl: 999, rank: 'Campeón', model: 'soldier', tint: [.35, .3, .5], metal: .55, visor: '#ff3dd8', top: '#4a3d6b', acc: '#ff3dd8', pants: '#1c1828' },
+  { id: 'leyenda', n: 'Robo Leyenda', rar: 5, lvl: 999, rank: 'Leyenda', model: 'robot', tint: [1, 1, 1], main: '#ffcf3a', metal: .9, visor: '#ff3d6e', top: '#ffcf3a', acc: '#ff3d6e', pants: '#2a1a16' },
   { id: 'rey', n: 'Élite Dorado', rar: 4, lvl: 12, model: 'soldier', tint: [1.5, 1.15, .5], visor: '#ffd23f', metal: .7, top: '#e8c46a', acc: '#ffd23f', pants: '#8a6a2a' },
 ];
 const skinDef = id => SKIN_DEFS.find(s => s.id === id) || SKIN_DEFS[0];
@@ -2616,7 +2664,7 @@ const busMesh = new THREE.Group();
 const keys = {}; const mouse = { l: false, r: false };
 let pointerLocked = false, lockSupported = true;
 function initPlayer() {
-  player = new Char(true, 'Tú', prof.skin);
+  player = new Char(true, prof.name || 'Tú', prof.skin);
   Object.assign(player, { slots: [null, null, null, null, null], sel: 0, ammo: { light: 90, shells: 6, heavy: 0, rockets: 0, exo: 0 }, items: { med: 0, pot: 1 }, building: false, piece: 'wall', reloadT: 0, fireCD: 0, buildCD: 0, aiming: false, aimT: 0, bloom: 0, pickT: 0, channel: null });
   player.slots[0] = { type: 'rifle', rarity: 0, mag: 30 };
   if (prof.loadout && W[prof.loadout]) { player.slots[1] = { type: prof.loadout, rarity: EXO, mag: W[prof.loadout].mag }; player.ammo.exo = 72; }
@@ -3476,12 +3524,20 @@ const prof = (() => {
   if (!p || typeof p.lvl !== 'number' || !Array.isArray(p.ch)) p = { lvl: 1, xp: 0, wins: 0, kills: 0, games: 0, skin: 'explorador', ch: [] };
   while (p.ch.length < 3) p.ch.push(newChallenge(p.ch.map(c => c.id)));
   if (typeof p.coins !== 'number') { p.coins = 1200; p.gift = true; }
-  p.owned = p.owned || []; p.exos = p.exos || []; if (p.loadout && !p.exos.includes(p.loadout)) p.loadout = null;
+  p.owned = p.owned || []; p.exos = p.exos || []; if (typeof p.rp !== 'number') p.rp = 0; p.rankRew = p.rankRew || []; if (p.loadout && !p.exos.includes(p.loadout)) p.loadout = null;
   if (!SKIN_DEFS.some(d => d.id === p.skin) || (skinDef(p.skin).lvl > p.lvl && !p.owned.includes(p.skin))) p.skin = 'soldado';
   return p;
 })();
 function saveProf() { try { localStorage.setItem(PROF_KEY, JSON.stringify(prof)); } catch (e) {} }
 const lvlNeed = l => 500 + (l - 1) * 150;
+// rangos competitivos y sus recompensas
+const RANK_TIERS = [['Bronce', '#cd7f32', 0, 100, 200], ['Plata', '#c9d3de', 350, 500, 650], ['Oro', '#ffc93a', 850, 1050, 1250], ['Platino', '#4fe3c8', 1500, 1750, 2000], ['Diamante', '#7ab8ff', 2300, 2600, 2900]];
+const RANKS = []; for (const [n, c, ...mins] of RANK_TIERS) mins.forEach((m, i) => RANKS.push({ n: `${n} ${['I', 'II', 'III'][i]}`, c, min: m }));
+RANKS.push({ n: 'Élite', c: '#ff7ad9', min: 3300 }, { n: 'Campeón', c: '#ff4f4f', min: 3800 }, { n: 'Leyenda', c: '#ffe066', min: 4500 });
+const rankOf = rp => { let i = 0; while (i + 1 < RANKS.length && rp >= RANKS[i + 1].min) i++; return { i, ...RANKS[i], next: RANKS[i + 1] || null }; };
+const RANK_REWARDS = [{ r: 'Plata I', coins: 200 }, { r: 'Oro I', coins: 400, skin: 'oro' }, { r: 'Platino I', coins: 600 }, { r: 'Diamante I', coins: 800, skin: 'diamante' }, { r: 'Élite', coins: 1000 }, { r: 'Campeón', coins: 1500, skin: 'campeon' }, { r: 'Leyenda', coins: 2500, skin: 'leyenda' }];
+const rankMin = n => RANKS.find(r => r.n === n).min;
+const cleanName = n => (n || '').replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
 let match = null;
 function xpGain(n, why) { if (!match || n <= 0) return; match.xp.push([why, n]); xpToast(`+${n} XP · ${why}`); }
 function chProg(id, amt = 1, extra = null) {
@@ -3507,14 +3563,20 @@ function finishXP(win) {
   const total = [...sum.values()].reduce((a, b) => a + b, 0);
   const before = { lvl: prof.lvl, frac: prof.xp / lvlNeed(prof.lvl) };
   prof.xp += total; prof.games++; prof.kills += player.kills; if (win) prof.wins++;
-  const coins = 40 + player.kills * 25 + Math.floor(stats.dmg / 40) + (win ? 500 : place <= 5 ? 200 : place <= 10 ? 120 : place <= 25 ? 50 : 0); prof.coins += coins;
+  let coins = 40 + player.kills * 25 + Math.floor(stats.dmg / 40) + (win ? 500 : place <= 5 ? 200 : place <= 10 ? 120 : place <= 25 ? 50 : 0); prof.coins += coins;
+  const rk0 = rankOf(prof.rp), rpD = (win ? 60 : place <= 5 ? 35 : place <= 10 ? 22 : place <= 25 ? 8 : rk0.i < 3 ? 0 : -6) + Math.min(10, player.kills) * 8;
+  prof.rp = Math.max(0, prof.rp + rpD); const rk1 = rankOf(prof.rp), rewards = [];
+  RANK_REWARDS.forEach((rw, i) => { if (prof.rp >= rankMin(rw.r) && !prof.rankRew.includes(i)) { prof.rankRew.push(i); prof.coins += rw.coins; if (rw.skin && !prof.owned.includes(rw.skin)) prof.owned.push(rw.skin); rewards.push(rw); } });
   const newly = [];
   while (prof.xp >= lvlNeed(prof.lvl)) { prof.xp -= lvlNeed(prof.lvl); prof.lvl++; SKIN_DEFS.filter(d => d.lvl === prof.lvl).forEach(d => newly.push(d)); }
   saveProf(); match = null;
-  return { lines: [...sum.entries()], total, before, newly, coins };
+  return { lines: [...sum.entries()], total, before, newly, coins, rpD, rk0, rk1, rewards };
 }
 function renderEndXP(r) {
-  $('xpList').innerHTML = r.lines.map(([w, n]) => `<li><span>${w}</span><b>+${n}</b></li>`).join('') + `<li class="tot"><span>Total</span><b>+${r.total} XP</b></li><li class="tot"><span><i class="coin"></i> Monedas Caos</span><b>+${r.coins}</b></li>`;
+  $('xpList').innerHTML = r.lines.map(([w, n]) => `<li><span>${w}</span><b>+${n}</b></li>`).join('') + `<li class="tot"><span>Total</span><b>+${r.total} XP</b></li><li class="tot"><span><i class="coin"></i> Monedas Caos</span><b>+${r.coins}</b></li><li class="tot"><span>Puntos de rango · ${r.rk1.n}</span><b style="color:${r.rpD >= 0 ? 'var(--hp)' : '#ff8a8a'}">${r.rpD >= 0 ? '+' : ''}${r.rpD} PR</b></li>`;
+  const ru = $('rankUp');
+  if (r.rk1.i !== r.rk0.i || r.rewards.length) { ru.hidden = false; ru.style.setProperty('--rk', r.rk1.c); ru.innerHTML = `<span class="rkico big"></span><div>${r.rk1.i > r.rk0.i ? '<b>¡Subes a ' + r.rk1.n + '!</b>' : r.rk1.i < r.rk0.i ? 'Bajas a <b>' + r.rk1.n + '</b>' : ''}${r.rewards.map(w => `<br>Recompensa: <b>+${w.coins} monedas</b>${w.skin ? ' y el traje <b>' + skinDef(w.skin).n + '</b>' : ''}`).join('')}</div>`; if (r.rk1.i > r.rk0.i) setTimeout(() => playUI('levelup'), 600); }
+  else ru.hidden = true;
   const bar = $('endBar'); bar.style.transition = 'none'; bar.style.width = (r.before.lvl < prof.lvl ? 0 : r.before.frac * 100) + '%';
   requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = ''; bar.style.width = (prof.xp / lvlNeed(prof.lvl) * 100) + '%'; }));
   let msg = `Nivel ${prof.lvl} · ${prof.xp} / ${lvlNeed(prof.lvl)} XP`;
@@ -3529,6 +3591,10 @@ function renderMenu() {
   $('pcLvl').textContent = prof.lvl; $('pcBar').style.width = (prof.xp / lvlNeed(prof.lvl) * 100) + '%'; $('pcXp').textContent = `${prof.xp} / ${lvlNeed(prof.lvl)} XP`;
   $('pcWins').textContent = prof.wins; $('pcKills').textContent = prof.kills; $('pcGames').textContent = prof.games;
   $('pcCh').innerHTML = prof.ch.map(c => `<li><div><span>${c.t}</span><b>+${c.xp}</b></div><div class="xpbar sm"><i style="width:${c.prog / c.n * 100}%"></i></div><small>${c.prog} / ${c.n}</small></li>`).join('');
+  { const rk = rankOf(prof.rp); $('lnameTxt').textContent = prof.name || 'Jugador'; $('rankTxt').textContent = rk.n; $('lnameBtn').style.setProperty('--rk', rk.c);
+    const pc = $('profile'); pc.style.setProperty('--rk', rk.c); $('rkName').textContent = rk.n;
+    $('rkBar').style.width = (rk.next ? (prof.rp - rk.min) / (rk.next.min - rk.min) * 100 : 100) + '%'; $('rkPts').textContent = rk.next ? `${prof.rp} PR · ${rk.next.min - prof.rp} para ${rk.next.n}` : `${prof.rp} PR · rango máximo`;
+    $('rkRewards').innerHTML = RANK_REWARDS.map((w, i) => { const got = prof.rankRew.includes(i), c = RANKS.find(x => x.n === w.r).c; return `<li class="${got ? 'got' : ''}" style="--rk:${c}"><i class="rkico"></i><span>${w.r}${w.skin ? ' · traje ' + skinDef(w.skin).n : ''}</span><b>${got ? 'Conseguido' : '+' + w.coins}</b></li>`; }).join(''); }
   $('coinTxt').textContent = prof.coins.toLocaleString('es'); $('lvlChip').textContent = prof.lvl; $('modeN').textContent = MATCH_BOTS + 1;
   $('loadoutTxt').textContent = prof.loadout ? 'Arma de salida: ' + W[prof.loadout].n : '';
   renderExoGrid(); if (lobbyTab === 'shop') renderShop();
@@ -3536,7 +3602,7 @@ function renderMenu() {
   for (const d of SKIN_DEFS) {
     const ok = prof.lvl >= d.lvl || prof.owned.includes(d.id), b = document.createElement('button');
     b.className = 'lk' + (prof.skin === d.id ? ' on' : '') + (ok ? '' : ' locked'); b.style.setProperty('--rc', RAR[d.rar].c);
-    b.innerHTML = `<i style="background:linear-gradient(135deg, ${d.top} 0 55%, ${d.acc} 55% 70%, ${d.pants} 70%)"></i><span>${d.n}</span><small>${ok ? RAR[d.rar].n : 'Nivel ' + d.lvl + ' o Tienda'}</small>`;
+    b.innerHTML = `<i style="background:linear-gradient(135deg, ${d.top} 0 55%, ${d.acc} 55% 70%, ${d.pants} 70%)"></i><span>${d.n}</span><small>${ok ? RAR[d.rar].n : d.rank ? 'Rango ' + d.rank : 'Nivel ' + d.lvl + ' o Tienda'}</small>`;
     b.onclick = () => { if (!ok) { b.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 200 }); return; } prof.skin = d.id; saveProf(); buildPreview(); if (preview) preview.danceT = 4; renderMenu(); };
     grid.appendChild(b);
   }
@@ -3596,7 +3662,7 @@ function renderShop() {
       own ? () => { prof.loadout = t; saveProf(); buildPreview(); renderMenu(); renderShop(); } : () => buy(price, () => { prof.exos.push(t); prof.loadout = t; buildPreview(); }) && renderShop());
   }
   for (const d of SKIN_DEFS) {
-    if (!CHAR_SRC[d.model] || prof.lvl >= d.lvl || d.rar === 0) continue;
+    if (!CHAR_SRC[d.model] || prof.lvl >= d.lvl || d.rar === 0 || d.rank) continue;
     const own = prof.owned.includes(d.id), price = SKIN_PRICE[d.rar];
     card((own ? 'owned' : '') + (!own && prof.coins < price ? ' poor' : ''), RAR[d.rar].c, `<img alt="" src="${skinIcon(d)}">`, d.n, 'Traje ' + RAR[d.rar].n.toLowerCase(), 'O desbloquéalo gratis en el nivel ' + d.lvl + '.', own ? 'Tuyo' : `${price} <span class="coin"></span>`,
       own ? () => { prof.skin = d.id; saveProf(); buildPreview(); renderMenu(); } : () => buy(price, () => { prof.owned.push(d.id); prof.skin = d.id; buildPreview(); if (preview) preview.danceT = 4; }) && renderShop());
@@ -4468,6 +4534,14 @@ buildAirfield(); buildGrassMask(); buildGrassField();
 resetFlora(); spawnChests();
 applyQuality(); updateGrassField(true); renderMenu(); buildPreview();
 $('loading').remove(); $('menu').hidden = false;
+function askName() { $('nameGate').hidden = false; $('nameInp').value = prof.name || ''; $('nameErr').textContent = ''; setTimeout(() => $('nameInp').focus(), 50); }
+$('nameForm').addEventListener('submit', e => {
+  e.preventDefault(); const n = cleanName($('nameInp').value);
+  if (n.length < 2) { $('nameErr').textContent = 'Escribe al menos 2 letras o números.'; playUI('error'); return; }
+  prof.name = n; saveProf(); $('nameGate').hidden = true; playUI('buy'); renderMenu();
+});
+$('lnameBtn').addEventListener('click', askName);
+if (!prof.name) askName();
 requestAnimationFrame(frame);
 // para pruebas automáticas
 window.__isla = { sim(sec, h = 1 / 30) { const t0 = performance.now(); for (let t = 0; t < sec; t += h) tick(h); return performance.now() - t0; }, get alive() { return alive; }, get storm() { return storm; }, get state() { return gstate; }, get player() { return player; }, get bots() { return bots; }, startGame, playerJumpBus, structs, chests };

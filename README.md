@@ -19,7 +19,9 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 - Cajas de suministros que caen del cielo y llamas piñata llenas de botín.
 - Lobby con tu personaje y dos compañeros, Taquilla, Tienda y Desafíos.
 - Monedas Caos que se ganan jugando (y un regalo diario) para comprar armas exóticas de salida y trajes en la Tienda.
-- Experiencia, niveles, desafíos y 12 trajes. El progreso se guarda en el navegador.
+- Nombre de jugador al entrar (se puede cambiar tocándolo en el lobby).
+- Rangos competitivos de Bronce I a Leyenda: se ganan o pierden puntos de rango según el puesto y las bajas. Cada rango importante da monedas y algunos un traje exclusivo (Soldado de Oro, Robo Diamante, Campeón Sombra y Robo Leyenda).
+- Experiencia, niveles, desafíos y 16 trajes. El progreso se guarda en el navegador.
 
 ## Controles
 
