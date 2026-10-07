@@ -205,6 +205,21 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 #tbReload{width:52px;height:52px;right:calc(220px + env(safe-area-inset-right,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));font-size:12px}
 #tbPick{width:52px;height:52px;right:calc(214px + env(safe-area-inset-right,0px));bottom:calc(108px + env(safe-area-inset-bottom,0px));font-size:12px}
 #tbSwap{width:52px;height:52px;right:calc(30px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
+#planePad .tb{width:68px;height:68px;font-size:12px;flex-direction:column;gap:2px;background:rgba(10,20,34,.5)}
+#planePad .tb b{font-size:22px;line-height:1}
+#fpU{left:calc(94px + env(safe-area-inset-left,0px));bottom:calc(156px + env(safe-area-inset-bottom,0px))}
+#fpD{left:calc(94px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#fpL{left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+#fpR{left:calc(168px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+#fpP{right:calc(226px + env(safe-area-inset-right,0px));bottom:calc(112px + env(safe-area-inset-bottom,0px));border-color:#7dff6a!important}
+#fpM{right:calc(226px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));border-color:#ffb347!important}
+#thrBar{position:absolute;right:calc(302px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));width:12px;height:150px;border-radius:6px;border:2px solid rgba(255,255,255,.6);background:rgba(10,20,34,.45);overflow:hidden;pointer-events:none}
+#thrBar i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#7dff6a,#ffd23f,#ff4f7b)}
+#planePad .tb.down{background:rgba(59,232,255,.45)}
+@media (max-height:500px){#planePad .tb{width:56px;height:56px;font-size:11px}#planePad .tb b{font-size:18px}
+#fpU{left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(122px + env(safe-area-inset-bottom,0px))}#fpD{left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+#fpL{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px))}#fpR{left:calc(140px + env(safe-area-inset-left,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+#fpP{bottom:calc(96px + env(safe-area-inset-bottom,0px))}#thrBar{height:120px}}
 #tbDance{width:52px;height:52px;left:calc(206px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:#ff4fb4}
 #tbHeal{width:52px;height:52px;left:calc(146px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:var(--hp)}
 #tbUse.fly{top:auto;bottom:200px;left:auto;right:20px;transform:none;font-size:15px;padding:8px 12px}
@@ -358,6 +373,15 @@ body.touch #chtoast{top:34%}
   <button class="tb" id="tbDance" data-b="dance">BAILE</button>
   <button class="tb" id="tbUse" data-b="use" hidden>Abrir</button>
   <button class="tb" id="tbBus" data-b="bus" hidden>¡SALTAR!</button>
+  <div id="planePad" hidden>
+    <button class="tb" id="fpU" data-b="fu"><b>▲</b>SUBIR</button>
+    <button class="tb" id="fpD" data-b="fd"><b>▼</b>BAJAR</button>
+    <button class="tb" id="fpL" data-b="fl"><b>◀</b>IZQ.</button>
+    <button class="tb" id="fpR" data-b="fr"><b>▶</b>DER.</button>
+    <button class="tb" id="fpP" data-b="fp"><b>+</b>MOTOR</button>
+    <button class="tb" id="fpM" data-b="fm"><b>−</b>MOTOR</button>
+    <div id="thrBar"><i></i></div>
+  </div>
 </div>
 
 <div id="pause" class="screen" hidden>
@@ -2198,13 +2222,15 @@ function updateHUD(dt) {
     $('tbPiece').hidden = !p.building; if (p.building) setTxt('tbPiece', { wall: 'MURO', ramp: 'RAMPA', floor: 'SUELO' }[p.piece]);
     $('tbBuild').classList.toggle('on', p.building); $('tbAim').classList.toggle('on', T.aim);
     const pv = p.vehicle && p.vehicle.kind === 'plane'; tu.classList.toggle('fly', !!pv);
+    $('planePad').hidden = !pv; $('joyHint').style.visibility = pv ? 'hidden' : ''; if (pv) $('thrBar').firstElementChild.style.height = (p.vehicle.thr * 100) + '%';
+    if (!pv) for (const k in T.fly) T.fly[k] = false;
     setTxt('tbFire', p.vehicle && !pv ? 'TURBO' : 'FUEGO'); setTxt('tbJump', pv ? 'TURBO' : p.vehicle ? 'FRENO' : 'SALTAR');
     for (const id of ['tbAim', 'tbBuild', 'tbReload', 'tbPick', 'tbSwap', 'tbHeal', 'tbDance']) $(id).style.visibility = p.vehicle ? 'hidden' : '';
   }
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   const pn = $('planeNose'), pvc = p.vehicle && p.vehicle.kind === 'plane' ? p.vehicle : null;
   if (pvc && !pvc.onGround) { planeAxes(pvc); _a.set(pvc.x, pvc.y, pvc.z).addScaledVector(_pF, 250).project(camera); if (_a.z < 1) { pn.hidden = false; pn.style.left = ((_a.x + 1) / 2 * innerWidth) + 'px'; pn.style.top = ((1 - _a.y) / 2 * innerHeight) + 'px'; } else pn.hidden = true; } else pn.hidden = true;
-  if (pvc && pvc.onGround) { gh.hidden = false; setTxt('glideHint', pvc.gs < 18 ? (T.on ? 'Joystick arriba para acelerar por la pista · despegas a unos 90 km/h' : 'Mantén W para acelerar por la pista · despegas a unos 90 km/h') : 'Mira un poco hacia arriba para despegar'); }
+  if (pvc && pvc.onGround) { gh.hidden = false; setTxt('glideHint', pvc.gs < 18 ? (T.on ? 'Mantén + MOTOR para acelerar por la pista · despegas solo a unos 90 km/h' : 'Mantén W para acelerar por la pista · despegas a unos 90 km/h') : '¡Despegando!'); }
   else if (pvc) gh.hidden = true;
   else if (p.state === 'play' && p.skydive) { gh.hidden = false; setTxt('glideHint', `Caída libre · ${Math.round(hAbove)} m · el planeador se abre solo`); }
   else if (p.state === 'play' && !p.onGround && !p.gliding && hAbove > 14) { gh.hidden = false; setTxt('glideHint', T.on ? 'Toca SALTAR para abrir el planeador' : 'Pulsa ESPACIO para abrir el planeador'); }
@@ -2571,7 +2597,13 @@ function updatePlayer(dt) {
   const p = player; if (!p.alive) return;
   if (p.state === 'bus') { p.pos.copy(bus.pos); return; }
   if (p.vehicle && p.vehicle.kind === 'plane') {
-    const c = p.vehicle, thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy, -1, 1), roll = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + (c.onGround ? T.jx : 0), -1, 1);
+    const F = T.fly, up = F.fu || keys.ArrowUp, dn = F.fd || keys.ArrowDown, lf = F.fl || keys.ArrowLeft, rt = F.fr || keys.ArrowRight;
+    const c = p.vehicle, thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy + (F.fp ? 1 : 0) - (F.fm ? 1 : 0), -1, 1);
+    const roll = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + (c.onGround ? T.jx + (rt ? 1 : 0) - (lf ? 1 : 0) : 0), -1, 1);
+    // la cruceta mueve el punto al que vuela la avioneta; al soltar, vuelve sola a volar recto
+    if (lf || rt) { p.yaw += ((lf ? 1 : 0) - (rt ? 1 : 0)) * .95 * dt; }
+    if (up || dn) p.pitch = clamp(p.pitch + ((up ? 1 : 0) - (dn ? 1 : 0)) * .85 * dt, -.7, .75);
+    else if (T.on && T.lookId === null && !c.onGround) p.pitch += (.04 - p.pitch) * Math.min(1, dt * 1.3);
     aimDir(p.yaw, p.pitch, _paim);
     updatePlane(c, dt, { thr: Math.abs(thr) < .2 ? 0 : thr, roll: Math.abs(roll) < .2 ? 0 : roll, aim: _paim, guns: mouse.l, boost: !!keys.ShiftLeft || T.jump, brake: !!keys.Space || (thr < -.5 && c.thr <= 0) });
     if (p.vehicle !== c) return;
@@ -2907,7 +2939,7 @@ addEventListener('wheel', e => {
 }, { passive: true });
 addEventListener('keydown', e => {
   if (gstate !== 'play' || !player) return;
-  if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
+  if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.repeat) { keys[e.code] = true; return; }
   keys[e.code] = true;
   const p = player;
@@ -2955,7 +2987,7 @@ $('quitBtn').addEventListener('click', toMenu);
 $('resumeBtn').addEventListener('click', () => { requestLock(); if (!lockSupported) { paused = false; $('pause').hidden = true; } });
 
 // ---------- controles táctiles ----------
-const T = { on: false, joyId: null, ox: 0, oy: 0, jx: 0, jy: 0, lookId: null, lx: 0, ly: 0, fireId: null, jump: false, aim: false };
+const T = { fly: {}, on: false, joyId: null, ox: 0, oy: 0, jx: 0, jy: 0, lookId: null, lx: 0, ly: 0, fireId: null, jump: false, aim: false };
 function setTouchMode(on) {
   T.on = on; document.body.classList.toggle('touch', on); $('touchWarn').hidden = !on;
   if (!on) { T.jx = T.jy = 0; T.aim = false; T.jump = false; }
@@ -2982,6 +3014,7 @@ function aimAssist(p, dt) {
 function touchButton(b, down) {
   if (!player || gstate !== 'play' || paused) return;
   const p = player;
+  if (/^f[udlrpm]$/.test(b)) { T.fly[b] = down; return; }
   if (b === 'fire') { if (p.state === 'bus') { if (down) playerJumpBus(); return; } mouse.l = down; return; }
   if (b === 'jump') { if (down && p.state === 'bus') { playerJumpBus(); return; } T.jump = down; return; }
   if (!down) return;
@@ -3008,7 +3041,8 @@ tl.addEventListener('pointerdown', e => {
     if (btn.dataset.b === 'fire') { T.fireId = e.pointerId; T.lx = e.clientX; T.ly = e.clientY; }
     return;
   }
-  if (e.clientX < innerWidth * .42 && T.joyId === null) {
+  const flying = player && player.vehicle && player.vehicle.kind === 'plane';
+  if (!flying && e.clientX < innerWidth * .42 && T.joyId === null) {
     T.joyId = e.pointerId; T.ox = e.clientX; T.oy = e.clientY; T.jx = T.jy = 0;
     joy.style.display = 'block'; $('joyHint').style.display = 'none'; joy.style.left = T.ox + 'px'; joy.style.top = T.oy + 'px'; knob.style.transform = '';
   } else if (T.lookId === null) { T.lookId = e.pointerId; T.lx = e.clientX; T.ly = e.clientY; }
@@ -3648,7 +3682,7 @@ function enterPlane(p, pl) {
   if (!pl.alive || pl.driver) return;
   pl.driver = p; p.vehicle = pl; p.building = false; p.channel = null; p.dance = false; p.aiming = false; p.yaw = pl.yaw; p.pitch = .05; pl.still = 0;
   sfx('pick');
-  announce('¡A volar!', T.on ? 'Desliza para apuntar · joystick arriba = potencia · TURBO · FUEGO dispara' : 'Apunta con el ratón · W/S potencia · A/D alabeo · Shift turbo · clic dispara · E saltar');
+  announce('¡A volar!', T.on ? '+ acelera · ▲▼ subir y bajar · ◀▶ girar · TURBO · FUEGO dispara' : 'Apunta con el ratón · W/S potencia · A/D alabeo · Shift turbo · clic dispara · E saltar');
 }
 function exitPlane(p) {
   const pl = p.vehicle; if (!pl) return;
