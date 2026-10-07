@@ -30,6 +30,7 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 | 1-5 armas, R recargar, F pico | ARMA, RECARGAR, PICO |
 | Q construir (1 muro, 2 rampa, 3 suelo) | CONSTRUIR y botón de pieza |
 | E abrir o recoger, H botiquín, G poción, B bailar, M mapa | Botón amarillo de acción, CURAR, BAILE |
+| C o Ctrl deslizarse al correr · Espacio contra un borde para escalar | DESLIZAR · SALTAR contra un borde |
 | Coche: E subir/bajar, W/S acelerar y frenar, A/D girar, Espacio freno de mano, Shift turbo | Botón Conducir, joystick, FRENO, TURBO |
 | Avioneta: E subir/saltar, el ratón o las flechas dirigen, W/S potencia, A/D alabeo, Shift turbo con humo, clic ametralladoras, Espacio freno | Botón Pilotar, cruceta ▲▼◀▶, botones + y − MOTOR, TURBO, FUEGO |
 

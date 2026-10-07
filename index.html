@@ -262,6 +262,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 #fpU{left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(122px + env(safe-area-inset-bottom,0px))}#fpD{left:calc(78px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 #fpL{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px))}#fpR{left:calc(140px + env(safe-area-inset-left,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 #fpP{bottom:calc(96px + env(safe-area-inset-bottom,0px))}#thrBar{height:120px}}
+#tbSlide{width:52px;height:52px;right:calc(288px + env(safe-area-inset-right,0px));bottom:calc(64px + env(safe-area-inset-bottom,0px));font-size:11px}
 #tbDance{width:52px;height:52px;left:calc(206px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:#ff4fb4}
 #tbHeal{width:52px;height:52px;left:calc(146px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:var(--hp)}
 #tbUse.fly{top:auto;bottom:200px;left:auto;right:20px;transform:none;font-size:15px;padding:8px 12px}
@@ -445,6 +446,7 @@ body.touch #chtoast{top:34%}
   <button class="tb" id="tbSwap" data-b="swap">ARMA</button>
   <button class="tb" id="tbHeal" data-b="heal">CURAR</button>
   <button class="tb" id="tbDance" data-b="dance">BAILE</button>
+  <button class="tb" id="tbSlide" data-b="slide">DESLI<br>ZAR</button>
   <button class="tb" id="tbUse" data-b="use" hidden>Abrir</button>
   <button class="tb" id="tbBus" data-b="bus" hidden>¡SALTAR!</button>
   <div id="planePad" hidden>
@@ -1069,7 +1071,7 @@ function castRay(o, d, maxT, ignore = null, noChars = false, noRamps = false) {
 // Mundo estático: pueblos, castillo, puerto…
 // =====================================================================
 const box3 = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; return m; };
-const G = { walls: [], paint: [], roofs: [], wins: [], dark: [], metal: [], gold: [], glow: [] };
+const G = { walls: [], paint: [], siding: [], shingle: [], stone: [], roofs: [], wins: [], dark: [], metal: [], gold: [], glow: [] };
 function colorize(g, color) { const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; }
 function gbox(list, w, h, d, x, y, z, color = '#ffffff', rotY = 0) { const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
 function gcyl(list, rt, rb, h, x, y, z, color, seg = 10) { const g = new THREE.CylinderGeometry(rt, rb, h, seg); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
@@ -1108,28 +1110,39 @@ function hollowHouse(x, z, w, d, floors, color, roof, doorSouth, opts = {}) {
   const y0 = baseYAt(x, z, w, d), t = .35, FH = 3.6, fy = y0 + .2, top = fy + floors * FH;
   const x0 = x - w / 2, x1 = x + w / 2, z0 = z - d / 2, z1 = z + d / 2;
   const trim = opts.trim || '#f4efe6', floorCol = opts.floor || '#b98b5e';
-  gbox(G.walls, w + .3, 3.4, d + .3, x, y0 - 1.5, z, opts.base || '#a39a8c');
+  gbox(G.stone, w + .3, 3.4, d + .3, x, y0 - 1.5, z, opts.base || '#b8b2a6');
+  const WL = opts.plaster ?? Math.random() < .4 ? G.paint : G.siding;
   box('house', x0, y0 - 4, z0, x1, fy, z1);
   gbox(G.dark, w - 2 * t, .05, d - 2 * t, x, fy + .025, z, floorCol);
-  const Wl = (ax0, az0, ax1, az1, ya, yb, col = color) => { gbox(G.paint, ax1 - ax0, yb - ya, az1 - az0, (ax0 + ax1) / 2, (ya + yb) / 2, (az0 + az1) / 2, col); box('house', ax0, ya, az0, ax1, yb, az1); };
+  const Wl = (ax0, az0, ax1, az1, ya, yb, col = color) => { gbox(WL, ax1 - ax0, yb - ya, az1 - az0, (ax0 + ax1) / 2, (ya + yb) / 2, (az0 + az1) / 2, col); box('house', ax0, ya, az0, ax1, yb, az1); };
   const DW = .95, DH = 2.7, dz0 = doorSouth ? z0 : z1 - t, oz0 = doorSouth ? z1 - t : z0;
   Wl(x0, dz0, x - DW, dz0 + t, fy, top); Wl(x + DW, dz0, x1, dz0 + t, fy, top); Wl(x - DW, dz0, x + DW, dz0 + t, fy + DH, top);
   Wl(x0, oz0, x1, oz0 + t, fy, top);
   Wl(x0, z0 + t, x0 + t, z1 - t, fy, top); Wl(x1 - t, z0 + t, x1, z1 - t, fy, top);
   const fz = doorSouth ? z0 - .06 : z1 + .06;
+  // cantoneras en las esquinas y bandas entre pisos
+  for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) gbox(G.dark, .26, top - fy + .05, .26, cx, (fy + top) / 2, cz, trim);
+  for (let f = 1; f <= floors; f++) { const yb = fy + f * FH - (f === floors ? .1 : 0);
+    gbox(G.dark, w + .28, .2, .12, x, yb, z0 - .05, trim); gbox(G.dark, w + .28, .2, .12, x, yb, z1 + .05, trim);
+    gbox(G.dark, .12, .2, d + .28, x0 - .05, yb, z, trim); gbox(G.dark, .12, .2, d + .28, x1 + .05, yb, z, trim); }
+  // porche: escalón, columnas y tejadillo
+  const ps = doorSouth ? -1 : 1;
+  gbox(G.stone, 2.6, .24, 1, x, fy - .1, fz + ps * .5, '#c9c3b8');
+  for (const sx of [-1.15, 1.15]) gbox(G.dark, .16, DH + .32, .16, x + sx, fy + (DH + .32) / 2, fz + ps * 1.55, trim);
   gbox(G.dark, .22, DH + .15, .14, x - DW - .1, fy + DH / 2, fz, trim); gbox(G.dark, .22, DH + .15, .14, x + DW + .1, fy + DH / 2, fz, trim); gbox(G.dark, DW * 2 + .5, .22, .14, x, fy + DH + .1, fz, trim);
-  gbox(G.dark, 2.2, .12, .9, x, fy + DH + .45, fz + (doorSouth ? -.4 : .4), roof);
+  gbox(G.shingle, 2.9, .14, 1.85, x, fy + DH + .4, fz + ps * .85, roof); gbox(G.dark, 2.9, .16, .1, x, fy + DH + .28, fz + ps * 1.72, trim);
   // ventanas con marco, alféizar y contraventanas
   const shut = opts.shutter || pick(SHUTTER_COLS);
   const win = (wx, wy, wz, onX, out) => {
     const o = out * .06;
     if (onX) {
-      gbox(G.wins, .1, 1.2, 1.1, wx, wy, wz);
+      gbox(G.wins, .1, 1.2, 1.1, wx, wy, wz); gbox(G.dark, .1, 1.2, .06, wx + o * .6, wy, wz, trim); gbox(G.dark, .1, .06, 1.1, wx + o * .6, wy + .1, wz, trim);
       gbox(G.dark, .14, .12, 1.34, wx + o, wy + .66, wz, trim); gbox(G.dark, .22, .12, 1.4, wx + o * 1.5, wy - .68, wz, trim);
       gbox(G.dark, .14, 1.32, .12, wx + o, wy, wz - .61, trim); gbox(G.dark, .14, 1.32, .12, wx + o, wy, wz + .61, trim);
       gbox(G.dark, .08, 1.3, .5, wx + o, wy, wz - .95, shut); gbox(G.dark, .08, 1.3, .5, wx + o, wy, wz + .95, shut);
     } else {
-      gbox(G.wins, 1.1, 1.2, .1, wx, wy, wz);
+      gbox(G.wins, 1.1, 1.2, .1, wx, wy, wz); gbox(G.dark, .06, 1.2, .1, wx, wy, wz + o * .6, trim); gbox(G.dark, 1.1, .06, .1, wx, wy + .1, wz + o * .6, trim);
+      if (wy < fy + 2.5 && Math.random() < .55) { gbox(G.dark, 1.05, .22, .3, wx, wy - .86, wz + o * 3.2, '#7a4b2a'); for (let k = -2; k <= 2; k++) gsph(G.paint, .1, wx + k * .2, wy - .7, wz + o * 3.2, pick(['#ff5fa2', '#ffd23f', '#ffffff', '#ff7a3d', '#b07cff']), 1, .8, 1); gbox(G.paint, .95, .08, .22, wx, wy - .73, wz + o * 3.2, '#3f8a2e'); }
       gbox(G.dark, 1.34, .12, .14, wx, wy + .66, wz + o, trim); gbox(G.dark, 1.4, .12, .22, wx, wy - .68, wz + o * 1.5, trim);
       gbox(G.dark, .12, 1.32, .14, wx - .61, wy, wz + o, trim); gbox(G.dark, .12, 1.32, .14, wx + .61, wy, wz + o, trim);
       gbox(G.dark, .5, 1.3, .08, wx - .95, wy, wz + o, shut); gbox(G.dark, .5, 1.3, .08, wx + .95, wy, wz + o, shut);
@@ -1182,7 +1195,8 @@ function gableRoof(x, z, w, d, y, wallCol, roof) {
   for (const s of [-1, 1]) {
     const g = new THREE.BoxGeometry(alongX ? len : slab + .1, .22, alongX ? slab + .1 : len);
     if (alongX) g.rotateX(s * ang); else g.rotateZ(-s * ang);
-    g.translate(x + (alongX ? 0 : s * half / 2), y + rise / 2 + .1, z + (alongX ? s * half / 2 : 0)); G.roofs.push(colorize(g, roof));
+    g.translate(x + (alongX ? 0 : s * half / 2), y + rise / 2 + .1, z + (alongX ? s * half / 2 : 0)); G.shingle.push(colorize(g, roof));
+    { const gt = new THREE.CylinderGeometry(.07, .07, len, 6); if (alongX) gt.rotateZ(Math.PI / 2); else gt.rotateX(Math.PI / 2); gt.translate(x + (alongX ? 0 : s * (half + .05)), y - .02, z + (alongX ? s * (half + .05) : 0)); G.metal.push(colorize(gt, '#d8dde3')); }
     // colisión: rampa por cada faldón
     if (alongX) addCollider({ type: 'ramp', kind: 'house', minX: x - len / 2, maxX: x + len / 2, minZ: s < 0 ? z - half : z, maxZ: s < 0 ? z : z + half, minY: y, maxY: y + rise, A: 0, B: -s * k, C: y + rise + s * k * z, owner: null });
     else addCollider({ type: 'ramp', kind: 'house', minX: s < 0 ? x - half : x, maxX: s < 0 ? x : x + half, minZ: z - len / 2, maxZ: z + len / 2, minY: y, maxY: y + rise, A: -s * k, B: 0, C: y + rise + s * k * x, owner: null });
@@ -1451,6 +1465,23 @@ for (const si of [1, 3]) {
 }
 // alturas del terreno en una textura: sirve para oscurecer la base de los edificios (sombra de contacto)
 const TERR_TEX = (() => { const d = new Uint8Array(GW * GW * 4); for (let i = 0; i < GW * GW; i++) { const v = Math.round(clamp((HG[i] + 20) / 100, 0, 1) * 255); d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v; d[i * 4 + 3] = 255; } const t = new THREE.DataTexture(d, GW, GW, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return t; })();
+// tablas de madera de la fachada y tejas, dibujadas una vez
+function sidingTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  for (let b = 0; b < 8; b++) { const y = b * 32, gr = g.createLinearGradient(0, y, 0, y + 32); gr.addColorStop(0, '#d9d9d9'); gr.addColorStop(.75, '#c9c9c9'); gr.addColorStop(.9, '#a6a6a6'); gr.addColorStop(1, '#6e6e6e'); g.fillStyle = gr; g.fillRect(0, y, 256, 32); }
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},${Math.random() * .05})`; g.fillRect(Math.random() * 256, Math.random() * 256, 8 + Math.random() * 40, 1); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = IS_TOUCH ? 4 : 8; return t;
+}
+function shingleTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#585858'; g.fillRect(0, 0, 256, 256);
+  for (let r = 0; r < 4; r++) for (let k = -1; k < 6; k++) {
+    const x = k * 48 + (r % 2) * 24 + (Math.random() - .5) * 4, y = r * 64, v = 175 + Math.random() * 45 | 0;
+    const gr = g.createLinearGradient(0, y, 0, y + 64); gr.addColorStop(0, `rgb(${v - 40},${v - 40},${v - 40})`); gr.addColorStop(.8, `rgb(${v},${v},${v})`); gr.addColorStop(1, `rgb(${v - 70},${v - 70},${v - 70})`);
+    g.fillStyle = gr; g.beginPath(); g.moveTo(x + 2, y); g.lineTo(x + 46, y); g.lineTo(x + 46, y + 56); g.quadraticCurveTo(x + 24, y + 66, x + 2, y + 56); g.closePath(); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = IS_TOUCH ? 4 : 8; return t;
+}
 function triMat(tex, scale, amt, key) {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85 });
   m.onBeforeCompile = sh => {
@@ -1469,8 +1500,8 @@ function triMat(tex, scale, amt, key) {
 }
 (function flushStatic() {
   const add = (list, mat, shadow = true) => { if (!list.length) return; const m = new THREE.Mesh(mergeGeometries(list.map(g => g.index ? g.toNonIndexed() : g)), mat); m.castShadow = shadow; m.receiveShadow = true; scene.add(m); };
-  add(G.walls, triMat(ASSET.tBrick, .5, .8, 'w')); add(G.paint, triMat(ASSET.tBrick, .5, .14, 'p')); add(G.roofs, triMat(ASSET.tBrick, 1.3, .35, 'r')); add(G.dark, triMat(ASSET.tWood, .7, .6, 'd')); add(G.metal, M(0xffffff, { vertexColors: true, roughness: .35, metalness: .6, flatShading: false }));
-  add(G.wins, M(0x6fa8d6, { flatShading: false, roughness: .15, metalness: .3, emissive: 0x1d3f5c, emissiveIntensity: .35, envMap: envTex, envMapIntensity: .5 }), false);
+  add(G.walls, triMat(ASSET.tBrick, .5, .8, 'w')); add(G.paint, triMat(ASSET.tBrick, .5, .14, 'p')); add(G.siding, triMat(sidingTex(), .5, .85, 's')); add(G.shingle, triMat(shingleTex(), .7, .9, 'sh')); add(G.stone, triMat(ASSET.tRock, .45, .9, 'st')); add(G.roofs, triMat(ASSET.tBrick, 1.3, .35, 'r')); add(G.dark, triMat(ASSET.tWood, .7, .6, 'd')); add(G.metal, M(0xffffff, { vertexColors: true, roughness: .35, metalness: .6, flatShading: false }));
+  add(G.wins, M(0x4a7fae, { flatShading: false, roughness: .06, metalness: .55, emissive: 0x16324d, emissiveIntensity: .3, envMap: envTex, envMapIntensity: 1.3 }), false);
   add(G.gold, M(0xffffff, { vertexColors: true, roughness: .28, metalness: .85, envMap: envTex, envMapIntensity: 1.2, emissive: 0x3a2400, emissiveIntensity: .4 }));
   add(G.glow, new THREE.MeshBasicMaterial({ vertexColors: true, color: new THREE.Color(2.2, 2, 1.6) }), false);
 })();
@@ -2395,7 +2426,7 @@ function updateHUD(dt) {
     $('planePad').hidden = !pv; $('joyHint').style.visibility = pv ? 'hidden' : ''; if (pv) $('thrBar').firstElementChild.style.height = (p.vehicle.thr * 100) + '%';
     if (!pv) for (const k in T.fly) T.fly[k] = false;
     setTxt('tbFire', p.vehicle && !pv ? 'TURBO' : 'FUEGO'); setTxt('tbJump', pv ? 'TURBO' : p.vehicle ? 'FRENO' : 'SALTAR');
-    for (const id of ['tbAim', 'tbBuild', 'tbReload', 'tbPick', 'tbSwap', 'tbHeal', 'tbDance']) $(id).style.visibility = p.vehicle ? 'hidden' : '';
+    for (const id of ['tbAim', 'tbBuild', 'tbReload', 'tbPick', 'tbSwap', 'tbHeal', 'tbDance', 'tbSlide']) $(id).style.visibility = p.vehicle ? 'hidden' : '';
   }
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   const pn = $('planeNose'), pvc = p.vehicle && p.vehicle.kind === 'plane' ? p.vehicle : null;
@@ -2773,7 +2804,8 @@ function animChar(c, dt) {
   m.root.visible = true; m.root.position.copy(c.pos);
   const hs = Math.hypot(c.vel.x, c.vel.z), bs = c.boss ? 1.12 : 1;
   m.squash = Math.max(0, m.squash - dt); m.root.scale.set(bs * (1 + m.squash * .2), bs * (1 - m.squash * .45), bs * (1 + m.squash * .2));
-  m.root.rotation.set(c.skydive ? 1.05 : 0, c.dance && !m.act.dance ? c.yaw + Math.sin(gameTime * 2) * .6 : c.yaw, 0);
+  m.root.rotation.set(c.skydive ? 1.05 : c.slideT > 0 ? -.55 : 0, c.dance && !m.act.dance ? c.yaw + Math.sin(gameTime * 2) * .6 : c.yaw, 0);
+  if (c.slideT > 0) m.root.position.y -= .3;
   m.glider.visible = c.gliding;
   // menos trabajo para los personajes lejanos
   if (m.kick) m.kick = Math.max(0, m.kick - dt * .55);
@@ -2841,7 +2873,26 @@ function updatePlayer(dt) {
   p.aimT = lerp(p.aimT, p.aiming ? 1 : 0, Math.min(1, dt * 12));
   const sprint = (keys.ShiftLeft || (T.on && Math.hypot(T.jx, T.jy) > .92)) && mz > 0 && !p.aiming;
   let speed = p.aiming ? 4.6 : sprint ? 10.5 : 7.2; if (p.channel) speed = 3.5;
-  const jumpKey = !!keys.Space || T.jump; const jump = jumpKey && !p.jumpHeld; p.jumpHeld = jumpKey;
+  let jumpKey = !!keys.Space || T.jump; let jump = jumpKey && !p.jumpHeld; p.jumpHeld = jumpKey;
+  // deslizarse: agacharse corriendo (C o Ctrl, botón DESLIZAR)
+  const slideKey = !!(keys.KeyC || keys.ControlLeft) || T.slide; T.slide = false;
+  if (slideKey && !p.slideHeld && p.onGround && !(p.slideT > 0) && Math.hypot(p.vel.x, p.vel.z) > 6) { p.slideT = .85; p.slideX = f[0]; p.slideZ = f[1]; sfx('land', .6); }
+  p.slideHeld = slideKey;
+  if (p.slideT > 0) {
+    p.slideT -= dt; wx = p.slideX; wz = p.slideZ; speed = 7 + 9 * Math.max(0, p.slideT / .85); p.dance = false;
+    if (Math.random() < .5) burst(p.pos.x, p.pos.y + .1, p.pos.z, 1, new THREE.Color('#d8c8a0'), 2, .9, .5, false, 1);
+    if (jump) { p.slideT = 0; p.vel.x += p.slideX * 3; p.vel.z += p.slideZ * 3; } // salto deslizando: más impulso
+  }
+  // escalar: saltar contra un borde de hasta 2,6 m te sube encima
+  if (jumpKey && mz > .2 && !p.gliding && !p.skydive && !(p.mantleCD > gameTime) && p.state === 'play') {
+    _o.set(p.pos.x, p.pos.y + .9, p.pos.z); _d.set(f[0], 0, f[1]);
+    const lo = castRay(_o, _d, 1.1, p, true);
+    if (lo.type && lo.type !== 'terrain' && lo.type !== 'char') {
+      _o.y = p.pos.y + 3; const hi = castRay(_o, _d, 1.3, p, true);
+      const ax = p.pos.x + f[0] * (lo.t + .45), az = p.pos.z + f[1] * (lo.t + .45), top = groundTop(ax, az), dh = top - p.pos.y;
+      if (!hi.type && dh > .7 && dh < 2.7) { p.mantleCD = gameTime + .6; p.vel.y = Math.sqrt(2 * -GRAV * (dh + .35)); p.vel.x = f[0] * 4.5; p.vel.z = f[1] * 4.5; p.onGround = false; jump = false; p.model.squash = .15; sfx('jump', 1.2); }
+    }
+  }
   if (T.on && (mouse.l || p.aiming) && !p.building) aimAssist(p, dt);
   if (jump && !p.onGround && !p.skydive && p.pos.y - p.groundY > 12) { p.gliding = !p.gliding; }
   moveChar(p, wx, wz, speed, dt, jump);
@@ -3212,7 +3263,7 @@ function touchLook(dx, dy) {
   player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * .85, -1.25, 1.35); if (player.vehicle) player.lookT = gameTime + 1.2;
 }
 function aimAssist(p, dt) {
-  aimDir(p.yaw, p.pitch, _cd); let best = null, ba = .09;
+  aimDir(p.yaw, p.pitch, _cd); let best = null, ba = p.aiming ? .15 : .1;
   for (const b of bots) {
     if (!b.alive || b.state === 'bus') continue;
     _a.set(b.pos.x - camera.position.x, b.pos.y + 1.1 - camera.position.y, b.pos.z - camera.position.z); const d = _a.length(); if (d > 120) continue;
@@ -3220,7 +3271,7 @@ function aimAssist(p, dt) {
   }
   if (!best) return;
   const ty = Math.atan2(best.x, best.z), tp = Math.atan2(best.y, Math.hypot(best.x, best.z));
-  let dy = ty - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); const k = Math.min(1, dt * 4);
+  let dy = ty - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); const k = Math.min(1, dt * (p.aiming ? 6.5 : 4));
   p.yaw += dy * k; p.pitch += (tp - p.pitch) * k;
 }
 function touchButton(b, down) {
@@ -3232,6 +3283,7 @@ function touchButton(b, down) {
   if (!down) return;
   if (b === 'bus') playerJumpBus();
   if (p.vehicle) { if (b === 'use') exitCar(p); return; }
+  if (b === 'slide') { T.slide = true; return; }
   if (b === 'dance') { if (p.onGround) { p.dance = !p.dance; p.building = false; } return; }
   if (b === 'aim') T.aim = !T.aim;
   if (b === 'build') { p.building = !p.building; p.reloadT = 0; p.channel = null; if (p.building) T.aim = false; }
