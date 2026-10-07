@@ -254,6 +254,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 #fpL{left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px))}
 #fpR{left:calc(168px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px))}
 #fpP{right:calc(226px + env(safe-area-inset-right,0px));bottom:calc(112px + env(safe-area-inset-bottom,0px));border-color:#7dff6a!important}
+#fpA{left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(240px + env(safe-area-inset-bottom,0px));width:96px!important;border-radius:12px!important;border-color:#62f3ff!important}
 #fpM{right:calc(226px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));border-color:#ffb347!important}
 #thrBar{position:absolute;right:calc(302px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));width:12px;height:150px;border-radius:6px;border:2px solid rgba(255,255,255,.6);background:rgba(10,20,34,.45);overflow:hidden;pointer-events:none}
 #thrBar i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#7dff6a,#ffd23f,#ff4f7b)}
@@ -389,6 +390,7 @@ body.touch #chtoast{top:34%}
       <div class="opts">
         <div class="opt-row"><span>Dificultad</span><div class="seg" id="diffSeg"><button data-v="facil">Fácil</button><button data-v="normal">Normal</button><button data-v="dificil">Difícil</button></div></div>
         <div class="opt-row"><span>Gráficos</span><div class="seg" id="qualSeg"><button data-v="alta">Altos</button><button data-v="baja">Rápidos</button></div></div>
+        <div class="opt-row" id="afRow"><span>Disparo auto.</span><div class="seg" id="afSeg"><button data-v="si">Sí</button><button data-v="no">No</button></div></div>
       </div>
       <button class="btn2 ghost fsBtn" id="fsBtn" hidden>Pantalla completa</button>
       <p class="note" id="touchWarn" hidden>Controles táctiles: arrastra en la mitad izquierda para moverte (empuja hasta el borde para correr) y en la derecha para mirar. Pon el dispositivo en horizontal.</p>
@@ -456,6 +458,7 @@ body.touch #chtoast{top:34%}
     <button class="tb" id="fpR" data-b="fr"><b>▶</b>DER.</button>
     <button class="tb" id="fpP" data-b="fp"><b>+</b>MOTOR</button>
     <button class="tb" id="fpM" data-b="fm"><b>−</b>MOTOR</button>
+    <button class="tb" id="fpA" data-b="fa"><b>⤓</b>ATERRIZAR</button>
     <div id="thrBar"><i></i></div>
   </div>
 </div>
@@ -532,10 +535,10 @@ const DIFF = {
   normal:  { acc: .3,  dmg: .55, react: .6 },
   dificil: { acc: .42, dmg: .8,  react: .35 },
 };
-const settings = { diff: 'normal', quality: 'alta' };
+const settings = { diff: 'normal', quality: 'alta', autofire: 'si' };
 const IS_TOUCH = navigator.maxTouchPoints > 0 && matchMedia('(any-pointer: coarse)').matches;
 if (IS_TOUCH) settings.quality = 'baja';
-try { const s = JSON.parse(localStorage.getItem('islacaos') || '{}'); if (DIFF[s.diff]) settings.diff = s.diff; if (s.quality === 'baja' || s.quality === 'alta') settings.quality = s.quality; } catch (e) {}
+try { const s = JSON.parse(localStorage.getItem('islacaos') || '{}'); if (DIFF[s.diff]) settings.diff = s.diff; if (s.quality === 'baja' || s.quality === 'alta') settings.quality = s.quality; if (s.autofire === 'no') settings.autofire = 'no'; } catch (e) {}
 const saveSettings = () => { try { localStorage.setItem('islacaos', JSON.stringify(settings)); } catch (e) {} };
 
 const RAR = [
@@ -1090,17 +1093,32 @@ const rect = (x, z, w, d) => placedRects.push({ x, z, w, d });
 
 // torre maciza (rascacielos): se sube con rampas
 function solidTower(x, z, w, d, h, color, roof) {
-  const y0 = baseYAt(x, z, w, d);
+  const y0 = baseYAt(x, z, w, d), trim = '#efe9de', dark = '#3b3f47', awn = pick(['#d64545', '#2a7fbf', '#2e9e6a', '#e0a020']);
   gbox(G.walls, w, h + 3, d, x, y0 + (h - 3) / 2, z, color);
+  // planta baja: zócalo de piedra, escaparates y toldo
+  gbox(G.stone, w + .2, 1, d + .2, x, y0 + .5, z, '#bdb6aa');
+  for (const s of [-1, 1]) {
+    gbox(G.wins, w - 1.6, 2, .1, x, y0 + 2, z + s * (d / 2 + .03)); gbox(G.wins, .1, 2, d - 1.6, x + s * (w / 2 + .03), y0 + 2, z);
+    gbox(G.dark, w - 1.2, .16, .2, x, y0 + 3.05, z + s * (d / 2 + .05), dark); gbox(G.dark, .2, .16, d - 1.2, x + s * (w / 2 + .05), y0 + 3.05, z, dark);
+    const aw = new THREE.BoxGeometry(w - 1, .1, 1.3); aw.rotateX(s * .35); aw.translate(x, y0 + 3.55, z + s * (d / 2 + .6)); G.paint.push(colorize(aw, awn));
+  }
+  // cornisas entre pisos, pilastras y ventanas con marco
+  for (let wy = y0 + 4.2; wy < y0 + h - .5; wy += 3.6) { gbox(G.dark, w + .3, .18, d + .3, x, wy, z, trim); }
+  for (let wx = -w / 2; wx <= w / 2 + .01; wx += w / Math.max(2, Math.round(w / 2.6))) { gbox(G.dark, .3, h - 3.4, .3, x + wx, y0 + 3.4 + (h - 3.4) / 2, z + d / 2 + .05, trim); gbox(G.dark, .3, h - 3.4, .3, x + wx, y0 + 3.4 + (h - 3.4) / 2, z - d / 2 - .05, trim); }
+  for (let wz = -d / 2; wz <= d / 2 + .01; wz += d / Math.max(2, Math.round(d / 2.6))) { gbox(G.dark, .3, h - 3.4, .3, x + w / 2 + .05, y0 + 3.4 + (h - 3.4) / 2, z + wz, trim); gbox(G.dark, .3, h - 3.4, .3, x - w / 2 - .05, y0 + 3.4 + (h - 3.4) / 2, z + wz, trim); }
+  for (let f = 0, wy = y0 + 6; wy < y0 + h - 1; f++, wy += 3.6) {
+    for (let wx = -w / 2 + 1.6; wx <= w / 2 - 1.4; wx += 2.6) for (const s of [-1, 1]) { gbox(G.wins, 1.3, 1.8, .12, x + wx, wy, z + s * (d / 2 + .02)); gbox(G.dark, 1.5, .12, .22, x + wx, wy - .95, z + s * (d / 2 + .06), trim); gbox(G.dark, .06, 1.8, .14, x + wx, wy, z + s * (d / 2 + .05), dark); }
+    for (let wz = -d / 2 + 1.6; wz <= d / 2 - 1.4; wz += 2.6) for (const s of [-1, 1]) { gbox(G.wins, .12, 1.8, 1.3, x + s * (w / 2 + .02), wy, z + wz); gbox(G.dark, .22, .12, 1.5, x + s * (w / 2 + .06), wy - .95, z + wz, trim); gbox(G.dark, .14, 1.8, .06, x + s * (w / 2 + .05), wy, z + wz, dark); }
+  }
+  gbox(G.dark, 1.6, 2.4, .14, x, y0 + 1.2, z + d / 2 + .08, dark);
+  // azotea: cornisa, pretil, aire acondicionado, depósito de agua y antena
   gbox(G.roofs, w + .6, .5, d + .6, x, y0 + h + .25, z, roof);
   gbox(G.roofs, w + .6, .7, .3, x, y0 + h + .85, z - d / 2 - .15, roof); gbox(G.roofs, w + .6, .7, .3, x, y0 + h + .85, z + d / 2 + .15, roof);
   gbox(G.roofs, .3, .7, d + .6, x - w / 2 - .15, y0 + h + .85, z, roof); gbox(G.roofs, .3, .7, d + .6, x + w / 2 + .15, y0 + h + .85, z, roof);
-  for (let f = 0, wy = y0 + 1.9; wy < y0 + h - 1; f++, wy += 3.6) {
-    for (let wx = -w / 2 + 1.6; wx <= w / 2 - 1.4; wx += 2.6) { gbox(G.wins, 1.3, 1.6, .12, x + wx, wy, z + d / 2 + .02); gbox(G.wins, 1.3, 1.6, .12, x + wx, wy, z - d / 2 - .02); }
-    for (let wz = -d / 2 + 1.6; wz <= d / 2 - 1.4; wz += 2.6) { gbox(G.wins, .12, 1.6, 1.3, x + w / 2 + .02, wy, z + wz); gbox(G.wins, .12, 1.6, 1.3, x - w / 2 - .02, wy, z + wz); }
-  }
-  gbox(G.dark, 1.6, 2.4, .14, x, y0 + 1.2, z + d / 2 + .04, '#3b3f47');
-  gbox(G.metal, 1.8, 1.2, 1.8, x + w / 4, y0 + h + 1.1, z - d / 4, '#9aa3ad');
+  gbox(G.metal, 1.8, 1.2, 1.8, x + w / 4, y0 + h + 1.1, z - d / 4, '#9aa3ad'); gbox(G.metal, 1.2, .9, 1, x - w / 4, y0 + h + .95, z - d / 4, '#b9c0c8');
+  gcyl(G.dark, .9, .9, 1.6, x - w / 4, y0 + h + 2.6, z + d / 4, '#7a5536', 12); gcone(G.dark, 1, .7, x - w / 4, y0 + h + 3.75, z + d / 4, '#5a3d27', 12);
+  for (const sx of [-.6, .6]) for (const sz of [-.6, .6]) gbox(G.metal, .1, 1.8, .1, x - w / 4 + sx, y0 + h + 1.4, z + d / 4 + sz, '#4a4f57');
+  gcyl(G.metal, .05, .07, 4, x + w / 3, y0 + h + 2.5, z + d / 3, '#c9ced6', 6); gsph(G.glow, .14, x + w / 3, y0 + h + 4.5, z + d / 3, '#ff3b30');
   box('house', x - w / 2, y0 - 4, z - d / 2, x + w / 2, y0 + h + .5, z + d / 2);
   roofSpots.push({ x, z, y: y0 + h + .5, w, d });
 }
@@ -1317,7 +1335,10 @@ function buildPOI(p) {
       for (let s = 0; s < stack; s++) {
         const c = pick(['#d1495b', '#2e86ab', '#f18f01', '#3bb273', '#7768ae', '#e4572e']);
         gbox(G.metal, ww, 2.6, dd, x, y0 + 1.3 + s * 2.6, z, c);
-        for (let k = -2; k <= 2; k++) gbox(G.metal, rot ? .25 : ww + .06, 2.3, rot ? dd + .06 : .25, x + (rot ? k * 1.1 : 0), y0 + 1.3 + s * 2.6, z + (rot ? 0 : k * 1.1), new THREE.Color(c).multiplyScalar(.75).getStyle());
+        const cd = new THREE.Color(c).multiplyScalar(.72).getStyle(), yc = y0 + 1.3 + s * 2.6;
+        for (let k = -5; k <= 5; k++) gbox(G.metal, rot ? .16 : ww + .07, 2.2, rot ? dd + .07 : .16, x + (rot ? k * .55 : 0), yc, z + (rot ? 0 : k * .55), cd);
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) gbox(G.metal, .18, 2.62, .18, x + sx * (ww / 2 - .05), yc, z + sz * (dd / 2 - .05), '#3a3d42');
+        gbox(G.metal, ww + .04, .14, dd + .04, x, yc + 1.25, z, cd); gbox(G.metal, ww + .04, .14, dd + .04, x, yc - 1.25, z, cd);
       }
       box('house', x - ww / 2, y0 - 3, z - dd / 2, x + ww / 2, y0 + stack * 2.6, z + dd / 2);
       roofSpots.push({ x, z, y: y0 + stack * 2.6, w: ww, d: dd });
@@ -2431,8 +2452,9 @@ function updateHUD(dt) {
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   const pn = $('planeNose'), pvc = p.vehicle && p.vehicle.kind === 'plane' ? p.vehicle : null;
   if (pvc && !pvc.onGround) { planeAxes(pvc); _a.set(pvc.x, pvc.y, pvc.z).addScaledVector(_pF, 250).project(camera); if (_a.z < 1) { pn.hidden = false; pn.style.left = ((_a.x + 1) / 2 * innerWidth) + 'px'; pn.style.top = ((1 - _a.y) / 2 * innerHeight) + 'px'; } else pn.hidden = true; } else pn.hidden = true;
-  if (pvc && pvc.onGround) { gh.hidden = false; setTxt('glideHint', pvc.gs < 18 ? (T.on ? 'Mantén + MOTOR para acelerar por la pista · despegas solo a unos 90 km/h' : 'Mantén W para acelerar por la pista · despegas a unos 90 km/h') : '¡Despegando!'); }
-  else if (pvc) gh.hidden = true;
+  if (pvc && pvc.autoland && !pvc.onGround) { gh.hidden = false; setTxt('glideHint', 'Piloto automático: volviendo a la pista para aterrizar'); }
+  else if (pvc && pvc.onGround) { gh.hidden = false; setTxt('glideHint', pvc.gs < 18 ? (T.on ? 'Mantén + MOTOR para acelerar por la pista · despegas solo a unos 90 km/h' : 'Mantén W para acelerar por la pista · despegas a unos 90 km/h') : '¡Despegando!'); }
+  else if (pvc) { const sh = T.on && gameTime - (pvc.enterT || 0) < 25; gh.hidden = !sh; if (sh) setTxt('glideHint', '▲▼◀▶ dirigen la avioneta · desliza para mirar sin desviarla · ATERRIZAR la posa sola'); }
   else if (p.state === 'play' && p.skydive) { gh.hidden = false; setTxt('glideHint', `Caída libre · ${Math.round(hAbove)} m · el planeador se abre solo`); }
   else if (p.state === 'play' && !p.onGround && !p.gliding && hAbove > 14) { gh.hidden = false; setTxt('glideHint', T.on ? 'Toca SALTAR para abrir el planeador' : 'Pulsa ESPACIO para abrir el planeador'); }
   else gh.hidden = true;
@@ -2842,14 +2864,34 @@ function updatePlayer(dt) {
   if (p.state === 'bus') { p.pos.copy(bus.pos); return; }
   if (p.vehicle && p.vehicle.kind === 'plane') {
     const F = T.fly, up = F.fu || keys.ArrowUp, dn = F.fd || keys.ArrowDown, lf = F.fl || keys.ArrowLeft, rt = F.fr || keys.ArrowRight;
-    const c = p.vehicle, thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy + (F.fp ? 1 : 0) - (F.fm ? 1 : 0), -1, 1);
+    const c = p.vehicle; let thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy + (F.fp ? 1 : 0) - (F.fm ? 1 : 0), -1, 1);
     const roll = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + (c.onGround ? T.jx + (rt ? 1 : 0) - (lf ? 1 : 0) : 0), -1, 1);
-    // la cruceta mueve el punto al que vuela la avioneta; al soltar, vuelve sola a volar recto
-    if (lf || rt) { p.yaw += ((lf ? 1 : 0) - (rt ? 1 : 0)) * .95 * dt; }
-    if (up || dn) p.pitch = clamp(p.pitch + ((up ? 1 : 0) - (dn ? 1 : 0)) * .85 * dt, -.7, .75);
-    else if (T.on && T.lookId === null && !c.onGround) p.pitch += (.04 - p.pitch) * Math.min(1, dt * 1.3);
-    aimDir(p.yaw, p.pitch, _paim);
-    updatePlane(c, dt, { thr: Math.abs(thr) < .2 ? 0 : thr, roll: Math.abs(roll) < .2 ? 0 : roll, aim: _paim, guns: mouse.l, boost: !!keys.ShiftLeft || T.jump, brake: !!keys.Space || (thr < -.5 && c.thr <= 0) });
+    if (c.aYaw === undefined) { c.aYaw = c.yaw; c.aPitch = .05; }
+    if (T.autoReq || keys.KeyL && !p.lHeld) { c.autoland = c.autoland ? 0 : 1; if (c.autoland) announce('Piloto automático', 'Vuelve a la pista y aterriza solo'); }
+    T.autoReq = false; p.lHeld = !!keys.KeyL;
+    if (c.autoland && (up || dn || lf || rt || c.onGround)) { if (!c.onGround) announce('', 'Piloto automático desactivado'); c.autoland = 0; }
+    if (T.on) {
+      // en táctil el rumbo es propio de la avioneta: mirar alrededor no la desvía
+      if (lf || rt) c.aYaw += ((lf ? 1 : 0) - (rt ? 1 : 0)) * .9 * dt;
+      if (up || dn) c.aPitch = clamp(c.aPitch + ((up ? 1 : 0) - (dn ? 1 : 0)) * .8 * dt, -.6, .7);
+      else if (!c.onGround) c.aPitch += (.04 - c.aPitch) * Math.min(1, dt * 1.4);
+      if (!(p.lookT > gameTime)) { let dy = c.aYaw - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); p.yaw += dy * Math.min(1, dt * 3); p.pitch += (c.aPitch * .5 - .06 - p.pitch) * Math.min(1, dt * 2); }
+      aimDir(c.aYaw, c.aPitch, _paim);
+    } else {
+      if (lf || rt) p.yaw += ((lf ? 1 : 0) - (rt ? 1 : 0)) * .95 * dt;
+      if (up || dn) p.pitch = clamp(p.pitch + ((up ? 1 : 0) - (dn ? 1 : 0)) * .85 * dt, -.7, .75);
+      aimDir(p.yaw, p.pitch, _paim); c.aYaw = p.yaw; c.aPitch = p.pitch;
+    }
+    // piloto automático de aterrizaje: lejos al sur, alinearse con la pista y bajar
+    if (c.autoland) {
+      const wps = [[AF.x, AF.h + 45, AF.z - AF.len / 2 - 280], [AF.x, AF.h + 26, AF.z - AF.len / 2 - 120], [AF.x, AF.h + 1, AF.z + 45]];
+      let st = c.autoland - 1; const wp = wps[Math.min(st, 2)], dx = wp[0] - c.x, dz = wp[2] - c.z, dh = Math.hypot(dx, dz);
+      if (st < 2 && dh < (st ? 30 : 60)) c.autoland++;
+      _paim.set(dx, clamp((wp[1] - c.y) / Math.max(dh, 1), st >= 2 ? -.1 : -.3, .3) * dh, dz).normalize();
+      c.aYaw = Math.atan2(_paim.x, _paim.z); c.aPitch = Math.asin(_paim.y);
+      const tgt = st >= 2 ? 0 : st === 1 ? .45 : .8; thr = clamp((tgt - c.thr) * 4, -1, 1); c.alBrake = st >= 1 && c.vel.length() > (st >= 2 ? 27 : 36);
+    } else if (!c.onGround && thr === 0) thr = clamp((.85 - c.thr) * 2, -1, 1); // motor automático en el aire
+    updatePlane(c, dt, { thr: Math.abs(thr) < .05 ? 0 : thr, roll: Math.abs(roll) < .2 ? 0 : roll, aim: _paim, guns: mouse.l, boost: !c.autoland && (!!keys.ShiftLeft || T.jump), brake: !!keys.Space || (thr < -.5 && c.thr <= 0) || (!!c.autoland && c.alBrake) });
     if (p.vehicle !== c) return;
     p.pos.set(c.x, c.y, c.z); p.vel.copy(c.vel); p.onGround = c.onGround; p.groundY = planeGround(c.x, c.z);
     engineSound(true, 6 + c.rpm * 20, c.boost);
@@ -2893,7 +2935,7 @@ function updatePlayer(dt) {
       if (!hi.type && dh > .7 && dh < 2.7) { p.mantleCD = gameTime + .6; p.vel.y = Math.sqrt(2 * -GRAV * (dh + .35)); p.vel.x = f[0] * 4.5; p.vel.z = f[1] * 4.5; p.onGround = false; jump = false; p.model.squash = .15; sfx('jump', 1.2); }
     }
   }
-  if (T.on && (mouse.l || p.aiming) && !p.building) aimAssist(p, dt);
+  if (T.on && (mouse.l || p.aiming || settings.autofire === 'si') && !p.building) aimAssist(p, dt);
   if (jump && !p.onGround && !p.skydive && p.pos.y - p.groundY > 12) { p.gliding = !p.gliding; }
   moveChar(p, wx, wz, speed, dt, jump);
   if (windGain) windGain.gain.value = lerp(windGain.gain.value, p.skydive ? .5 : p.gliding ? .18 : 0, .08);
@@ -2902,6 +2944,7 @@ function updatePlayer(dt) {
   if (p.reloadT > 0) { p.reloadT -= dt; if (p.reloadT <= 0 && w) { const def = W[w.type]; const need = def.mag - w.mag, take = Math.min(need, p.ammo[def.ammo]); w.mag += take; p.ammo[def.ammo] -= take; } }
   const canAct = p.state === 'play' && !p.gliding && !p.skydive;
   if (canAct && mouse.l) { if (p.building) playerBuild(); else playerFire(); }
+  else if (canAct && T.on && settings.autofire === 'si' && !p.building && w && p.fireCD <= 0 && p.reloadT <= 0 && autoFireTarget(p, W[w.type])) playerFire();
   if (p.pickT > 0) { p.picking = clamp(p.pickT / .45, 0, 1); if (!pickaxeMesh.parent) p.model.gunHolder.add(pickaxeMesh); } else { p.picking = 0; if (pickaxeMesh.parent) pickaxeMesh.parent.remove(pickaxeMesh); }
   p.setGun(p.building || !w ? null : w.type, w ? w.rarity : 0);
   if (p.channel) {
@@ -3232,7 +3275,7 @@ function segInit(id, key) {
   seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); sync(); if (key === 'quality') applyQuality(); });
   sync();
 }
-segInit('diffSeg', 'diff'); segInit('qualSeg', 'quality');
+segInit('diffSeg', 'diff'); segInit('qualSeg', 'quality'); segInit('afSeg', 'autofire');
 $('playBtn').addEventListener('click', startGame);
 function toggleFS() { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (e) {} }
 if (document.fullscreenEnabled) for (const id of ['fsBtn', 'fsBtn2']) { $(id).hidden = false; $(id).addEventListener('click', toggleFS); }
@@ -3262,6 +3305,12 @@ function touchLook(dx, dy) {
   const s = .0055 * (player.aiming ? (W[curW()?.type]?.scope ? .3 : .55) : 1);
   player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * .85, -1.25, 1.35); if (player.vehicle) player.lookT = gameTime + 1.2;
 }
+// disparo automático (táctil): dispara solo si el punto de mira está sobre un enemigo a tiro
+function autoFireTarget(p, def) {
+  aimDir(p.yaw, p.pitch, _cd); _start.copy(camera.position);
+  const h = castRay(_start, _cd, def.range * (baseT(p.slots[p.sel].type) === 'shotgun' ? .45 : .8), p);
+  return h.type === 'char' && h.obj !== p && h.obj.alive;
+}
 function aimAssist(p, dt) {
   aimDir(p.yaw, p.pitch, _cd); let best = null, ba = p.aiming ? .15 : .1;
   for (const b of bots) {
@@ -3277,6 +3326,7 @@ function aimAssist(p, dt) {
 function touchButton(b, down) {
   if (!player || gstate !== 'play' || paused) return;
   const p = player;
+  if (b === 'fa') { if (down) T.autoReq = true; return; }
   if (/^f[udlrpm]$/.test(b)) { T.fly[b] = down; return; }
   if (b === 'fire') { if (p.state === 'bus') { if (down) playerJumpBus(); return; } mouse.l = down; return; }
   if (b === 'jump') { if (down && p.state === 'bus') { playerJumpBus(); return; } T.jump = down; return; }
@@ -3413,7 +3463,7 @@ function renderEndXP(r) {
   else u.hidden = true;
 }
 function renderMenu() {
-  { const bc = $("botCount"); if (bc) bc.textContent = MATCH_BOTS; }
+  { const bc = $("botCount"); if (bc) bc.textContent = MATCH_BOTS; } $('afRow').hidden = !IS_TOUCH && !T.on;
   $('pcLvl').textContent = prof.lvl; $('pcBar').style.width = (prof.xp / lvlNeed(prof.lvl) * 100) + '%'; $('pcXp').textContent = `${prof.xp} / ${lvlNeed(prof.lvl)} XP`;
   $('pcWins').textContent = prof.wins; $('pcKills').textContent = prof.kills; $('pcGames').textContent = prof.games;
   $('pcCh').innerHTML = prof.ch.map(c => `<li><div><span>${c.t}</span><b>+${c.xp}</b></div><div class="xpbar sm"><i style="width:${c.prog / c.n * 100}%"></i></div><small>${c.prog} / ${c.n}</small></li>`).join('');
@@ -4041,9 +4091,9 @@ function damagePlane(pl, dmg, by) {
 }
 function enterPlane(p, pl) {
   if (!pl.alive || pl.driver) return;
-  pl.driver = p; p.vehicle = pl; p.building = false; p.channel = null; p.dance = false; p.aiming = false; p.yaw = pl.yaw; p.pitch = .05; pl.still = 0;
+  pl.aYaw = pl.yaw; pl.aPitch = .05; pl.autoland = 0; pl.enterT = gameTime; pl.driver = p; p.vehicle = pl; p.building = false; p.channel = null; p.dance = false; p.aiming = false; p.yaw = pl.yaw; p.pitch = .05; pl.still = 0;
   sfx('pick');
-  announce('¡A volar!', T.on ? '+ acelera · ▲▼ subir y bajar · ◀▶ girar · TURBO · FUEGO dispara' : 'Apunta con el ratón · W/S potencia · A/D alabeo · Shift turbo · clic dispara · E saltar');
+  announce('¡A volar!', T.on ? 'Mantén + MOTOR para despegar · ▲▼◀▶ dirigen · ATERRIZAR la posa sola' : 'Ratón o flechas para dirigir · W potencia · Shift turbo · clic dispara · L aterrizaje automático · E saltar');
 }
 function exitPlane(p) {
   const pl = p.vehicle; if (!pl) return;
@@ -4102,7 +4152,7 @@ function updatePlane(pl, dt, inp) {
     if (wet) { damagePlane(pl, 50 * dt, pl.lastBy); }
     // despegue
     const lift = (pl.gs / 27) ** 2 * (1 + pl.att * 2.5);
-    if (pl.thr > .5 && (lift > 1.15 && rot > .05 || pl.gs > 38)) { pl.onGround = false; pl.vel.y = 2.5; pl.y += .1; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Ve hacia donde miras'); } } }
+    if (pl.thr > .5 && (lift > 1.15 && rot > .05 || pl.gs > 38)) { pl.onGround = false; pl.vel.y = 2.5; pl.y += .1; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Suelta los botones y vuela recto solo'); } } }
   } else {
     // ---- vuelo ----
     let s = Math.max(0, pl.vel.dot(_pF));
@@ -4164,7 +4214,7 @@ function updatePlane(pl, dt, inp) {
       const pitchA = Math.asin(clamp(_pF.y, -1, 1)), vy = pl.vel.y, wet = terrainH(pl.x, pl.z) < WATER - .3;
       if (gearDown && !wet && vy > -9.5 && Math.abs(bank) < .6 && pitchA > -.25 && pitchA < .5) {
         pl.onGround = true; pl.gs = Math.hypot(pl.vel.x, pl.vel.z); pl.yaw = Math.atan2(_pF.x, _pF.z); pl.att = clamp(pitchA, 0, .3);
-        if (vy < -4) planeCrash(pl, (-vy - 4) * 2);
+        if (vy < -6.5) planeCrash(pl, (-vy - 6.5) * 2);
         if (pl.driver === player) { sfx('land', 1.2); burst(pl.x, gh + .1, pl.z, 10, new THREE.Color('#bdb3a2'), 4, 1.4, .7, false, 1); }
       } else {
         const sev = Math.max(-vy, s * (gearDown ? .5 : 1));
