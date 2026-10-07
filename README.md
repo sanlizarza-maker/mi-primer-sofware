@@ -26,13 +26,15 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 | Ratón para apuntar, clic izquierdo dispara, clic derecho mirilla | Arrastra a la derecha para mirar, botón FUEGO |
 | 1-5 armas, R recargar, F pico | ARMA, RECARGAR, PICO |
 | Q construir (1 muro, 2 rampa, 3 suelo) | CONSTRUIR y botón de pieza |
-| E abrir o recoger, H botiquín, G poción, B bailar, M mapa | Botón amarillo de acción, CURAR |
+| E abrir o recoger, H botiquín, G poción, B bailar, M mapa | Botón amarillo de acción, CURAR, BAILE |
 | Coche: E subir/bajar, W/S acelerar y frenar, A/D girar, Espacio freno de mano, Shift turbo | Botón Conducir, joystick, FRENO, TURBO |
 | Avioneta: E subir/saltar, el ratón apunta hacia donde vuela, W/S potencia, A/D alabeo, Shift turbo con humo, clic ametralladoras, Espacio freno | Botón Pilotar, deslizar para apuntar, joystick arriba/abajo potencia, TURBO, FUEGO |
 
 ## Créditos de los recursos
 
 - Personajes Soldier y Xbot, con sus animaciones: ejemplos de [three.js](https://github.com/mrdoob/three.js) (MIT), creados con Mixamo.
+- Personaje Michelle y su baile de samba: ejemplos de three.js, creados con [Mixamo](https://www.mixamo.com) (Adobe). Sus animaciones de andar y correr se adaptan en el juego desde las del soldado.
+- Robot "RobotExpressive" con sus animaciones: de Tomás Laulhé ([Quaternius](https://quaternius.com)), incluido en los ejemplos de three.js (CC0).
 - Árboles: generados con [ez-tree](https://github.com/dgreenheck/ez-tree) de Daniel Greenheck (MIT). Sus texturas de corteza vienen de Poly Haven y TextureCan.
 - Rocas, hierba 3D y texturas de tierra y hierba (`grass.jpg`): repositorio de ez-tree (MIT).
 - Cielo HDRI `quarry_01`: [Poly Haven](https://polyhaven.com) (CC0).

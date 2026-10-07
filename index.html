@@ -205,6 +205,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 #tbReload{width:52px;height:52px;right:calc(220px + env(safe-area-inset-right,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));font-size:12px}
 #tbPick{width:52px;height:52px;right:calc(214px + env(safe-area-inset-right,0px));bottom:calc(108px + env(safe-area-inset-bottom,0px));font-size:12px}
 #tbSwap{width:52px;height:52px;right:calc(30px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
+#tbDance{width:52px;height:52px;left:calc(206px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:#ff4fb4}
 #tbHeal{width:52px;height:52px;left:calc(146px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));font-size:12px;border-color:var(--hp)}
 #tbUse.fly{top:auto;bottom:200px;left:auto;right:20px;transform:none;font-size:15px;padding:8px 12px}
 #tbUse{left:50%;top:58%;transform:translateX(-50%);border-radius:8px;width:auto;height:auto;padding:12px 18px 10px;font-size:20px;background:rgba(255,210,63,.9);color:var(--ink);border-color:#fff;text-shadow:none;white-space:nowrap}
@@ -315,7 +316,7 @@ body.touch #chtoast{top:34%}
 <div id="menu" class="screen" hidden>
   <div class="menu-col">
     <h1 class="logo">ISLA<span>CAOS</span></h1>
-    <p class="tag">Salta del autobús, saquea cofres, rompe llamas piñata y sé el último en pie antes de que la tormenta se trague la isla. 24 bots y un Jefe con arma mítica quieren tu corona.</p>
+    <p class="tag">Salta del autobús, saquea cofres, rompe llamas piñata y sé el último en pie antes de que la tormenta se trague la isla. <span id="botCount">49</span> rivales y un Jefe con arma mítica quieren tu corona.</p>
     <div class="opt-row" style="gap:10px"><button class="play" id="playBtn">JUGAR</button><button class="btn2 ghost fsBtn" id="fsBtn" hidden>Pantalla completa</button></div>
     <div class="opts">
       <div class="opt-row"><span>Dificultad</span><div class="seg" id="diffSeg"><button data-v="facil">Fácil</button><button data-v="normal">Normal</button><button data-v="dificil">Difícil</button></div></div>
@@ -354,6 +355,7 @@ body.touch #chtoast{top:34%}
   <button class="tb" id="tbPick" data-b="pick">PICO</button>
   <button class="tb" id="tbSwap" data-b="swap">ARMA</button>
   <button class="tb" id="tbHeal" data-b="heal">CURAR</button>
+  <button class="tb" id="tbDance" data-b="dance">BAILE</button>
   <button class="tb" id="tbUse" data-b="use" hidden>Abrir</button>
   <button class="tb" id="tbBus" data-b="bus" hidden>¡SALTAR!</button>
 </div>
@@ -461,18 +463,21 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = .62;
+// tono cinematográfico con colores vivos (estilo de los battle royale) también sin postprocesado
+THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }',
+  'vec3 CustomToneMapping( vec3 color ) { vec3 c = ACESFilmicToneMapping( color ); float l = dot( c, vec3( .2126, .7152, .0722 ) ); c = mix( vec3( l ), c, 1.22 ); c = ( c - .5 ) * 1.05 + .5; return clamp( c, 0., 1. ); }');
+renderer.toneMapping = THREE.CustomToneMapping;
+renderer.toneMappingExposure = .7;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-const FOG = new THREE.Color('#bcdcf2');
-scene.fog = new THREE.Fog(FOG.clone(), 240, 1150);
+const FOG = new THREE.Color('#acd3fb');
+scene.fog = new THREE.Fog(FOG.clone(), 300, 1300);
 const camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, .1, 4000);
 
 const sky = new Sky(); sky.scale.setScalar(3000); scene.add(sky);
 const su = sky.material.uniforms;
-su.turbidity.value = 3.2; su.rayleigh.value = 1.1; su.mieCoefficient.value = .004; su.mieDirectionalG.value = .82;
+su.turbidity.value = 1.8; su.rayleigh.value = 1.7; su.mieCoefficient.value = .0028; su.mieDirectionalG.value = .84;
 const SUN = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), THREE.MathUtils.degToRad(145));
 su.sunPosition.value.copy(SUN);
 
@@ -488,7 +493,7 @@ const AP = 'assets/', BIN_EXT = '';
 const ASSET = {};
 await (async function loadAssets() {
   const L = $('loading'); const files = [
-    ['soldier', 'Soldier.glb'], ...(IS_TOUCH ? [] : [['xbot', 'Xbot.glb']]), ['rock1', 'rock1.glb'], ['rock2', 'rock2.glb'], ['rock3', 'rock3.glb'], ['grassClump', 'grass.glb'], ['car', 'car.glb'], ['tCarAO', 'car_ao.png'], ['hdr', 'quarry_01_1k.hdr'],
+    ['soldier', 'Soldier.glb'], ...(IS_TOUCH ? [] : [['xbot', 'Xbot.glb']]), ['rock1', 'rock1.glb'], ['rock2', 'rock2.glb'], ['rock3', 'rock3.glb'], ['grassClump', 'grass.glb'], ['michelle', 'Michelle.glb'], ['robot', 'RobotExpressive.glb'], ['car', 'car.glb'], ['tCarAO', 'car_ao.png'], ['hdr', 'quarry_01_1k.hdr'],
     ['tGrass', 'grass2_color.jpg', 1], ['tGrassN', 'grass2_normal.jpg'], ['tGrass2', 'grass.jpg', 1], ['tDirt', 'dirt_color.jpg', 1], ['tDirtN', 'dirt_normal.jpg'],
     ['tRock', 'rock_basecolor.webp', 1], ['tRockN', 'rock_normal.webp'], ['tBrick', 'brick.jpg', 1], ['tWood', 'wood.jpg', 1], ['tWaterN', 'waternormals.jpg']];
   let done = 0; const tick = () => { done++; L.textContent = `Cargando la isla… ${Math.round(done / files.length * 100)}%`; };
@@ -505,8 +510,8 @@ await (async function loadAssets() {
 scene.environment = pmrem.fromEquirectangular(ASSET.hdr).texture;
 scene.environmentIntensity = .55;
 
-const hemi = new THREE.HemisphereLight(0xd6ecff, 0x8a8060, .7); scene.add(hemi);
-const sunLight = new THREE.DirectionalLight(0xfff0d8, 3.4);
+const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7d8f55, .75); scene.add(hemi);
+const sunLight = new THREE.DirectionalLight(0xfff0d2, 3.6);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(2048, 2048);
 const sc = sunLight.shadow.camera; sc.left = -75; sc.right = 75; sc.top = 75; sc.bottom = -75; sc.near = 1; sc.far = 500;
@@ -524,7 +529,7 @@ function ensureComposer() {
   composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .28, .45, .88));
   composer.addPass(new OutputPass());
   gradePass = new ShaderPass({
-    uniforms: { tDiffuse: { value: null }, uSat: { value: 1.03 }, uVig: { value: .32 }, uStorm: { value: 0 } },
+    uniforms: { tDiffuse: { value: null }, uSat: { value: 1.22 }, uVig: { value: .32 }, uStorm: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
     fragmentShader: `uniform sampler2D tDiffuse; uniform float uSat, uVig, uStorm; varying vec2 vUv;
       void main(){ vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(.299, .587, .114));
@@ -542,8 +547,12 @@ function applyQuality() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, hi ? 1.5 : 1));
   renderer.setSize(innerWidth, innerHeight);
   if (hi) ensureComposer();
-  renderer.shadowMap.enabled = hi;
-  sunLight.castShadow = hi;
+  // sombras también en calidad rápida (mapa más pequeño y cercano)
+  renderer.shadowMap.enabled = true; sunLight.castShadow = true;
+  const sz = hi ? 2048 : 1024, ext = hi ? 75 : 48;
+  if (sunLight.shadow.mapSize.x !== sz) { sunLight.shadow.mapSize.set(sz, sz); if (sunLight.shadow.map) { sunLight.shadow.map.dispose(); sunLight.shadow.map = null; } }
+  Object.assign(sunLight.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext }); sunLight.shadow.camera.updateProjectionMatrix();
+  renderer.toneMapping = hi ? THREE.ACESFilmicToneMapping : THREE.CustomToneMapping;
   if (grassMesh) { grassMesh.visible = true; updateGrassField(true); } updateFloraLOD(true);
   scene.traverse(o => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach(m => m.needsUpdate = true); } });
 }
@@ -680,13 +689,13 @@ let grassMesh = null;
       .replace('#include <map_fragment>', `
         vec2 tuv = vMapUv;
         float macro = texture2D(tDirt, tuv * .031).g;
-        vec3 cG = texture2D(map, tuv).rgb * mix(vec3(1.), texture2D(tGrass2, tuv * .43).rgb * 1.7, .4) * (.8 + .45 * macro);
+        vec3 cG = texture2D(map, tuv).rgb * mix(vec3(1.), texture2D(tGrass2, tuv * .43).rgb * 1.7, .4) * (.8 + .45 * macro) * vec3(1.28, 1.3, .82);
         vec3 cD = texture2D(tDirt, tuv * 1.6).rgb;
         vec3 cS = mix(texture2D(tDirt, tuv * 2.3).rgb, vec3(.62, .56, .43), .55) * vec3(1.32, 1.18, .9);
         vec3 bw = pow(abs(normalize(vTWN)), vec3(4.)); bw /= bw.x + bw.y + bw.z;
         vec3 cR = texture2D(tRock, vTWP.zy * .09).rgb * bw.x + texture2D(tRock, vTWP.xz * .09).rgb * bw.y + texture2D(tRock, vTWP.xy * .09).rgb * bw.z;
         vec3 cN = mix(vec3(.86, .9, .96), vec3(1.), cR.r);
-        vec3 cP = texture2D(tBrick, tuv * 2.2).rgb * vec3(.85, .8, .72);
+        vec3 cP = texture2D(tBrick, tuv * 2.2).rgb; cP = mix(vec3(dot(cP, vec3(.33))), cP, .55) * vec3(.95, .9, .82);
         diffuseColor.rgb *= cG * vSA.x + cD * vSA.y + cS * vSA.z + cR * 1.15 * vSA.w + cN * vSB.x + cP * vSB.y;`)
       .replace('#include <normal_fragment_maps>', `
         vec3 nG = texture2D(normalMap, vNormalMapUv).xyz * 2. - 1.;
@@ -904,7 +913,7 @@ function castRay(o, d, maxT, ignore = null, noChars = false, noRamps = false) {
 // Mundo estático: pueblos, castillo, puerto…
 // =====================================================================
 const box3 = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; return m; };
-const G = { walls: [], roofs: [], wins: [], dark: [], metal: [], gold: [], glow: [] };
+const G = { walls: [], paint: [], roofs: [], wins: [], dark: [], metal: [], gold: [], glow: [] };
 function colorize(g, color) { const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; }
 function gbox(list, w, h, d, x, y, z, color = '#ffffff', rotY = 0) { const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
 function gcyl(list, rt, rb, h, x, y, z, color, seg = 10) { const g = new THREE.CylinderGeometry(rt, rb, h, seg); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
@@ -913,8 +922,9 @@ function gsph(list, r, x, y, z, color, sx = 1, sy = 1, sz = 1) { const g = new T
 function gpart(list, w, h, d, px, py, pz, color, ox, oy, oz, rot, s = 1) { const g = new THREE.BoxGeometry(w * s, h * s, d * s); g.translate(px * s, py * s, pz * s); g.rotateY(rot); g.translate(ox, oy, oz); list.push(colorize(g, color)); return g; }
 const LLAMA_PARTS = [[1, .75, 1.6, 0, 1.25, 0], [.42, 1, .42, 0, 2, .62], [.5, .45, .75, 0, 2.6, .82], [.34, .28, .3, 0, 2.5, 1.27], [.12, .35, .12, -.16, 2.95, .72], [.12, .35, .12, .16, 2.95, .72],
   [.25, 1, .25, -.32, .5, .6], [.25, 1, .25, .32, .5, .6], [.25, 1, .25, -.32, .5, -.6], [.25, 1, .25, .32, .5, -.6], [.25, .35, .22, 0, 1.55, -.85]];
-const HOUSE_COLS = ['#d9cfc0', '#efe9df', '#c8b8a2', '#b9a48b', '#b07a62', '#9a5a46', '#e3d6bf', '#a9a299', '#cdbfa8', '#8d7f70'];
-const ROOF_COLS = ['#5a4a42', '#3e4247', '#6b3d32', '#4a5058', '#57514a', '#7a4636'];
+const HOUSE_COLS = ['#f3d9a8', '#a9d6e5', '#f7b7a3', '#c5e1a5', '#ffe39a', '#d8c6f0', '#f6f1e3', '#9fd8cb', '#f4c27a', '#e8a0a6'];
+const SHUTTER_COLS = ['#2a6f97', '#c0392b', '#2e7d32', '#6a3d9a', '#e67e22', '#34495e', '#16a085'];
+const ROOF_COLS = ['#b5442f', '#2f5d8c', '#6b3d6e', '#c8682a', '#4a5560', '#2f7a4f', '#8e3b2e'];
 function baseYAt(x, z, w, d) { return Math.min(terrainH(x - w / 2, z - d / 2), terrainH(x + w / 2, z - d / 2), terrainH(x - w / 2, z + d / 2), terrainH(x + w / 2, z + d / 2), terrainH(x, z)) - .2; }
 const roofSpots = [], interiorSpots = [], spinners = [], placedRects = [];
 function freeRect(x, z, w, d, pad = 2) { for (const r of placedRects) if (Math.abs(x - r.x) < (w + r.w) / 2 + pad && Math.abs(z - r.z) < (d + r.d) / 2 + pad) return false; return true; }
@@ -945,7 +955,7 @@ function hollowHouse(x, z, w, d, floors, color, roof, doorSouth, opts = {}) {
   gbox(G.walls, w + .3, 3.4, d + .3, x, y0 - 1.5, z, opts.base || '#a39a8c');
   box('house', x0, y0 - 4, z0, x1, fy, z1);
   gbox(G.dark, w - 2 * t, .05, d - 2 * t, x, fy + .025, z, floorCol);
-  const Wl = (ax0, az0, ax1, az1, ya, yb, col = color) => { gbox(G.walls, ax1 - ax0, yb - ya, az1 - az0, (ax0 + ax1) / 2, (ya + yb) / 2, (az0 + az1) / 2, col); box('house', ax0, ya, az0, ax1, yb, az1); };
+  const Wl = (ax0, az0, ax1, az1, ya, yb, col = color) => { gbox(G.paint, ax1 - ax0, yb - ya, az1 - az0, (ax0 + ax1) / 2, (ya + yb) / 2, (az0 + az1) / 2, col); box('house', ax0, ya, az0, ax1, yb, az1); };
   const DW = .95, DH = 2.7, dz0 = doorSouth ? z0 : z1 - t, oz0 = doorSouth ? z1 - t : z0;
   Wl(x0, dz0, x - DW, dz0 + t, fy, top); Wl(x + DW, dz0, x1, dz0 + t, fy, top); Wl(x - DW, dz0, x + DW, dz0 + t, fy + DH, top);
   Wl(x0, oz0, x1, oz0 + t, fy, top);
@@ -953,13 +963,28 @@ function hollowHouse(x, z, w, d, floors, color, roof, doorSouth, opts = {}) {
   const fz = doorSouth ? z0 - .06 : z1 + .06;
   gbox(G.dark, .22, DH + .15, .14, x - DW - .1, fy + DH / 2, fz, trim); gbox(G.dark, .22, DH + .15, .14, x + DW + .1, fy + DH / 2, fz, trim); gbox(G.dark, DW * 2 + .5, .22, .14, x, fy + DH + .1, fz, trim);
   gbox(G.dark, 2.2, .12, .9, x, fy + DH + .45, fz + (doorSouth ? -.4 : .4), roof);
-  // ventanas
+  // ventanas con marco, alféizar y contraventanas
+  const shut = opts.shutter || pick(SHUTTER_COLS);
+  const win = (wx, wy, wz, onX, out) => {
+    const o = out * .06;
+    if (onX) {
+      gbox(G.wins, .1, 1.2, 1.1, wx, wy, wz);
+      gbox(G.dark, .14, .12, 1.34, wx + o, wy + .66, wz, trim); gbox(G.dark, .22, .12, 1.4, wx + o * 1.5, wy - .68, wz, trim);
+      gbox(G.dark, .14, 1.32, .12, wx + o, wy, wz - .61, trim); gbox(G.dark, .14, 1.32, .12, wx + o, wy, wz + .61, trim);
+      gbox(G.dark, .08, 1.3, .5, wx + o, wy, wz - .95, shut); gbox(G.dark, .08, 1.3, .5, wx + o, wy, wz + .95, shut);
+    } else {
+      gbox(G.wins, 1.1, 1.2, .1, wx, wy, wz);
+      gbox(G.dark, 1.34, .12, .14, wx, wy + .66, wz + o, trim); gbox(G.dark, 1.4, .12, .22, wx, wy - .68, wz + o * 1.5, trim);
+      gbox(G.dark, .12, 1.32, .14, wx - .61, wy, wz + o, trim); gbox(G.dark, .12, 1.32, .14, wx + .61, wy, wz + o, trim);
+      gbox(G.dark, .5, 1.3, .08, wx - .95, wy, wz + o, shut); gbox(G.dark, .5, 1.3, .08, wx + .95, wy, wz + o, shut);
+    }
+  };
   for (let f = 0; f < floors; f++) {
     const wy = fy + f * FH + 1.75;
-    for (let wz = z0 + 1.6; wz <= z1 - 1.5; wz += 2.5) for (const sx of [-1, 1]) { const xx = sx < 0 ? x0 - .03 : x1 + .03; gbox(G.wins, .1, 1.2, 1.1, xx, wy, wz); gbox(G.dark, .2, .12, 1.3, xx, wy - .68, wz, trim); }
+    for (let wz = z0 + 1.6; wz <= z1 - 1.5; wz += 2.5) for (const sx of [-1, 1]) win(sx < 0 ? x0 - .03 : x1 + .03, wy, wz, true, sx);
     for (let wx = x0 + 1.5; wx <= x1 - 1.4; wx += 2.5) {
-      gbox(G.wins, 1.1, 1.2, .1, wx, wy, oz0 + (doorSouth ? t + .03 : -.03)); gbox(G.dark, 1.3, .12, .2, wx, wy - .68, oz0 + (doorSouth ? t + .03 : -.03), trim);
-      if (f > 0 || Math.abs(wx - x) > 1.7) { gbox(G.wins, 1.1, 1.2, .1, wx, wy, fz); gbox(G.dark, 1.3, .12, .2, wx, wy - .68, fz, trim); }
+      win(wx, wy, oz0 + (doorSouth ? t + .03 : -.03), false, doorSouth ? 1 : -1);
+      if (f > 0 || Math.abs(wx - x) > 1.7) win(wx, wy, fz, false, doorSouth ? -1 : 1);
     }
     gbox(G.glow, .5, .08, .5, x + w * .15, fy + (f + 1) * FH - .06, z, '#ffe8b0');
   }
@@ -984,25 +1009,62 @@ function hollowHouse(x, z, w, d, floors, color, roof, doorSouth, opts = {}) {
   interiorSpots.push({ x: x1 - t - .9, y: fy, z: doorSouth ? z1 - t - .9 : z0 + t + .9 });
   // tejado
   gbox(G.roofs, w + .5, .45, d + .5, x, top + .22, z, roof);
-  gbox(G.roofs, w + .5, .5, .25, x, top + .7, z0 - .12, roof); gbox(G.roofs, w + .5, .5, .25, x, top + .7, z1 + .12, roof);
-  gbox(G.roofs, .25, .5, d + .5, x0 - .12, top + .7, z, roof); gbox(G.roofs, .25, .5, d + .5, x1 + .12, top + .7, z, roof);
-  if (opts.chimney !== false) gbox(G.walls, .7, 1.4, .7, x0 + 1.2, top + 1.1, z1 - 1.2, '#9c4a3c');
   box('house', x0 - .25, top, z0 - .25, x1 + .25, top + .45, z1 + .25);
-  roofSpots.push({ x, z, y: top + .45, w, d });
+  if (opts.gable ?? Math.random() < .7) gableRoof(x, z, w, d, top + .45, color, roof);
+  else {
+    gbox(G.roofs, w + .5, .5, .25, x, top + .7, z0 - .12, roof); gbox(G.roofs, w + .5, .5, .25, x, top + .7, z1 + .12, roof);
+    gbox(G.roofs, .25, .5, d + .5, x0 - .12, top + .7, z, roof); gbox(G.roofs, .25, .5, d + .5, x1 + .12, top + .7, z, roof);
+    if (opts.chimney !== false) gbox(G.walls, .7, 1.4, .7, x0 + 1.2, top + 1.1, z1 - 1.2, '#9c4a3c');
+    roofSpots.push({ x, z, y: top + .45, w, d });
+  }
   rect(x, z, w, d);
 }
-function car(x, z, alongX) {
-  const y0 = terrainH(x, z), c = pick(['#e63946', '#2a9d8f', '#f4a261', '#457b9d', '#ffd23f', '#8338ec', '#f1faee', '#06d6a0']);
-  const L = 4.2, Wd = 1.9, w = alongX ? L : Wd, d = alongX ? Wd : L, fw = alongX ? 1 : 0, fd = alongX ? 0 : 1;
-  gbox(G.metal, w, .75, d, x, y0 + .75, z, c);
-  gbox(G.wins, alongX ? 2.2 : 1.66, .66, alongX ? 1.66 : 2.2, x - fw * .25, y0 + 1.45, z - fd * .25);
-  gbox(G.metal, alongX ? 2.25 : 1.75, .1, alongX ? 1.75 : 2.25, x - fw * .25, y0 + 1.82, z - fd * .25, c);
-  for (const a of [-1, 1]) for (const b of [-1, 1]) {
-    const g = new THREE.CylinderGeometry(.42, .42, .32, 12); if (alongX) g.rotateX(Math.PI / 2); else g.rotateZ(Math.PI / 2);
-    g.translate(x + (alongX ? a * 1.35 : b * .95), y0 + .42, z + (alongX ? b * .95 : a * 1.35)); G.dark.push(colorize(g, '#1c1f26'));
+// tejado a dos aguas: dos faldones inclinados por los que se puede subir, hastiales y caballete
+function gableRoof(x, z, w, d, y, wallCol, roof) {
+  const alongX = w >= d, len = (alongX ? w : d) + .9, half = (alongX ? d : w) / 2 + .45, rise = Math.min(2.8, half * .62), k = rise / half;
+  const slab = Math.hypot(half, rise), ang = Math.atan2(rise, half);
+  for (const s of [-1, 1]) {
+    const g = new THREE.BoxGeometry(alongX ? len : slab + .1, .22, alongX ? slab + .1 : len);
+    if (alongX) g.rotateX(s * ang); else g.rotateZ(-s * ang);
+    g.translate(x + (alongX ? 0 : s * half / 2), y + rise / 2 + .1, z + (alongX ? s * half / 2 : 0)); G.roofs.push(colorize(g, roof));
+    // colisión: rampa por cada faldón
+    if (alongX) addCollider({ type: 'ramp', kind: 'house', minX: x - len / 2, maxX: x + len / 2, minZ: s < 0 ? z - half : z, maxZ: s < 0 ? z : z + half, minY: y, maxY: y + rise, A: 0, B: -s * k, C: y + rise + s * k * z, owner: null });
+    else addCollider({ type: 'ramp', kind: 'house', minX: s < 0 ? x - half : x, maxX: s < 0 ? x : x + half, minZ: z - len / 2, maxZ: z + len / 2, minY: y, maxY: y + rise, A: -s * k, B: 0, C: y + rise + s * k * x, owner: null });
   }
-  for (const b of [-1, 1]) gbox(G.glow, alongX ? .06 : .4, .2, alongX ? .4 : .06, x + fw * (L / 2 + .02), y0 + .85, z + fd * (L / 2 + .02) + (alongX ? b * .6 : 0) + 0, '#fff3c4');
-  box('rock', x - w / 2, y0, z - d / 2, x + w / 2, y0 + 1.85, z + d / 2);
+  // hastiales triangulares
+  const sh = new THREE.Shape(); sh.moveTo(-half + .45, 0); sh.lineTo(half - .45, 0); sh.lineTo(0, rise - .3); sh.closePath();
+  for (const e of [-1, 1]) {
+    const g = new THREE.ExtrudeGeometry(sh, { depth: .3, bevelEnabled: false }); g.translate(0, 0, -.15);
+    if (alongX) { g.rotateY(Math.PI / 2); g.translate(x + e * (len / 2 - .6), y, z); } else g.translate(x, y, z + e * (len / 2 - .6));
+    G.paint.push(colorize(g, wallCol));
+    const rw = new THREE.CircleGeometry(.38, 14); if (alongX) { rw.rotateY(e * Math.PI / 2); rw.translate(x + e * (len / 2 - .43), y + rise * .4, z); } else { if (e < 0) rw.rotateY(Math.PI); rw.translate(x, y + rise * .4, z + e * (len / 2 - .43)); }
+    G.wins.push(colorize(rw, '#ffffff'));
+  }
+  const rg = new THREE.CylinderGeometry(.16, .16, len + .1, 8); if (alongX) rg.rotateZ(Math.PI / 2); else rg.rotateX(Math.PI / 2); rg.translate(x, y + rise + .14, z); G.roofs.push(colorize(rg, roof));
+  // chimenea
+  gbox(G.walls, .7, rise + 1.2, .7, x + (alongX ? len * .25 : half * .45), y + rise * .5 + .5, z + (alongX ? half * .45 : len * .25), '#a5503d');
+  const cx0 = x + (alongX ? len * .25 : half * .45), cz0 = z + (alongX ? half * .45 : len * .25); box('house', cx0 - .35, y, cz0 - .35, cx0 + .35, y + rise + 1.1, cz0 + .35);
+}
+const CAR_PROFILE = (() => {
+  const body = new THREE.Shape(); [[-2.1, .36], [-2.14, .82], [-1.95, .98], [-1.2, 1.02], [.95, 1.02], [1.95, .9], [2.16, .74], [2.12, .36]].forEach(([x, y], i) => i ? body.lineTo(x, y) : body.moveTo(x, y)); body.closePath();
+  const cab = new THREE.Shape(); [[-1.3, .98], [-.92, 1.48], [.3, 1.5], [.92, .98]].forEach(([x, y], i) => i ? cab.lineTo(x, y) : cab.moveTo(x, y)); cab.closePath();
+  const eb = (sh, depth, bev) => { const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 3, curveSegments: 4 }); g.translate(0, 0, -depth / 2); return g; };
+  return { body: eb(body, 1.62, .16), cab: eb(cab, 1.5, .08) };
+})();
+function car(x, z, alongX) {
+  const y0 = terrainH(x, z), c = pick(['#e63946', '#2a9d8f', '#f4a261', '#457b9d', '#ffd23f', '#8338ec', '#f1faee', '#06d6a0']), rot = alongX ? 0 : Math.PI / 2;
+  const L = 4.2, Wd = 1.9, w = alongX ? L : Wd, d = alongX ? Wd : L;
+  const put = (list, g, col) => { g.rotateY(rot); g.translate(x, y0, z); list.push(col ? colorize(g, col) : colorize(g, '#ffffff')); };
+  put(G.metal, CAR_PROFILE.body.clone(), c);
+  put(G.wins, CAR_PROFILE.cab.clone());
+  put(G.metal, new THREE.BoxGeometry(1.25, .08, 1.5).translate(-.3, 1.53, 0), c);
+  put(G.dark, new THREE.BoxGeometry(.18, .22, 1.9).translate(2.2, .42, 0), '#2b2d31'); put(G.dark, new THREE.BoxGeometry(.18, .22, 1.9).translate(-2.18, .42, 0), '#2b2d31');
+  for (const a of [-1, 1]) for (const b of [-1, 1]) {
+    const t = new THREE.CylinderGeometry(.4, .4, .3, 16); t.rotateX(Math.PI / 2); t.translate(a * 1.3, .4, b * .9); put(G.dark, t, '#1c1f26');
+    const h = new THREE.CylinderGeometry(.2, .2, .06, 12); h.rotateX(Math.PI / 2); h.translate(a * 1.3, .4, b * 1.06); put(G.metal, h, '#d9dde3');
+  }
+  for (const b of [-1, 1]) { put(G.glow, new THREE.BoxGeometry(.06, .16, .38).translate(2.17, .74, b * .6), '#fff3c4'); put(G.glow, new THREE.BoxGeometry(.06, .14, .34).translate(-2.15, .8, b * .62), '#ff3b30'); }
+  box('rock', x - w / 2, y0, z - d / 2, x + w / 2, y0 + 1.6, z + d / 2);
   rect(x, z, w, d);
 }
 function lamp(x, z) {
@@ -1247,7 +1309,7 @@ function triMat(tex, scale, amt, key) {
 }
 (function flushStatic() {
   const add = (list, mat, shadow = true) => { if (!list.length) return; const m = new THREE.Mesh(mergeGeometries(list.map(g => g.index ? g.toNonIndexed() : g)), mat); m.castShadow = shadow; m.receiveShadow = true; scene.add(m); };
-  add(G.walls, triMat(ASSET.tBrick, .5, .8, 'w')); add(G.roofs, triMat(ASSET.tBrick, 1.3, .35, 'r')); add(G.dark, triMat(ASSET.tWood, .7, .6, 'd')); add(G.metal, M(0xffffff, { vertexColors: true, roughness: .35, metalness: .6, flatShading: false }));
+  add(G.walls, triMat(ASSET.tBrick, .5, .8, 'w')); add(G.paint, triMat(ASSET.tBrick, .5, .14, 'p')); add(G.roofs, triMat(ASSET.tBrick, 1.3, .35, 'r')); add(G.dark, triMat(ASSET.tWood, .7, .6, 'd')); add(G.metal, M(0xffffff, { vertexColors: true, roughness: .35, metalness: .6, flatShading: false }));
   add(G.wins, M(0x6fa8d6, { flatShading: false, roughness: .15, metalness: .3, emissive: 0x1d3f5c, emissiveIntensity: .35, envMap: envTex, envMapIntensity: .5 }), false);
   add(G.gold, M(0xffffff, { vertexColors: true, roughness: .28, metalness: .85, envMap: envTex, envMapIntensity: 1.2, emissive: 0x3a2400, emissiveIntensity: .4 }));
   add(G.glow, new THREE.MeshBasicMaterial({ vertexColors: true, color: new THREE.Color(2.2, 2, 1.6) }), false);
@@ -1577,21 +1639,69 @@ const SKIN_DEFS = [
   { id: 'artico', n: 'Ártico', rar: 2, lvl: 6, model: 'soldier', tint: [1.55, 1.6, 1.7], visor: '#9fd8ff', top: '#eef2f7', acc: '#9fd8ff', pants: '#b9c2cc' },
   { id: 'androide', n: 'Androide X', rar: 3, lvl: 8, model: 'xbot', tint: [1, 1, 1], visor: '#3be8ff', top: '#5a5f6b', acc: '#3be8ff', pants: '#2b2f36' },
   { id: 'coral', n: 'Coral Rojo', rar: 3, lvl: 10, model: 'soldier', tint: [1.25, .62, .55], visor: '#ffd23f', top: '#c96a5c', acc: '#ffd23f', pants: '#6b3a33' },
+  { id: 'samba', n: 'Reina del Samba', rar: 3, lvl: 1, model: 'michelle', tint: [1, 1, 1], visor: '#ff4fb4', top: '#d84f8f', acc: '#ff4fb4', pants: '#2b2f36', natural: true },
+  { id: 'robo', n: 'Robo-Chispa', rar: 2, lvl: 1, model: 'robot', tint: [1, 1, 1], main: '#ffb627', visor: '#3be8ff', top: '#ffb627', acc: '#ffb627', pants: '#3d3d3d' },
+  { id: 'robohielo', n: 'Robo Hielo', rar: 3, lvl: 5, model: 'robot', tint: [1, 1, 1], main: '#5ec8ff', visor: '#bff0ff', top: '#5ec8ff', acc: '#bff0ff', pants: '#2b3a4a' },
+  { id: 'robolava', n: 'Robo Lava', rar: 4, lvl: 9, model: 'robot', tint: [1, 1, 1], main: '#ff4b2b', visor: '#ffd23f', top: '#ff4b2b', acc: '#ffd23f', pants: '#2a1a16', metal: .45 },
   { id: 'rey', n: 'Élite Dorado', rar: 4, lvl: 12, model: 'soldier', tint: [1.5, 1.15, .5], visor: '#ffd23f', metal: .7, top: '#e8c46a', acc: '#ffd23f', pants: '#8a6a2a' },
 ];
 const skinDef = id => SKIN_DEFS.find(s => s.id === id) || SKIN_DEFS[0];
 const CHAR_SRC = {};
+const boneKey = n => n.replace(/^mixamorig:?/, '');
+const BONE_ALIAS = { robot: { Spine2: 'Torso', Spine1: 'Abdomen', RightArm: 'UpperArmR', RightForeArm: 'LowerArmR', RightHand: 'Palm2R', LeftArm: 'UpperArmL', LeftForeArm: 'LowerArmL', LeftHand: 'Palm2L' } };
+function bonesOf(o, alias) { const m = {}; o.traverse(b => { if (b.isBone) m[boneKey(b.name)] = b; }); if (alias) for (const k in alias) if (m[alias[k]]) m[k] = m[alias[k]]; return m; }
+const _rq1 = new THREE.Quaternion(), _rq2 = new THREE.Quaternion(), _rv1 = new THREE.Vector3(), _rv2 = new THREE.Vector3();
+// dirección hacia la que mira un esqueleto (por la línea de los hombros)
+function skelForward(B) { B.RightArm.getWorldPosition(_rv1); B.LeftArm.getWorldPosition(_rv2); _rv1.sub(_rv2); return Math.atan2(_rv1.z, -_rv1.x); }
+// pasa una animación de un esqueleto a otro copiando las rotaciones en espacio mundial
+function retarget(srcScene, srcRest, clip, tgtScene, tgtRest, fps = 30) {
+  const S = SkeletonUtils.clone(srcScene), T = SkeletonUtils.clone(tgtScene), SB = bonesOf(S), TB = bonesOf(T);
+  const sm = new THREE.AnimationMixer(S), tm = new THREE.AnimationMixer(T);
+  if (tgtRest) { tm.clipAction(tgtRest).play(); tm.setTime(0); }
+  T.updateMatrixWorld(true);
+  S.updateMatrixWorld(true); S.rotation.y = skelForward(TB) - skelForward(SB);
+  const ra = srcRest ? sm.clipAction(srcRest) : null; if (ra) { ra.play(); sm.setTime(0); }
+  S.updateMatrixWorld(true);
+  const names = Object.keys(TB).filter(n => SB[n]), sRest = {}, tRest = {};
+  for (const n of names) { sRest[n] = SB[n].getWorldQuaternion(new THREE.Quaternion()); tRest[n] = TB[n].getWorldQuaternion(new THREE.Quaternion()); }
+  const sHip = SB.Hips.getWorldPosition(new THREE.Vector3()), tHip = TB.Hips.getWorldPosition(new THREE.Vector3()), k = tHip.y / Math.max(.01, sHip.y);
+  if (ra) ra.stop(); tm.stopAllAction();
+  const order = []; T.traverse(o => { if (o.isBone && names.includes(boneKey(o.name))) order.push(o); });
+  sm.clipAction(clip).play();
+  const nF = Math.max(2, Math.ceil(clip.duration * fps) + 1), times = new Float32Array(nF), qv = order.map(() => new Float32Array(nF * 4)), hp = new Float32Array(nF * 3);
+  for (let f = 0; f < nF; f++) {
+    const t = Math.min(clip.duration, f / fps); times[f] = t; sm.setTime(t); S.updateMatrixWorld(true);
+    order.forEach((b, i) => {
+      const n = boneKey(b.name);
+      SB[n].getWorldQuaternion(_rq1).multiply(_rq2.copy(sRest[n]).invert()).multiply(tRest[n]);
+      b.parent.getWorldQuaternion(_rq2); b.quaternion.copy(_rq2.invert().multiply(_rq1)); b.updateMatrixWorld(true);
+      qv[i].set([b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w], f * 4);
+      if (n === 'Hips') { SB.Hips.getWorldPosition(_rv1).sub(sHip).multiplyScalar(k).add(tHip); b.parent.worldToLocal(_rv1); b.position.copy(_rv1); b.updateMatrixWorld(true); hp.set([_rv1.x, _rv1.y, _rv1.z], f * 3); }
+    });
+  }
+  const tracks = order.map((b, i) => new THREE.QuaternionKeyframeTrack(b.name + '.quaternion', times, qv[i]));
+  const hb = order.find(b => boneKey(b.name) === 'Hips'); if (hb) tracks.push(new THREE.VectorKeyframeTrack(hb.name + '.position', times, hp));
+  return new THREE.AnimationClip(clip.name + '_rt', clip.duration, tracks);
+}
 (function prepChars() {
-  const prep = (key, gltf, names) => {
-    const clips = {}; for (const [k, n] of Object.entries(names)) { const c = gltf.animations.find(a => a.name === n); if (c) clips[k] = c; }
-    // escala: la cabeza a 1,70 m
+  const find = (g, n) => g.animations.find(a => a.name === n);
+  const prep = (key, gltf, clips, opts = {}) => {
+    for (const k in clips) if (!clips[k]) delete clips[k];
     const tmp = SkeletonUtils.clone(gltf.scene), mx = new THREE.AnimationMixer(tmp); if (clips.idle) { mx.clipAction(clips.idle).play(); mx.update(.1); }
-    tmp.updateMatrixWorld(true); let head = null; tmp.traverse(o => { if (o.isBone && /Head$/.test(o.name)) head = o; });
-    const hy = head ? head.getWorldPosition(new THREE.Vector3()).y : 1.6;
-    CHAR_SRC[key] = { scene: gltf.scene, clips, scale: 1.7 / hy };
+    tmp.updateMatrixWorld(true); const B = bonesOf(tmp, BONE_ALIAS[key]);
+    let scale;
+    if (opts.height) { const bb = new THREE.Box3().setFromObject(tmp); scale = opts.height / (bb.max.y - bb.min.y); }
+    else { const hy = B.Head ? B.Head.getWorldPosition(new THREE.Vector3()).y : 1.6; scale = 1.7 / hy; } // la cabeza a 1,70 m
+    const yaw = B.RightArm && B.LeftArm ? -skelForward(B) : Math.PI;
+    CHAR_SRC[key] = { scene: gltf.scene, clips, scale, yaw };
   };
-  prep('soldier', ASSET.soldier, { idle: 'Idle', walk: 'Walk', run: 'Run', tpose: 'TPose' });
-  if (ASSET.xbot) prep('xbot', ASSET.xbot, { idle: 'idle', walk: 'walk', run: 'run' });
+  const sol = ASSET.soldier, mic = ASSET.michelle, solT = find(sol, 'TPose'), micT = find(mic, 'TPose'), samba = find(mic, 'SambaDance');
+  const rt = (c, g, rest) => { try { return retarget(sol.scene, solT, c, g.scene, rest); } catch (e) { console.warn(e); return null; } };
+  let solDance = null; try { solDance = retarget(mic.scene, micT, samba, sol.scene, solT); } catch (e) { console.warn(e); }
+  prep('soldier', sol, { idle: find(sol, 'Idle'), walk: find(sol, 'Walk'), run: find(sol, 'Run'), tpose: solT, dance: solDance });
+  if (ASSET.xbot) { let xd = null; try { xd = retarget(mic.scene, micT, samba, ASSET.xbot.scene, null); } catch (e) {} prep('xbot', ASSET.xbot, { idle: find(ASSET.xbot, 'idle'), walk: find(ASSET.xbot, 'walk'), run: find(ASSET.xbot, 'run'), dance: xd }); }
+  prep('michelle', mic, { idle: rt(find(sol, 'Idle'), mic, micT), walk: rt(find(sol, 'Walk'), mic, micT), run: rt(find(sol, 'Run'), mic, micT), tpose: micT, dance: samba });
+  const rob = ASSET.robot; prep('robot', rob, { idle: find(rob, 'Idle'), walk: find(rob, 'Walking'), run: find(rob, 'Running'), dance: find(rob, 'Dance') }, { height: 1.95 });
 })();
 // pieza de geometría coloreada (escala → rotación → posición)
 function P(geo, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
@@ -1603,19 +1713,21 @@ const Cyl = (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s), Con = (
 function partsMesh(parts, mat) { if (!parts.length) return new THREE.Group(); const m = new THREE.Mesh(mergeGeometries(parts), mat); m.castShadow = true; return m; }
 function makeChar(def, tint = 0) {
   const src = CHAR_SRC[def.model] || CHAR_SRC.soldier;
-  const inner = SkeletonUtils.clone(src.scene); inner.rotation.y = Math.PI; inner.scale.setScalar(src.scale);
+  const inner = SkeletonUtils.clone(src.scene); inner.rotation.y = src.yaw; inner.scale.setScalar(src.scale);
   const mats = [];
   inner.traverse(o => {
     if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
     const m = o.material.clone();
-    if (/visor|joints/i.test(m.name)) { m.emissive = new THREE.Color(def.visor); m.emissiveIntensity = def.model === 'xbot' ? .6 : 1.1; }
+    if (def.model === 'robot') { if (m.name === 'Main') { m.color.set(def.main); m.roughness = .35; m.metalness = def.metal || .15; } else if (m.name === 'Black') { m.emissive = new THREE.Color(def.visor); m.emissiveIntensity = .08; } }
+    else if (def.natural) { if (tint) m.color.offsetHSL(tint * .5, 0, 0); }
+    else if (/visor|joints/i.test(m.name)) { m.emissive = new THREE.Color(def.visor); m.emissiveIntensity = def.model === 'xbot' ? .6 : 1.1; }
     else { m.color.setRGB(def.tint[0], def.tint[1], def.tint[2]); if (tint) m.color.offsetHSL(tint, 0, 0); if (def.metal) { m.metalness = def.metal; m.roughness = .32; } }
     m.userData.e0 = m.emissive.clone(); o.material = m; mats.push(m);
   });
   const root = new THREE.Group(); root.rotation.order = 'YXZ'; root.add(inner);
   const mixer = new THREE.AnimationMixer(inner), act = {}, w = {};
   for (const k in src.clips) { const a = mixer.clipAction(src.clips[k]); a.play(); a.setEffectiveWeight(k === 'idle' ? 1 : 0); a.time = Math.random() * src.clips[k].duration; act[k] = a; w[k] = k === 'idle' ? 1 : 0; }
-  const bones = {}; inner.traverse(o => { if (o.isBone) bones[o.name.replace(/^mixamorig:?/, '')] = o; });
+  const bones = bonesOf(inner, BONE_ALIAS[def.model]);
   const gunHolder = new THREE.Group(); root.add(gunHolder);
   const glider = new THREE.Group(); glider.position.y = 2.75; glider.visible = false;
   const wingG = new THREE.BufferGeometry(); wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 1.2, -2.6, -.3, -.8, 0, .2, -.4, 0, 0, 1.2, 0, .2, -.4, 2.6, -.3, -.8], 3)); wingG.computeVertexNormals();
@@ -1752,7 +1864,7 @@ function makeGun(type, rarity) {
 // =====================================================================
 // Entidades
 // =====================================================================
-const BOT_NAMES = ['ElPepe', 'Tortilla_Pro', 'Churrito99', 'NoobMaster', 'LaCabra', 'DonPatata', 'Sr.Pollo', 'XxSnipexX', 'TacoLoco', 'GatoNinja', 'LlamaLoca', 'Pepinazo', 'Chanclas', 'TíaJuana', 'Waffles', 'Empanada', 'RataVeloz', 'Bigotes', 'ManoloGG', 'Cocodrilo', 'Pancho', 'LaBomba', 'Nachito', 'ZumoDePiña', 'Croqueta', 'Mostacho', 'Lentejas', 'Calamar'];
+const BOT_NAMES = ['ElPepe', 'Tortilla_Pro', 'Churrito99', 'NoobMaster', 'LaCabra', 'DonPatata', 'Sr.Pollo', 'XxSnipexX', 'TacoLoco', 'GatoNinja', 'LlamaLoca', 'Pepinazo', 'Chanclas', 'TíaJuana', 'Waffles', 'Empanada', 'RataVeloz', 'Bigotes', 'ManoloGG', 'Cocodrilo', 'Pancho', 'LaBomba', 'Nachito', 'ZumoDePiña', 'Croqueta', 'Mostacho', 'Lentejas', 'Calamar', 'Gazpacho', 'ElBigote', 'Turrón', 'PolloFrito', 'Mandarina', 'xXCholoXx', 'Pistacho', 'Rosquilla', 'SuperPaco', 'Quesadilla', 'Burrito_YT', 'Tamalito', 'Chorizo', 'MegaLuna', 'Pingüino', 'Tiburón', 'Zapatilla', 'Albóndiga', 'Ninja_Mex', 'Galleta', 'Plátano', 'DJ_Sopa', 'Tomatito', 'Fresita', 'Rayo_Max', 'Coco_Loco', 'Melón', 'Chispas', 'Bombón', 'Tornado'];
 let player = null;
 class Char {
   constructor(isPlayer, name, skinId = 'explorador', tint = 0) {
@@ -1960,6 +2072,7 @@ function explode(x, y, z, rad, dmg, owner) {
 // =====================================================================
 // Daño y eliminaciones
 // =====================================================================
+const MATCH_BOTS = IS_TOUCH ? 29 : 49;
 let gameTime = 0, stats = { dmg: 0 }, streak = 0, streakT = 0, alive = 0, gstate = 'menu', endT = 0, slowmo = 1;
 function damageChar(t, amount, attacker, head, wname) {
   if (!t.alive || amount <= 0) return;
@@ -2086,7 +2199,7 @@ function updateHUD(dt) {
     $('tbBuild').classList.toggle('on', p.building); $('tbAim').classList.toggle('on', T.aim);
     const pv = p.vehicle && p.vehicle.kind === 'plane'; tu.classList.toggle('fly', !!pv);
     setTxt('tbFire', p.vehicle && !pv ? 'TURBO' : 'FUEGO'); setTxt('tbJump', pv ? 'TURBO' : p.vehicle ? 'FRENO' : 'SALTAR');
-    for (const id of ['tbAim', 'tbBuild', 'tbReload', 'tbPick', 'tbSwap', 'tbHeal']) $(id).style.visibility = p.vehicle ? 'hidden' : '';
+    for (const id of ['tbAim', 'tbBuild', 'tbReload', 'tbPick', 'tbSwap', 'tbHeal', 'tbDance']) $(id).style.visibility = p.vehicle ? 'hidden' : '';
   }
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   const pn = $('planeNose'), pvc = p.vehicle && p.vehicle.kind === 'plane' ? p.vehicle : null;
@@ -2422,7 +2535,7 @@ function animChar(c, dt) {
   m.root.visible = true; m.root.position.copy(c.pos);
   const hs = Math.hypot(c.vel.x, c.vel.z), bs = c.boss ? 1.12 : 1;
   m.squash = Math.max(0, m.squash - dt); m.root.scale.set(bs * (1 + m.squash * .2), bs * (1 - m.squash * .45), bs * (1 + m.squash * .2));
-  m.root.rotation.set(c.skydive ? 1.05 : 0, c.dance ? c.yaw + Math.sin(gameTime * 2) * .6 : c.yaw, 0);
+  m.root.rotation.set(c.skydive ? 1.05 : 0, c.dance && !m.act.dance ? c.yaw + Math.sin(gameTime * 2) * .6 : c.yaw, 0);
   m.glider.visible = c.gliding;
   // menos trabajo para los personajes lejanos
   if (m.kick) m.kick = Math.max(0, m.kick - dt * .55);
@@ -2433,6 +2546,7 @@ function animChar(c, dt) {
   const adt = m.acc; m.acc = 0;
   const tw = {};
   if (c.skydive) { if (m.act.tpose) tw.tpose = 1; else tw.idle = 1; }
+  else if (c.dance && m.act.dance) tw.dance = 1;
   else if (c.gliding || c.dance || !c.onGround) tw.idle = 1;
   else if (hs < .6) tw.idle = 1;
   else if (hs < 5.5) { tw.walk = 1; m.act.walk.timeScale = clamp(hs / 1.8, .7, 1.7); }
@@ -2443,7 +2557,7 @@ function animChar(c, dt) {
   if (c.picking) poseChar(m, c.pitch, 'pick', c.picking);
   else if (holding) poseChar(m, c.pitch, 'aim');
   else if (c.gliding) poseChar(m, 0, 'glide');
-  else if (c.dance) poseChar(m, 0, 'dance', gameTime);
+  else if (c.dance && !m.act.dance) poseChar(m, 0, 'dance', gameTime);
   m.gunHolder.visible = holding || !!c.picking;
   if (m.gunHolder.visible) { m.root.updateMatrixWorld(true); placeGun(m, c.picking ? -.4 + (1 - c.picking) * 1.6 : c.pitch); }
   if (m.gun) m.gun.visible = !c.picking;
@@ -2457,7 +2571,7 @@ function updatePlayer(dt) {
   const p = player; if (!p.alive) return;
   if (p.state === 'bus') { p.pos.copy(bus.pos); return; }
   if (p.vehicle && p.vehicle.kind === 'plane') {
-    const c = p.vehicle, thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy, -1, 1), roll = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + T.jx, -1, 1);
+    const c = p.vehicle, thr = clamp((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - T.jy, -1, 1), roll = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + (c.onGround ? T.jx : 0), -1, 1);
     aimDir(p.yaw, p.pitch, _paim);
     updatePlane(c, dt, { thr: Math.abs(thr) < .2 ? 0 : thr, roll: Math.abs(roll) < .2 ? 0 : roll, aim: _paim, guns: mouse.l, boost: !!keys.ShiftLeft || T.jump, brake: !!keys.Space || (thr < -.5 && c.thr <= 0) });
     if (p.vehicle !== c) return;
@@ -2511,7 +2625,7 @@ function spawnBots(n) {
   const names = BOT_NAMES.slice().sort(() => Math.random() - .5);
   for (let i = 0; i < n; i++) {
     const boss = i === 0;
-    const b = boss ? new Char(false, 'Jefe Churro', 'rey') : new Char(false, names[i % names.length], weighted({ soldado: 4, desierto: 3, noche: 3, selva: 3, artico: 2, coral: 2 }), Math.random() < .6 ? rnd(-.08, .08) : 0);
+    const b = boss ? new Char(false, 'Jefe Churro', 'rey') : new Char(false, names[i % names.length], weighted({ soldado: 3, desierto: 2, noche: 2, selva: 2, artico: 2, coral: 2, samba: 3, robo: 2, robohielo: 1, robolava: 1 }), Math.random() < .6 ? rnd(-.08, .08) : 0);
     b.weapon = null; const t = weighted({ rifle: 35, smg: 25, shotgun: 30, sniper: 8, rocket: 2 }); botTakeWeapon(b, t, Math.random() < .7 ? 0 : 1);
     if (boss) { b.boss = true; b.shield = 100; b.mats = 900; b.home = POIS.find(p => p.type === 'castle'); b.weapon = null; const bt = pick(['rifle', 'shotgun', 'smg']); b.weapon = { type: bt, rarity: 5, mag: W[bt].mag }; b.setGun(bt, 5); }
     Object.assign(b, { think: Math.random() * .3, target: null, goal: null, strafe: Math.random() < .5 ? 1 : -1, strafeT: 0, fireCD: 0, reloadT: 0, react: 0, stuckT: 0, lastPos: new THREE.Vector3(), jumpT: 0, buildCD: 0, los: false, blocker: null, jumpAt: 3 + Math.random() * (bus.dur - 6), calm: 0 });
@@ -2720,7 +2834,7 @@ function startGame() {
   bus.dir.subVectors(bus.b, bus.a).normalize(); bus.dur = bus.a.distanceTo(bus.b) / 38; bus.t = 0; bus.active = true; bus.pos.copy(bus.a);
   busMesh.visible = true; busMesh.lookAt(_a.copy(bus.pos).add(bus.dir));
   initPlayer(); player.yaw = Math.atan2(bus.dir.x, bus.dir.z); player.pitch = -.25;
-  spawnBots(24);
+  spawnBots(MATCH_BOTS);
   const boss = bots.find(b => b.boss); if (boss) { const h = boss.home; boss.state = 'play'; boss.pos.set(h.x + 8, 0, h.z + 9); boss.pos.y = groundTop(boss.pos.x, boss.pos.z) + .2; boss.onGround = true; }
   clearSpecials(); spawnPinatas(3); spawnCars(); spawnPlanes();
   match = { xp: [], landed: false, top10: false };
@@ -2873,6 +2987,7 @@ function touchButton(b, down) {
   if (!down) return;
   if (b === 'bus') playerJumpBus();
   if (p.vehicle) { if (b === 'use') exitCar(p); return; }
+  if (b === 'dance') { if (p.onGround) { p.dance = !p.dance; p.building = false; } return; }
   if (b === 'aim') T.aim = !T.aim;
   if (b === 'build') { p.building = !p.building; p.reloadT = 0; p.channel = null; if (p.building) T.aim = false; }
   if (b === 'piece') { const ps = ['wall', 'ramp', 'floor']; p.piece = ps[(ps.indexOf(p.piece) + 1) % 3]; }
@@ -2997,6 +3112,7 @@ function renderEndXP(r) {
   else u.hidden = true;
 }
 function renderMenu() {
+  { const bc = $("botCount"); if (bc) bc.textContent = MATCH_BOTS; }
   $('pcLvl').textContent = prof.lvl; $('pcBar').style.width = (prof.xp / lvlNeed(prof.lvl) * 100) + '%'; $('pcXp').textContent = `${prof.xp} / ${lvlNeed(prof.lvl)} XP`;
   $('pcWins').textContent = prof.wins; $('pcKills').textContent = prof.kills; $('pcGames').textContent = prof.games;
   $('pcCh').innerHTML = prof.ch.map(c => `<li><div><span>${c.t}</span><b>+${c.xp}</b></div><div class="xpbar sm"><i style="width:${c.prog / c.n * 100}%"></i></div><small>${c.prog} / ${c.n}</small></li>`).join('');
@@ -3005,7 +3121,7 @@ function renderMenu() {
     const ok = prof.lvl >= d.lvl, b = document.createElement('button');
     b.className = 'lk' + (prof.skin === d.id ? ' on' : '') + (ok ? '' : ' locked'); b.style.setProperty('--rc', RAR[d.rar].c);
     b.innerHTML = `<i style="background:linear-gradient(135deg, ${d.top} 0 55%, ${d.acc} 55% 70%, ${d.pants} 70%)"></i><span>${d.n}</span><small>${ok ? RAR[d.rar].n : 'Nivel ' + d.lvl}</small>`;
-    b.onclick = () => { if (!ok) { b.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 200 }); return; } prof.skin = d.id; saveProf(); buildPreview(); renderMenu(); };
+    b.onclick = () => { if (!ok) { b.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 200 }); return; } prof.skin = d.id; saveProf(); buildPreview(); if (preview) preview.danceT = 4; renderMenu(); };
     grid.appendChild(b);
   }
   $('lkName').textContent = skinDef(prof.skin).n;
@@ -3031,8 +3147,9 @@ function updatePreview(dt) {
   const side = innerWidth > 1100 ? 1.7 : 1.15;
   podium.position.copy(camera.position).addScaledVector(_pf, 6.2).addScaledVector(_pr, side).addScaledVector(_pu, -1.25); podium.quaternion.copy(q);
   const r = preview.root; r.position.copy(podium.position); r.quaternion.copy(q); r.rotateY(-.4 + Math.sin(performance.now() / 1800) * .35);
-  setAnimWeights(preview, { idle: 1 }, dt); preview.mixer.update(dt);
-  poseChar(preview, .05, 'aim'); r.updateMatrixWorld(true); placeGun(preview, .05);
+  preview.danceT = Math.max(0, (preview.danceT || 0) - dt); const dz = preview.danceT > 0 && preview.act.dance;
+  setAnimWeights(preview, dz ? { dance: 1 } : { idle: 1 }, dt); preview.mixer.update(dt); preview.gunHolder.visible = !dz;
+  if (!dz) { poseChar(preview, .05, 'aim'); r.updateMatrixWorld(true); placeGun(preview, .05); }
 }
 
 // =====================================================================
@@ -3550,7 +3667,7 @@ function exitPlane(p) {
 const planeGround = (x, z) => Math.max(WATER, terrainH(x, z));
 const PLANE_PTS = [[0, 0, 3.6], [PLANE_SPAN, -.24, .4], [-PLANE_SPAN, -.24, .4], [0, 1.55, -3.4], [0, -.2, -3.8], [1.05, -1.32, .9], [-1.05, -1.32, .9]];
 function planeCrash(pl, sev) {
-  const dmg = 25 + sev * 9;
+  const dmg = 15 + sev * 6;
   damagePlane(pl, dmg, pl.driver || pl.lastBy);
   burst(pl.x, pl.y, pl.z, 20, new THREE.Color(3, 2, 1.2), 7, .4, .4, true); sfxAt('rock', pl, 1.2);
   if (pl.driver === player) shake = Math.max(shake, clamp(sev / 20, .3, 1.2));
@@ -3570,7 +3687,7 @@ function updatePlane(pl, dt, inp) {
   const C = pl.ctrl;
   if (pl.onGround) {
     const gh = terrainH(pl.x, pl.z), wet = gh < WATER - .3, runway = Math.abs(pl.x - AF.x) < AF.w / 2 && Math.abs(pl.z - AF.z) < AF.len / 2 + 4;
-    const fric = (runway ? .5 : 1.6) + (inp.brake ? 9 : 0) + (wet ? 12 : 0);
+    const fric = (runway ? .5 : 1.6) + (inp.brake ? 9 : inp.thr <= 0 && pl.thr < .3 ? 5.5 : 0) + (wet ? 12 : 0);
     pl.gs += (thrust * .5 - fric * Math.sign(pl.gs) - .0042 * pl.gs * pl.gs) * dt; if (pl.gs < 0) pl.gs = 0;
     // dirección: rueda de cola + timón; también sigue la mirada
     let steer = inp.roll;
@@ -3580,7 +3697,7 @@ function updatePlane(pl, dt, inp) {
     // la cola se levanta al ganar velocidad y se rota para despegar
     const aimP = inp.aim ? Math.asin(clamp(inp.aim.y, -1, 1)) : 0;
     let att = PLANE_ATT0 * (1 - smooth(4, 20, pl.gs));
-    const rot = pl.gs > 20 ? clamp(aimP + .12, 0, .22) * smooth(20, 26, pl.gs) : 0;
+    const rot = pl.gs > 20 && aimP > -.35 ? .2 * smooth(20, 26, pl.gs) : 0;
     att = Math.max(att, rot); pl.att = lerp(pl.att, att, Math.min(1, dt * 3)); C.p = lerp(C.p, -rot * 4, Math.min(1, dt * 6));
     const fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw);
     pl.x += fx * pl.gs * dt; pl.z += fz * pl.gs * dt;
@@ -3590,7 +3707,7 @@ function updatePlane(pl, dt, inp) {
     if (wet) { damagePlane(pl, 50 * dt, pl.lastBy); }
     // despegue
     const lift = (pl.gs / 27) ** 2 * (1 + pl.att * 2.5);
-    if (lift > 1.15 && rot > .05 || pl.gs > 38) { pl.onGround = false; pl.vel.y = 2.5; pl.y += .1; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Ve hacia donde miras'); } } }
+    if (pl.thr > .5 && (lift > 1.15 && rot > .05 || pl.gs > 38)) { pl.onGround = false; pl.vel.y = 2.5; pl.y += .1; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Ve hacia donde miras'); } } }
   } else {
     // ---- vuelo ----
     let s = Math.max(0, pl.vel.dot(_pF));
@@ -3604,11 +3721,26 @@ function updatePlane(pl, dt, inp) {
       const ep = Math.atan2(_pl.y, _pl.z), ey = Math.atan2(_pl.x, _pl.z);
       const mix = clamp((Math.abs(_pl.x) - .03) / .3, 0, 1);
       let phi = Math.atan2(-_pl.x, _pl.y); if (_pl.z > 0) phi = clamp(phi, -1.35, 1.35);
-      rr = clamp((phi * mix - bank * (1 - mix)) * 3.2, -2.6, 2.6);
-      pr = clamp(ep * 3, -1.1, 1.35) * eff;
+      rr = clamp((phi * mix - bank * (1 - mix)) * 2.6, -2.2, 2.2);
+      pr = clamp(ep * 2.5, -1, 1.25) * eff;
       yr = clamp(ey * 1.4, -.6, .6) * eff;
     } else rr = clamp(-bank * 1.5, -1, 1);
-    if (Math.abs(inp.roll) > .1) rr = inp.roll * 2.8;
+    if (Math.abs(inp.roll) > .1) rr = inp.roll * 2.6;
+    // ayudas de vuelo: no chocar con el suelo y aterrizar suave sobre la pista
+    pl.sink = 0;
+    if (pl.driver) {
+      const aimP = aim ? Math.asin(clamp(aim.y, -1, 1)) : 0;
+      const landing = Math.abs(pl.x - AF.x) < AF.w && Math.abs(pl.z - AF.z) < AF.len / 2 + 70 && s < 38 && aimP < .03;
+      const clr = pl.y - planeGround(pl.x, pl.z) - 1.3;
+      if (landing) {
+        if (clr < 9) { rr = clamp(-bank * 3, -2, 2); const pa = Math.asin(clamp(_pF.y, -1, 1)); const pt = -Math.asin(clamp((clr > 2.5 ? 4.5 : 1.8) / Math.max(s, 10), 0, .3)); pr = clamp((pt - pa) * 3, -.6, .8) * Math.max(eff, .5); pl.sink = clr > 2.5 ? -4.5 : -1.8; }
+      } else {
+        let ahead = 1e9;
+        for (const t of [.5, 1.1, 1.9]) ahead = Math.min(ahead, pl.y + pl.vel.y * t - planeGround(pl.x + pl.vel.x * t, pl.z + pl.vel.z * t));
+        const pull = clamp((18 - ahead) / 12, 0, 1);
+        if (pull > 0) { rr = lerp(rr, clamp(-bank * 3, -2.2, 2.2), pull); pr = Math.max(pr, 1.3 * pull); if (pl.vel.y < 0) pl.vel.y += Math.min(-pl.vel.y, 14 * pull * dt); pl.assistT = gameTime; }
+      }
+    }
     // pérdida: el morro cae hacia la velocidad
     const stall = 1 - smooth(13, 22, s);
     if (stall > 0) { _pl.copy(pl.vel).normalize().applyQuaternion(_pqi); pr += Math.atan2(_pl.y, Math.max(.2, _pl.z)) * 2.2 * stall - .4 * stall; }
@@ -3622,6 +3754,7 @@ function updatePlane(pl, dt, inp) {
     _pvel.copy(_pF).multiplyScalar(Math.max(0, pl.vel.dot(_pF)));
     pl.vel.lerp(_pvel, Math.min(1, dt * (1 + 2.6 * liftK)));
     pl.vel.y -= 9.8 * dt * (1 - liftK * clamp(_pU.y * 1.25, 0, 1));
+    if (pl.sink) pl.vel.y = Math.min(pl.vel.y, pl.sink);
     if (pl.y > 240) pl.vel.y -= (pl.y - 240) * 2 * dt;
     const dc = Math.hypot(pl.x, pl.z); if (dc > 320) { pl.vel.x -= pl.x / dc * (dc - 320) * 1.5 * dt; pl.vel.z -= pl.z / dc * (dc - 320) * 1.5 * dt; if (pl.driver === player && dc > 335 && (pl.warnT || 0) < gameTime) { pl.warnT = gameTime + 4; announce('', 'Fin del mapa: da la vuelta'); } }
     pl.x += pl.vel.x * dt; pl.y += pl.vel.y * dt; pl.z += pl.vel.z * dt;
@@ -3632,9 +3765,9 @@ function updatePlane(pl, dt, inp) {
     const gh = planeGround(pl.x, pl.z);
     let minClear = 1e9, gearDown = false;
     for (let i = 0; i < PLANE_PTS.length; i++) { const p = PLANE_PTS[i]; planeWorld(pl, p[0], p[1], p[2], _pc); const c = _pc.y - planeGround(_pc.x, _pc.z); if (c < minClear) { minClear = c; gearDown = i >= 5; } }
-    if (minClear < 0) {
+    if (minClear < (gearDown ? .15 : 0)) {
       const pitchA = Math.asin(clamp(_pF.y, -1, 1)), vy = pl.vel.y, wet = terrainH(pl.x, pl.z) < WATER - .3;
-      if (gearDown && !wet && vy > -7.5 && Math.abs(bank) < .4 && pitchA > -.12 && pitchA < .4) {
+      if (gearDown && !wet && vy > -9.5 && Math.abs(bank) < .6 && pitchA > -.25 && pitchA < .5) {
         pl.onGround = true; pl.gs = Math.hypot(pl.vel.x, pl.vel.z); pl.yaw = Math.atan2(_pF.x, _pF.z); pl.att = clamp(pitchA, 0, .3);
         if (vy < -4) planeCrash(pl, (-vy - 4) * 2);
         if (pl.driver === player) { sfx('land', 1.2); burst(pl.x, gh + .1, pl.z, 10, new THREE.Color('#bdb3a2'), 4, 1.4, .7, false, 1); }
@@ -3654,7 +3787,7 @@ function updatePlane(pl, dt, inp) {
     for (let i = 0; i < 5; i++) {
       const p = PLANE_PTS[i]; planeWorld(pl, p[0], p[1], p[2], _pc);
       if (_pc.x < b.minX || _pc.x > b.maxX || _pc.y < b.minY || _pc.y > b.maxY || _pc.z < b.minZ || _pc.z > b.maxZ) continue;
-      if (b.kind === 'tree' && b.owner) { destroyTree(b.owner); damagePlane(pl, 30, pl.lastBy); pl.vel.multiplyScalar(.85); pl.gs *= .7; break; }
+      if (b.kind === 'tree' && b.owner) { destroyTree(b.owner); damagePlane(pl, 12, pl.lastBy); pl.vel.multiplyScalar(.85); pl.gs *= .7; break; }
       if (b.kind === 'struct' && b.owner) { damageStruct(b.owner, 900); damagePlane(pl, 15, pl.lastBy); pl.vel.multiplyScalar(.85); pl.gs *= .8; break; }
       if (b.kind === 'pinata' && b.owner) { hitPinata(b.owner, 999, pl.driver); break; }
       // obstáculo sólido: rebote
