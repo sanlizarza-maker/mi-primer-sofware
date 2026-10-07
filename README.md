@@ -11,12 +11,15 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 - Río con puentes, lago, desierto con pirámide y oasis, y caminos entre las zonas.
 - Noria, molino y faro que se mueven.
 - Autobús con globo, caída libre y planeador.
-- 5 armas con 6 rarezas, de común a mítica.
+- 5 armas con 6 rarezas, de común a mítica, y 4 armas exóticas con habilidades: Cañón de Plasma (explota), Rifle Relámpago (el rayo salta entre enemigos), Escopeta Dragón (quema) y Francotirador Fantasma (atraviesa paredes).
 - Construcción de muros, rampas y suelos.
 - Tormenta en 5 fases.
-- 24 bots y un Jefe con arma mítica que defiende el castillo.
+- 50 jugadores por partida en ordenador y 30 en pantallas táctiles, con un Jefe que defiende el castillo y suelta una exótica.
+- Coches deportivos y avionetas acrobáticas con aeródromo.
 - Cajas de suministros que caen del cielo y llamas piñata llenas de botín.
-- Experiencia, niveles, desafíos y 8 trajes que se desbloquean subiendo de nivel. El progreso se guarda en el navegador.
+- Lobby con tu personaje y dos compañeros, Taquilla, Tienda y Desafíos.
+- Monedas Caos que se ganan jugando (y un regalo diario) para comprar armas exóticas de salida y trajes en la Tienda.
+- Experiencia, niveles, desafíos y 12 trajes. El progreso se guarda en el navegador.
 
 ## Controles
 
