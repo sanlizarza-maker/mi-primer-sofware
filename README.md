@@ -44,4 +44,5 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 - Rocas, hierba 3D y texturas de tierra y hierba (`grass.jpg`): repositorio de ez-tree (MIT).
 - Cielo HDRI `quarry_01`: [Poly Haven](https://polyhaven.com) (CC0).
 - Texturas de hierba con relieve, ladrillo, madera y agua: ejemplos de three.js (MIT).
+- Sonidos de interfaz: packs "UI Audio" e "Interface Sounds" de [Kenney](https://kenney.nl) (CC0), incrustados en el juego.
 - Coche deportivo: modelo "Ferrari 458 Italia" de vicent091036 en Sketchfab, tal y como se incluye en los ejemplos de three.js ([CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Se ha simplificado para que cargue más rápido.
