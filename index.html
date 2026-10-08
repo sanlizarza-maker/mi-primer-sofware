@@ -260,6 +260,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
 .roombox .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .btn2:disabled,.play:disabled{opacity:.55;cursor:default;transform:none}
 #ntags{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#fhud{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .ntag{position:absolute;left:0;top:0;padding:2px 8px 1px;border-radius:4px;background:rgba(255,79,123,.85);color:#fff;font-family:var(--body);font-weight:800;font-size:13px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .ntag.ally{background:rgba(20,150,190,.88)}
 
@@ -403,7 +404,7 @@ body.touch #chtoast{top:34%}
 </div>
 <div id="loading"><div class="ld-logo">ISLA<span>CAOS</span></div><div class="ld-bar"><i id="ldBar"></i></div><div id="ldTxt">Cargando la isla…</div><div id="ldTip">Consejo: construye una rampa para ganar altura en un tiroteo.</div></div>
 
-<div id="hud" hidden><div id="ntags"></div>
+<div id="hud" hidden><canvas id="fhud" hidden></canvas><div id="ntags"></div>
   <div id="stormfx"></div>
   <div id="hurt"></div>
   <div id="hurtDir"></div>
@@ -832,7 +833,10 @@ const matV = M(0xffffff, { vertexColors: true });
 // Terreno
 // =====================================================================
 RNG = mulberry32(20261007); // mapa idéntico en todos los dispositivos
-const WORLD = 800, N = 200, STEP = WORLD / N, HALF = WORLD / 2, ISLAND_R = 290, WATER = 0;
+const WORLD = 1200, N = 300, STEP = WORLD / N, HALF = WORLD / 2, ISLAND_R = 430, WATER = 0, MAP_LIM = 475;
+// costa: la isla creció a 430 m de radio, salvo en la bahía del puerto, que mantiene su orilla
+const PORT_ANG = Math.atan2(-200, -75);
+function islandR(x, z) { let da = Math.atan2(z, x) - PORT_ANG; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da))); return ISLAND_R - 140 * smooth(.55, .18, da); }
 const POIS = [
   { n: 'Pueblo Pepino', x: -10, z: 10, r: 32, type: 'town', big: true, ground: ['#e3d3ad', '#d3c197'] },
   { n: 'Torres Tortilla', x: 150, z: 60, r: 28, type: 'towers', ground: ['#c9c6bd', '#b9b5aa'] },
@@ -843,8 +847,13 @@ const POIS = [
   { n: 'Mercado Mango', x: 40, z: 185, r: 28, type: 'market', ground: ['#f0d29a', '#e2c085'] },
   { n: 'Dunas Doradas', x: 160, z: 150, r: 28, type: 'desert', ground: ['#ecc98a', '#e0bb78'] },
   { n: 'Lago Llama', x: -60, z: 120, r: 26, type: 'lake', ground: null, noFlat: true },
+  { n: 'Ciudad Cacao', x: 305, z: 175, r: 36, type: 'towers', big: true, ground: ['#c9c6bd', '#b9b5aa'] },
+  { n: 'Base Bigote', x: 255, z: -265, r: 38, type: 'base', ground: ['#a8a294', '#9a9486'] },
+  { n: 'Rancho Rábano', x: -345, z: 150, r: 30, type: 'farm', ground: ['#b88f5c', '#a98250'] },
+  { n: 'Aldea Aguacate', x: 95, z: 345, r: 30, type: 'town', ground: ['#e7d3a8', '#d8c194'] },
+  { n: 'Pico Pimienta', x: -320, z: -130, r: 26, type: 'lodge', ground: ['#eef2f7', '#dfe6ee'] },
 ];
-const RIVER = [[-82, 142], [-100, 166], [-110, 196], [-132, 226], [-160, 252], [-190, 280], [-220, 312]];
+const RIVER = [[-82, 142], [-100, 166], [-110, 196], [-132, 226], [-160, 252], [-190, 280], [-220, 312], [-245, 350], [-262, 392], [-276, 440]];
 const OASIS = { x: 172, z: 160 };
 // aeródromo: pista norte-sur, plataforma y hangar al oeste
 const AF = { x: -72, z: -20, len: 150, w: 18, h: 0, hangar: [-104, -8], apron: [-96, -18, -81, 2], flat: [-125, -107, -59, 67] };
@@ -852,11 +861,13 @@ function segDist(px, pz, ax, az, bx, bz) { const vx = bx - ax, vz = bz - az, wx 
 function polyDist(x, z, pts) { let m = 1e9; for (let i = 0; i < pts.length - 1; i++) { const d = segDist(x, z, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]); if (d < m) m = d; } return m; }
 const desertW = (x, z) => smooth(100, 55, Math.hypot(x - 172, z - 168));
 function rawHeight(x, z) {
-  const d = Math.hypot(x, z) / ISLAND_R + (fbm(x * .01 + 50, z * .01 + 50, 3) - .5) * .35;
+  const d = Math.hypot(x, z) / islandR(x, z) + (fbm(x * .01 + 50, z * .01 + 50, 3) - .5) * .3;
   const mask = smooth(1, .72, d);
   let h = 3 + fbm(x * .007, z * .007, 5) * 26;
   h += Math.pow(Math.max(0, 1 - Math.hypot(x - 130, z + 100) / 95), 2) * 46;
   h += Math.pow(Math.max(0, 1 - Math.hypot(x - 60, z + 200) / 55), 2) * 18;
+  h += Math.pow(Math.max(0, 1 - Math.hypot(x + 320, z + 130) / 125), 1.6) * 64; // Pico Pimienta (nevado)
+  h += Math.pow(Math.max(0, 1 - Math.hypot(x - 330, z + 40) / 70), 2) * 26; // colinas del este
   const dw = desertW(x, z);
   if (dw > 0) h = lerp(h, 6.5 + Math.sin(x * .07 + Math.sin(z * .05) * 2) * 2.4 + Math.sin(z * .11 + x * .02) * 1.3, dw * .85);
   h = lerp(-14, h, mask);
@@ -873,7 +884,7 @@ function finalHeight(x, z) {
   { const F = AF.flat, ox = Math.max(F[0] - x, 0, x - F[2]), oz = Math.max(F[1] - z, 0, z - F[3]), d = Math.hypot(ox, oz); if (d < 26) h = lerp(h, AF.h, smooth(26, 0, d)); }
   return h;
 }
-const ROADS = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [1, 7], [7, 6], [1, 2], [4, 5], [5, 3], [2, 4], [3, 8], [6, 8]]
+const ROADS = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [1, 7], [7, 6], [1, 2], [4, 5], [5, 3], [2, 4], [3, 8], [6, 8], [9, 1], [9, 7], [10, 2], [11, 3], [11, 5], [12, 6], [12, 7], [13, 5]]
   .map(([a, b]) => [POIS[a].x, POIS[a].z, POIS[b].x, POIS[b].z]);
 function roadDist(x, z) { let m = 1e9; for (const r of ROADS) { const d = segDist(x, z, r[0], r[1], r[2], r[3]); if (d < m) m = d; }
   m = Math.min(m, segDist(x, z, AF.x, AF.z - AF.len / 2, AF.x, AF.z + AF.len / 2) - 7, segDist(x, z, AF.hangar[0] - 8, AF.hangar[1], AF.apron[2], AF.hangar[1]) - 9); return m; }
@@ -910,7 +921,7 @@ function groundWeights(x, z, h, ny, out) {
   let g = 1, d = 0, s = 0, r = 0, sn = 0, pv = 0;
   const dw = desertW(x, z), p = POIS.find(p => p.ground && Math.hypot(x - p.x, z - p.z) < p.r * .9);
   if (h < 2.4) { const wetBank = polyDist(x, z, RIVER) < 20 || Math.hypot(x + 60, z - 120) < 58; g = 0; if (wetBank && dw < .3) { d = .65; s = .35; } else s = 1; }
-  else if (p) { g = 0; if (p.type === 'desert') s = 1; else if (p.type === 'farm') d = 1; else pv = 1; }
+  else if (p) { g = 0; if (p.type === 'desert') s = 1; else if (p.type === 'farm') d = 1; else if (p.type === 'lodge') sn = 1; else pv = 1; }
   else {
     const nd = fbm(x * .045 + 3, z * .045 - 7, 3); d = smooth(.6, .75, nd) * .8; g = 1 - d;
     const rd = roadDist(x, z); if (rd < 3.4) { const k = smooth(3.4, 1.8, rd); g *= 1 - k; d = d * (1 - k) + k; }
@@ -1189,7 +1200,7 @@ function castRay(o, d, maxT, ignore = null, noChars = false, noRamps = false) {
 // Mundo estático: pueblos, castillo, puerto…
 // =====================================================================
 const box3 = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; return m; };
-const G = { walls: [], paint: [], siding: [], shingle: [], stone: [], roofs: [], wins: [], shop: [], pool: [], cglass: [], carpaint: [], dark: [], metal: [], gold: [], glow: [] };
+const G = { walls: [], paint: [], siding: [], shingle: [], stone: [], roofs: [], wins: [], shop: [], pool: [], sign: [], cglass: [], carpaint: [], dark: [], metal: [], gold: [], glow: [] };
 function colorize(g, color) { const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; }
 function gbox(list, w, h, d, x, y, z, color = '#ffffff', rotY = 0) { const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
 function gcyl(list, rt, rb, h, x, y, z, color, seg = 10) { const g = new THREE.CylinderGeometry(rt, rb, h, seg); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
@@ -1216,6 +1227,15 @@ function solidTower(x, z, w, d, h, color, roof) {
     gbox(G.shop, w - 1.6, 2, .1, x, y0 + 2, z + s * (d / 2 + .03)); gbox(G.shop, .1, 2, d - 1.6, x + s * (w / 2 + .03), y0 + 2, z);
     gbox(G.dark, w - 1.2, .16, .2, x, y0 + 3.05, z + s * (d / 2 + .05), dark); gbox(G.dark, .2, .16, d - 1.2, x + s * (w / 2 + .05), y0 + 3.05, z, dark);
     const aw = new THREE.BoxGeometry(w - 1, .1, 1.3); aw.rotateX(s * .35); aw.translate(x, y0 + 3.55, z + s * (d / 2 + .6)); G.paint.push(colorize(aw, awn));
+    signBoard(x, y0 + 4.05, z + s * (d / 2 + .16), Math.min(w - 2, 4.6), .78, s > 0 ? 0 : Math.PI, Math.floor(RNG() * SIGN_WORDS.length));
+  }
+  // balcones con barandilla en algunas plantas
+  for (let wy = y0 + 6; wy < y0 + h - 1; wy += 3.6) if (RNG() < .45) for (const s of [-1, 1]) for (let wx = -w / 2 + 1.6; wx <= w / 2 - 1.4; wx += 2.6) {
+    if (RNG() < .5) continue; const bz = z + s * (d / 2 + .45);
+    gbox(G.stone, 1.9, .16, .9, x + wx, wy - 1.02, bz, '#d9d3c8');
+    gbox(G.metal, 1.9, .06, .06, x + wx, wy - .1, z + s * (d / 2 + .88), '#3a3f47');
+    for (let k = -2; k <= 2; k++) gbox(G.metal, .04, .86, .04, x + wx + k * .45, wy - .52, z + s * (d / 2 + .88), '#3a3f47');
+    for (const e of [-.93, .93]) gbox(G.metal, .06, .06, .9, x + wx + e, wy - .1, bz, '#3a3f47');
   }
   // cornisas entre pisos, pilastras y ventanas con marco
   for (let wy = y0 + 4.2; wy < y0 + h - .5; wy += 3.6) { gbox(G.dark, w + .3, .18, d + .3, x, wy, z, trim); }
@@ -1266,6 +1286,15 @@ function hollowHouse(x, z, w, d, floors, color, roof, doorSouth, opts = {}) {
   for (const sx of [-1.15, 1.15]) gbox(G.dark, .16, DH + .32, .16, x + sx, fy + (DH + .32) / 2, fz + ps * 1.55, trim);
   gbox(G.dark, .22, DH + .15, .14, x - DW - .1, fy + DH / 2, fz, trim); gbox(G.dark, .22, DH + .15, .14, x + DW + .1, fy + DH / 2, fz, trim); gbox(G.dark, DW * 2 + .5, .22, .14, x, fy + DH + .1, fz, trim);
   gbox(G.shingle, 2.9, .14, 1.85, x, fy + DH + .4, fz + ps * .85, roof); gbox(G.dark, 2.9, .16, .1, x, fy + DH + .28, fz + ps * 1.72, trim);
+  // jardín delantero: valla de estacas, camino de losas, buzón y arbustos
+  if (opts.yard !== false && RNG() < .7) {
+    const yz = fz + ps * 3.3, gy = fy - .2;
+    for (let xx = x0 + .1; xx <= x1 - .1; xx += .38) { if (Math.abs(xx - x) < .9) continue; gbox(G.paint, .09, .85, .05, xx, gy + .42, yz, '#fbf7ee'); }
+    for (const hy of [.3, .68]) for (const sd of [-1, 1]) gbox(G.paint, w / 2 - .9, .07, .04, x + sd * (w / 4 + .45), gy + hy, yz - ps * .04, '#fbf7ee');
+    for (let k = 0; k < 3; k++) gbox(G.stone, 1, .06, .7, x, gy + .03, fz + ps * (1.9 + k * .55), '#cfc8bb');
+    gbox(G.dark, .08, 1.05, .08, x + 1.5, gy + .52, yz + ps * .25, '#5b3a24'); gbox(G.metal, .32, .26, .46, x + 1.5, gy + 1.15, yz + ps * .25, pick(['#2a6fdb', '#d64545', '#2e9e6a']));
+    for (const sd of [-1, 1]) { gsph(G.paint, .62, x + sd * (w / 2 - 1.1), gy + .45, fz + ps * 1.1, '#3f7d3a', 1, .85, 1); gsph(G.paint, .42, x + sd * (w / 2 - 2.1), gy + .32, fz + ps * 1.4, '#4c8f3f', 1, .85, 1); }
+  }
   // ventanas con marco, alféizar y contraventanas
   const shut = opts.shutter || pick(SHUTTER_COLS);
   const win = (wx, wy, wz, onX, out) => {
@@ -1414,9 +1443,9 @@ function buildPOI(p) {
     return;
   }
   if (p.type === 'towers') {
-    for (let i = 0, tries = 0; i < 7 && tries < 300; tries++) {
-      const w = rnd(7, 10), d = rnd(7, 10), a = RNG() * 6.28, r = 6 + RNG() * (p.r - 10), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
-      if (!freeRect(x, z, w, d, 4)) continue; solidTower(x, z, w, d, rnd(14, 32), pick(['#9aa3ad', '#b8b2a8', '#c9c2b6', '#7f8790', '#a39385', '#d6d0c6']), pick(ROOF_COLS)); rect(x, z, w, d); i++;
+    for (let i = 0, tries = 0; i < (p.big ? 12 : 7) && tries < 400; tries++) {
+      const w = rnd(7, p.big ? 12 : 10), d = rnd(7, p.big ? 12 : 10), a = RNG() * 6.28, r = 6 + RNG() * (p.r - 10), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+      if (!freeRect(x, z, w, d, 4)) continue; solidTower(x, z, w, d, p.big ? rnd(18, 46) : rnd(14, 32), pick(['#9aa3ad', '#b8b2a8', '#c9c2b6', '#7f8790', '#a39385', '#d6d0c6']), pick(ROOF_COLS)); rect(x, z, w, d); i++;
     }
     placeHouses(p, 2, 8, { floors: 1 });
     placeCars(p, 6);
@@ -1576,6 +1605,66 @@ function buildPOI(p) {
     placeHouses(p, 3, 14, { floors: 1, color: () => pick(['#e0b07a', '#d9a066', '#eac38f']), roof: () => '#b9814f', chimney: false, trim: '#8a5a35' });
     return;
   }
+  if (p.type === 'base') {
+    const y0 = p.h, cam = '#7d8a5a', dk = '#4b5320';
+    // valla perimetral con alambre y entrada hacia el centro de la isla
+    const gate = Math.atan2(-p.z, -p.x), R = p.r - 2;
+    for (let a = 0; a < 6.283; a += .09) { let dg = a - gate; dg = Math.atan2(Math.sin(dg), Math.cos(dg)); if (Math.abs(dg) < .16) continue;
+      const x = p.x + Math.cos(a) * R, z = p.z + Math.sin(a) * R, x2 = p.x + Math.cos(a + .09) * R, z2 = p.z + Math.sin(a + .09) * R;
+      gbox(G.metal, .12, 2.6, .12, x, y0 + 1.3, z, '#4a4f57'); gbox(G.metal, Math.hypot(x2 - x, z2 - z), 1.9, .03, (x + x2) / 2, y0 + 1.25, (z + z2) / 2, '#8d949c', -Math.atan2(z2 - z, x2 - x));
+      gbox(G.metal, Math.hypot(x2 - x, z2 - z), .04, .04, (x + x2) / 2, y0 + 2.55, (z + z2) / 2, '#5a5f66', -Math.atan2(z2 - z, x2 - x)); }
+    // hangar curvo de chapa
+    { const hx = p.x + Math.cos(gate + Math.PI) * 14, hz = p.z + Math.sin(gate + Math.PI) * 14, rot = -gate + Math.PI / 2;
+      const arc = new THREE.CylinderGeometry(7, 7, 18, 18, 1, true, -Math.PI / 2, Math.PI); arc.rotateX(-Math.PI / 2); arc.rotateY(rot); arc.translate(hx, y0, hz); G.metal.push(colorize(arc, '#8c949c'));
+      const back = new THREE.CircleGeometry(7, 18, 0, Math.PI); back.translate(0, 0, -9); back.rotateY(rot); back.translate(hx, y0, hz); G.metal.push(colorize(back, '#767e86'));
+      const dx = Math.cos(gate), dz = Math.sin(gate), sx = -dz, sz = dx; // eje del hangar y lateral
+      for (const sd of [-1, 1]) for (let t = -8.5; t <= 8.5; t += 1.7) { const cx = hx + sx * 6.7 * sd + dx * t, cz = hz + sz * 6.7 * sd + dz * t; box('house', cx - .55, y0, cz - .55, cx + .55, y0 + 5, cz + .55); }
+      for (let t = -6; t <= 6; t += 1.5) { const cx = hx - dx * 8.8 + sx * t, cz = hz - dz * 8.8 + sz * t; box('house', cx - .55, y0, cz - .55, cx + .55, y0 + 6, cz + .55); }
+      roofSpots.push({ x: hx, z: hz, y: y0 + 7.1, w: 2, d: 6 }); box('house', hx - 2, y0 + 6.2, hz - 2, hx + 2, y0 + 7.1, hz + 2); rect(hx, hz, 20, 20);
+      interiorSpots.push({ x: hx, y: y0, z: hz }, { x: hx + sx * 3, y: y0, z: hz + sz * 3 });
+      // tanque aparcado dentro
+      const tx = hx - dx * 2, tz = hz - dz * 2, ta = Math.atan2(dx, dz);
+      gpart(G.metal, 3.2, 1, 5.4, 0, .9, 0, cam, tx, y0, tz, ta); gpart(G.metal, 3.5, .9, 5.8, 0, .45, 0, '#2f3328', tx, y0, tz, ta);
+      gpart(G.metal, 2.2, .8, 2.6, 0, 1.8, -.2, dk, tx, y0, tz, ta); gpart(G.metal, .26, .26, 3.6, 0, 1.85, 2.6, '#3a3f30', tx, y0, tz, ta); box('rock', tx - 2.2, y0, tz - 2.2, tx + 2.2, y0 + 2.2, tz + 2.2); }
+    // torres de vigilancia
+    for (const k of [.9, -.9, 2.4]) { const a = gate + k, x = p.x + Math.cos(a) * (R - 4), z = p.z + Math.sin(a) * (R - 4);
+      for (const sx of [-1.1, 1.1]) for (const sz of [-1.1, 1.1]) gbox(G.dark, .22, 7, .22, x + sx, y0 + 3.5, z + sz, '#6b4a2e');
+      gbox(G.dark, 3.2, .3, 3.2, x, y0 + 7.1, z, '#7a5536'); for (const [ox, oz, ww, dd] of [[0, 1.55, 3.2, .1], [0, -1.55, 3.2, .1], [1.55, 0, .1, 3.2], [-1.55, 0, .1, 3.2]]) gbox(G.dark, ww, 1, dd, x + ox, y0 + 7.75, z + oz, '#6b4a2e');
+      gcone(G.roofs, 2.6, 1.4, x, y0 + 9.6, z, '#4b5320', 4); gsph(G.glow, .2, x, y0 + 8.6, z, '#fff2b0');
+      box('house', x - 1.6, y0 + 6.9, z - 1.6, x + 1.6, y0 + 7.25, z + 1.6); roofSpots.push({ x, z, y: y0 + 7.25, w: 2, d: 2 }); }
+    // barracones, contenedores, sacos terreros y helipuerto
+    for (let i = 0, t = 0; i < 2 && t < 40; t++) { const a = gate + rnd(1.3, 4.9), r = rnd(12, R - 9), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (!freeRect(x, z, 11, 7.6, 3)) continue; rect(x, z, 11, 7.6); hollowHouse(x, z, 11, 7.6, 1, cam, dk, z < p.z, { trim: '#3d4430', gable: true, plaster: G.paint, yard: false, base: '#6c6a5c' }); i++; }
+    for (let i = 0, t = 0; i < 6 && t < 60; t++) { const a = RNG() * 6.283, r = rnd(8, R - 6), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r, rot = RNG() < .5, ww = rot ? 6.2 : 2.6, dd = rot ? 2.6 : 6.2;
+      if (!freeRect(x, z, ww, dd, 1.5)) continue; rect(x, z, ww, dd); const yb = baseYAt(x, z, ww, dd), st = 1 + (RNG() < .4 ? 1 : 0);
+      for (let k = 0; k < st; k++) { gbox(G.metal, ww, 2.6, dd, x, yb + 1.3 + k * 2.6, z, pick([cam, '#5f6b4a', '#8b7d5a', '#55606e'])); for (let j = -5; j <= 5; j++) gbox(G.metal, rot ? .14 : ww + .06, 2.2, rot ? dd + .06 : .14, x + (rot ? j * .55 : 0), yb + 1.3 + k * 2.6, z + (rot ? 0 : j * .55), '#4a523a'); }
+      box('house', x - ww / 2, yb - 3, z - dd / 2, x + ww / 2, yb + st * 2.6, z + dd / 2); roofSpots.push({ x, z, y: yb + st * 2.6, w: ww, d: dd }); i++; }
+    for (let k = -3; k <= 3; k++) { const a = gate + k * .05, x = p.x + Math.cos(a) * (R - 6), z = p.z + Math.sin(a) * (R - 6); if (Math.abs(k) < 2) continue; for (let lv = 0; lv < 3; lv++) gbox(G.paint, 1.3, .38, .8, x, y0 + .2 + lv * .38, z, '#b8a77c', -a); box('rock', x - .7, y0, z - .7, x + .7, y0 + 1.1, z + .7); }
+    { const hx = p.x + Math.cos(gate + 2.2) * 15, hz = p.z + Math.sin(gate + 2.2) * 15; gcyl(G.dark, 6, 6, .1, hx, y0 + .06, hz, '#30343a', 28); gcyl(G.paint, 5.6, 5.6, .12, hx, y0 + .07, hz, '#30343a', 28);
+      gbox(G.paint, .6, .14, 4, hx - 1.4, y0 + .1, hz, '#f4f1e8'); gbox(G.paint, .6, .14, 4, hx + 1.4, y0 + .1, hz, '#f4f1e8'); gbox(G.paint, 2.4, .14, .6, hx, y0 + .1, hz, '#f4f1e8'); rect(hx, hz, 12, 12); }
+    // radar giratorio
+    { const rx = p.x + Math.cos(gate - 2.2) * 16, rz = p.z + Math.sin(gate - 2.2) * 16; gbox(G.metal, 1.6, 4, 1.6, rx, y0 + 2, rz, '#6c7480'); box('house', rx - .8, y0, rz - .8, rx + .8, y0 + 4, rz + .8); rect(rx, rz, 3, 3);
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(2.4, 18, 8, 0, Math.PI * 2, 0, .9), new THREE.MeshStandardMaterial({ color: 0xdfe4ea, metalness: .6, roughness: .35, side: THREE.DoubleSide }));
+      dish.rotation.x = Math.PI / 2 + .35; const piv = new THREE.Group(); piv.position.set(rx, y0 + 4.9, rz); piv.add(dish); dish.castShadow = true; scene.add(piv); spinners.push(dt => { piv.rotation.y += dt * 1.1; }); }
+    placeCars(p, 2);
+    return;
+  }
+  if (p.type === 'lodge') {
+    const y0 = p.h;
+    // refugio grande y cabañas de madera con tejados empinados y nevados
+    hollowHouse(p.x, p.z, 12, 9, 2, '#7a4e2c', '#e9eef4', true, { trim: '#f4efe6', floor: '#9c6b3f', base: '#5d5a55', gable: true, yard: false, shutter: '#2f6f4f' });
+    rect(p.x, p.z, 12, 9);
+    for (let i = 0, t = 0; i < 5 && t < 60; t++) { const a = RNG() * 6.283, r = rnd(12, p.r - 4), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+      if (!freeRect(x, z, 7, 7, 3)) continue; rect(x, z, 7, 7); hollowHouse(x, z, 6.6, 7, 1, pick(['#8a5a35', '#6b4423', '#9c6b3f']), '#eef2f7', z < p.z, { trim: '#f4efe6', floor: '#9c6b3f', base: '#5d5a55', gable: true, yard: false, shutter: pick(['#b5172e', '#2f6f4f']) }); i++; }
+    // telesilla montaña abajo
+    { const dir = Math.atan2(p.z, p.x); let px = p.x, pz = p.z;
+      const tw = []; for (let k = 0; k < 6; k++) { const x = p.x + Math.cos(dir) * (18 + k * 22), z = p.z + Math.sin(dir) * (18 + k * 22), h = terrainH(x, z); if (h < 3) break; tw.push([x, h, z]); gbox(G.metal, .5, 9, .5, x, h + 4.5, z, '#9aa3ad'); gbox(G.metal, 4, .3, .3, x, h + 9, z, '#7b848e', -dir + Math.PI / 2); }
+      for (let k = 0; k + 1 < tw.length; k++) { const [x1, h1, z1] = tw[k], [x2, h2, z2] = tw[k + 1], L = Math.hypot(x2 - x1, h2 - h1, z2 - z1);
+        for (const sd of [-1.6, 1.6]) { const ox = -Math.sin(dir) * sd, oz = Math.cos(dir) * sd; const c = new THREE.CylinderGeometry(.03, .03, L, 4); c.rotateZ(Math.PI / 2); c.rotateZ(Math.atan2(h2 - h1, Math.hypot(x2 - x1, z2 - z1))); c.rotateY(-dir); c.translate((x1 + x2) / 2 + ox, (h1 + h2) / 2 + 9, (z1 + z2) / 2 + oz); G.metal.push(colorize(c, '#2b2f35'));
+          for (const f of [.33, .66]) { const sx = x1 + (x2 - x1) * f + ox, sz = z1 + (z2 - z1) * f + oz, sy = h1 + (h2 - h1) * f + 9; gbox(G.metal, .05, 1.3, .05, sx, sy - .65, sz, '#2b2f35'); gbox(G.paint, .9, .12, .6, sx, sy - 1.35, sz, sd > 0 ? '#d64545' : '#2a7fbf'); } } } }
+    // muñecos de nieve
+    for (let i = 0; i < 3; i++) { const a = 1 + i * 2, x = p.x + Math.cos(a) * 9, z = p.z + Math.sin(a) * 9, h = terrainH(x, z); gsph(G.paint, .7, x, h + .6, z, '#ffffff'); gsph(G.paint, .5, x, h + 1.6, z, '#ffffff'); gsph(G.paint, .36, x, h + 2.35, z, '#ffffff'); gcone(G.paint, .08, .4, x + Math.cos(a + 3.14) * .35, h + 2.35, z + Math.sin(a + 3.14) * .35, '#ff7a1a', 6); }
+    return;
+  }
   if (p.type === 'lake') {
     for (let i = 0; i < 4; i++) {
       const a = .3 + i * 1.5, x = p.x + Math.cos(a) * 44, z = p.z + Math.sin(a) * 44;
@@ -1640,6 +1729,19 @@ function triMat(tex, scale, amt, key) {
   m.customProgramCacheKey = () => 'tri' + key;
   return m;
 }
+// letreros de tiendas: un atlas con 16 rótulos
+const SIGN_WORDS = [['CAFÉ', '#6b3f22', '#ffe2b8'], ['PIZZA', '#c0262d', '#fff3d6'], ['TACOS', '#f2a516', '#3a1d00'], ['HELADOS', '#ff8fc2', '#ffffff'], ['FARMACIA', '#1f9d55', '#ffffff'], ['BANCO', '#1d3557', '#f1c453'], ['MODA', '#111111', '#ffffff'], ['JUGUETES', '#3a86ff', '#ffd23f'],
+  ['LIBROS', '#5a3e85', '#fff'], ['PANADERÍA', '#d4a24c', '#3a2400'], ['GIMNASIO', '#e63946', '#fff'], ['CINE', '#14213d', '#fca311'], ['SUSHI', '#ffffff', '#c1121f'], ['ZAPATOS', '#2b9348', '#fff'], ['FLORES', '#ffafcc', '#7b2cbf'], ['MÚSICA', '#7209b7', '#4cc9f0']];
+const signTex = canvasTex(512, 1024, (g, w, h) => {
+  SIGN_WORDS.forEach(([t, bg, fg], i) => { const cx = (i % 2) * 256, cy = Math.floor(i / 2) * 128;
+    g.fillStyle = bg; g.fillRect(cx, cy, 256, 128); g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 8; g.strokeRect(cx + 8, cy + 8, 240, 112);
+    g.fillStyle = fg; g.font = `900 ${t.length > 7 ? 44 : 60}px Barlow Condensed, Impact, Arial Narrow, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, cx + 128, cy + 68); });
+});
+function signBoard(x, y, z, w, h, rot, i) {
+  const g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv, u0 = (i % 2) / 2, v0 = 1 - (Math.floor(i / 2) + 1) / 8;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, u0 + uv.getX(k) / 2, v0 + uv.getY(k) / 8);
+  g.rotateY(rot); g.translate(x, y, z); G.sign.push(g);
+}
 // cristal de ventana: marco blanco, travesaños, reflejo del cielo y un poco de interior
 function winTex(shop) {
   return canvasTex(256, 256, (g, w, h) => {
@@ -1664,6 +1766,7 @@ function winTex(shop) {
   const wt = winTex(false), st = winTex(true);
   add(G.wins, new THREE.MeshStandardMaterial({ map: wt, roughness: .12, metalness: .25, emissive: 0xffffff, emissiveMap: wt, emissiveIntensity: .32, envMapIntensity: 1.1 }), false);
   add(G.shop, new THREE.MeshStandardMaterial({ map: st, roughness: .1, metalness: .2, emissive: 0xffffff, emissiveMap: st, emissiveIntensity: .45, envMapIntensity: 1 }), false);
+  add(G.sign, new THREE.MeshStandardMaterial({ map: signTex, roughness: .5, emissive: 0xffffff, emissiveMap: signTex, emissiveIntensity: .35, side: THREE.DoubleSide }), false);
   add(G.pool, new THREE.MeshStandardMaterial({ color: 0x2aa6dc, roughness: .04, metalness: .1, emissive: 0x0b4a6e, emissiveIntensity: .5, envMapIntensity: 1.4 }), false);
   add(G.cglass, new THREE.MeshPhysicalMaterial({ color: 0x1d2b38, roughness: .05, metalness: .2, clearcoat: 1, clearcoatRoughness: .03, envMapIntensity: 1.6 }), false);
   add(G.carpaint, new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .38, metalness: .35, clearcoat: 1, clearcoatRoughness: .06, envMapIntensity: 1.2 }));
@@ -1745,15 +1848,15 @@ let rockMeshes = [];
     const t = { x, z, y: h, s, type, hp: v.hp, alive: true, mat: m4.clone(), color: color.clone(), cols: [], near: false, vi: v.list.length };
     v.list.push(t); trees.push(t); return true;
   };
-  for (let tries = 0; tries < 14000; tries++) {
-    const x = (srand() - .5) * 600, z = (srand() - .5) * 600, h = terrainH(x, z);
+  for (let tries = 0; tries < 34000; tries++) {
+    const x = (srand() - .5) * 2 * (ISLAND_R + 20), z = (srand() - .5) * 2 * (ISLAND_R + 20), h = terrainH(x, z);
     const dw = desertW(x, z), od = Math.hypot(x - OASIS.x, z - OASIS.z), dc = Math.hypot(x, z);
     if (roadDist(x, z) < 4) continue;
     if (od > 7 && od < 17 && h > -.5) { if (!blocked(x, z, 1.5)) add('palm', x, z, h, .9 + srand() * .3, col.set('#5b8f3a').offsetHSL(0, 0, (srand() - .5) * .08)); continue; }
     if (h < 2.2 || h > 50) continue;
     if (Math.abs(terrainH(x + 2, z) - h) > 1.6 || Math.abs(terrainH(x, z + 2) - h) > 1.6) continue;
     if (dw > .45) { if (!poiAt(x, z, 3) && srand() < .5 && !blocked(x, z, 1.2)) add('cactus', x, z, h, .8 + srand() * .5, col.set(pick(['#ff6fa3', '#ffd23f', '#ffffff']))); continue; }
-    if (h < 5.5 && dc > 175 && dw < .2) { if (srand() < .45 && !poiAt(x, z, 2) && !blocked(x, z, 1.5)) add('palm', x, z, h, .9 + srand() * .4, col.set('#5f9a3f').offsetHSL(0, 0, (srand() - .5) * .08)); continue; }
+    if (h < 5.5 && dc > islandR(x, z) * .6 && dw < .2) { if (srand() < .45 && !poiAt(x, z, 2) && !blocked(x, z, 1.5)) add('palm', x, z, h, .9 + srand() * .4, col.set('#5f9a3f').offsetHSL(0, 0, (srand() - .5) * .08)); continue; }
     if (h < 3 || dw > .2 || blocked(x, z, 1.5)) continue;
     const near = poiAt(x, z, 10), inside = poiAt(x, z, 4);
     if (inside) continue;
@@ -1781,8 +1884,8 @@ let rockMeshes = [];
   // rocas reales
   const rsrc = ['rock1', 'rock2', 'rock3'].map(k => { let mesh = null; ASSET[k].scene.updateMatrixWorld(true); ASSET[k].scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; }); const g = mesh.geometry.clone(); g.applyMatrix4(mesh.matrixWorld); g.computeBoundingBox(); const bb = g.boundingBox; g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); const mat = mesh.material.clone(); mat.color.multiplyScalar(1.35); mat.emissive = new THREE.Color(.05, .05, .055); return { g, mat, h: bb.max.y - bb.min.y }; });
   const rlists = [[], [], []];
-  for (let tries = 0; tries < 4000 && rocks.length < 210; tries++) {
-    const x = (srand() - .5) * 600, z = (srand() - .5) * 600, h = terrainH(x, z);
+  for (let tries = 0; tries < 9000 && rocks.length < 420; tries++) {
+    const x = (srand() - .5) * 2 * (ISLAND_R + 20), z = (srand() - .5) * 2 * (ISLAND_R + 20), h = terrainH(x, z);
     if (h < 1 || poiAt(x, z, 4) || roadDist(x, z) < 3.5 || blocked(x, z, 2)) continue;
     const r = .8 + srand() * 2.2, vi = Math.floor(srand() * 3), src = rsrc[vi];
     eul.set(0, srand() * 6.28, (srand() - .5) * .3); q4.setFromEuler(eul); const sc = r * 1.25 / src.h;
@@ -2385,7 +2488,7 @@ function spawnChests() {
   for (const p of POIS) { let n = 0; for (let t = 0; t < 60 && n < 2; t++) if (tryGround(p.x + rnd(-1, 1) * p.r, p.z + rnd(-1, 1) * p.r)) n++; }
   const roofs = roofSpots.slice().sort(() => RNG() - .5).slice(0, 10);
   for (const r of roofs) makeChest(r.x + rnd(-1, 1) * Math.max(0, r.w / 2 - 1.5), r.y, r.z + rnd(-1, 1) * Math.max(0, r.d / 2 - 1.5), RNG() * 6.28);
-  for (let t = 0, n = 0; t < 400 && n < 22; t++) { const tr = pick(trees); if (tr.type === 'cactus') continue; if (tryGround(tr.x + rnd(-4, 4), tr.z + rnd(-4, 4))) n++; }
+  for (let t = 0, n = 0; t < 600 && n < 34; t++) { const tr = pick(trees); if (tr.type === 'cactus') continue; if (tryGround(tr.x + rnd(-4, 4), tr.z + rnd(-4, 4))) n++; }
 }
 const padGeo = new THREE.CylinderGeometry(1.7, 1.9, .35, 20), ringGeo = new THREE.TorusGeometry(1.25, .14, 8, 28);
 function buildPads() {
@@ -2649,6 +2752,7 @@ function updateHUD(dt) {
   const gh = $('glideHint'); const hAbove = p.pos.y - p.groundY;
   const pn = $('planeNose'), pvc = p.vehicle && p.vehicle.kind === 'plane' ? p.vehicle : null;
   if (pvc && !pvc.onGround) { planeAxes(pvc); _a.set(pvc.x, pvc.y, pvc.z).addScaledVector(_pF, 250).project(camera); if (_a.z < 1) { pn.hidden = false; pn.style.left = ((_a.x + 1) / 2 * innerWidth) + 'px'; pn.style.top = ((1 - _a.y) / 2 * innerHeight) + 'px'; } else pn.hidden = true; } else pn.hidden = true;
+  drawFlightHud(pvc && !pvc.onGround && pvc.alive ? pvc : null);
   if (pvc && pvc.autoland && !pvc.onGround) { gh.hidden = false; setTxt('glideHint', 'Piloto automático: volviendo a la pista para aterrizar'); }
   else if (pvc && pvc.onGround) { gh.hidden = false; setTxt('glideHint', pvc.gs < 18 ? (T.on ? 'Mantén + MOTOR para acelerar por la pista · despegas solo a unos 90 km/h' : 'Mantén W para acelerar por la pista · despegas a unos 90 km/h') : '¡Despegando!'); }
   else if (pvc) { const sh = T.on && gameTime - (pvc.enterT || 0) < 25; gh.hidden = !sh; if (sh) setTxt('glideHint', '▲▼◀▶ dirigen la avioneta · desliza para mirar sin desviarla · ATERRIZAR la posa sola'); }
@@ -2657,10 +2761,57 @@ function updateHUD(dt) {
   else gh.hidden = true;
   const ch = $('channel'); if (p.channel) { ch.hidden = false; $('channelBar').style.width = (p.channel.t / p.channel.dur * 100) + '%'; setTxt('channelLbl', p.channel.kind === 'med' ? 'Usando botiquín…' : 'Bebiendo poción de escudo…'); } else ch.hidden = true;
 }
+// HUD de vuelo: horizonte artificial, escalera de cabeceo, vector de trayectoria y datos (como en un avión real)
+const fhudC = document.getElementById('fhud'), fctx = fhudC.getContext('2d'), _fh = new THREE.Vector3(), _fh2 = new THREE.Vector3();
+function fproj(dir, out) { _fh.copy(camera.position).addScaledVector(dir, 1000).project(camera); if (_fh.z > 1) return false; out.x = (_fh.x + 1) / 2 * innerWidth; out.y = (1 - _fh.y) / 2 * innerHeight; return true; }
+function drawFlightHud(pl) {
+  if (!pl) { if (!fhudC.hidden) fhudC.hidden = true; return; }
+  if (fhudC.hidden) fhudC.hidden = false;
+  const W0 = innerWidth, H0 = innerHeight; if (fhudC.width !== W0 || fhudC.height !== H0) { fhudC.width = W0; fhudC.height = H0; }
+  const g = fctx; g.clearRect(0, 0, W0, H0);
+  const col = pl.stall > .2 ? '#ff5a4f' : '#6dff9c'; g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2; g.font = '700 15px Barlow, system-ui, sans-serif'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(0,0,0,.65)'; g.shadowBlur = 3;
+  planeAxes(pl); const hdg = Math.atan2(_pF.x, _pF.z), A = {}, B = {};
+  // escalera de cabeceo (cada 10°), conforme a la vista
+  for (let th = -40; th <= 40; th += 10) {
+    const e = th * Math.PI / 180, w = th === 0 ? .2 : .07;
+    _fh2.set(Math.sin(hdg - w) * Math.cos(e), Math.sin(e), Math.cos(hdg - w) * Math.cos(e)); if (!fproj(_fh2, A)) continue;
+    _fh2.set(Math.sin(hdg + w) * Math.cos(e), Math.sin(e), Math.cos(hdg + w) * Math.cos(e)); if (!fproj(_fh2, B)) continue;
+    g.setLineDash(th < 0 ? [8, 6] : []); g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y); g.stroke(); g.setLineDash([]);
+    if (th) { g.textAlign = 'right'; g.fillText(Math.abs(th) + '', B.x - 6, B.y - 9); g.textAlign = 'left'; g.fillText(Math.abs(th) + '', A.x + 6, A.y - 9); }
+  }
+  // vector de trayectoria (a dónde va el avión de verdad)
+  const V = pl.vel.length();
+  if (V > 3) { _fh2.copy(pl.vel).divideScalar(V); if (fproj(_fh2, A)) { g.beginPath(); g.arc(A.x, A.y, 8, 0, 6.283); g.moveTo(A.x - 8, A.y); g.lineTo(A.x - 20, A.y); g.moveTo(A.x + 8, A.y); g.lineTo(A.x + 20, A.y); g.moveTo(A.x, A.y - 8); g.lineTo(A.x, A.y - 15); g.stroke(); } }
+  // rumbo
+  const deg = ((hdg * 180 / Math.PI) % 360 + 360) % 360, cx = W0 / 2;
+  g.textAlign = 'center'; g.strokeRect(cx - 34, 56, 68, 26); g.fillText(String(Math.round(deg)).padStart(3, '0') + '°', cx, 69);
+  for (let k = -30; k <= 30; k += 10) { const d = Math.round(deg / 10) * 10 + k, x = cx + (d - deg) * 6; if (Math.abs(x - cx) > 190) continue; g.beginPath(); g.moveTo(x, 88); g.lineTo(x, 96); g.stroke(); const n = ((d % 360) + 360) % 360; g.fillText(n === 0 ? 'N' : n === 90 ? 'E' : n === 180 ? 'S' : n === 270 ? 'O' : String(n / 10), x, 106); }
+  // velocidad (izquierda) y altura (derecha)
+  const lx = Math.max(110, W0 * .26), rx = W0 - lx, my = H0 / 2;
+  const box = (x, y, big, sml, al) => { g.strokeRect(x - 52, y - 18, 104, 36); g.textAlign = 'center'; g.font = '800 20px Barlow, system-ui, sans-serif'; g.fillText(big, x, y - 1); g.font = '600 12px Barlow, system-ui, sans-serif'; g.fillText(sml, x, y + 28); };
+  box(lx, my, Math.round(V * 3.6), 'km/h'); box(rx, my, Math.max(0, Math.round(pl.y - planeGround(pl.x, pl.z) - 1.1)), 'm sobre el suelo');
+  g.font = '700 14px Barlow, system-ui, sans-serif'; g.textAlign = 'left';
+  const vs = pl.vel.y;
+  g.fillText(`V/S ${vs >= 0 ? '+' : ''}${vs.toFixed(1)} m/s`, rx - 52, my + 52);
+  g.fillText(`ALT ${Math.round(pl.y)} m`, rx - 52, my + 70);
+  g.textAlign = 'right';
+  g.fillText(`G ${(pl.nz || 1).toFixed(1)}`, lx + 52, my + 52);
+  g.fillText(`α ${Math.round((pl.alpha || 0) * 57.3)}°`, lx + 52, my + 70);
+  g.fillText(`MOTOR ${Math.round(pl.thr * 100)}%${pl.boost ? ' + TURBO' : ''}`, lx + 52, my + 88);
+  if ((pl.flaps || 0) > .3) g.fillText('FLAPS', lx + 52, my + 106);
+  // avisos
+  g.textAlign = 'center'; g.font = '900 26px Barlow, system-ui, sans-serif';
+  const blink = (performance.now() / 300 | 0) % 2;
+  if (pl.stall > .2 && blink) { g.fillStyle = '#ff5a4f'; g.fillText('¡PÉRDIDA! BAJA EL MORRO', cx, H0 * .3); }
+  else if (pl.pullUp && blink) { g.fillStyle = '#ffb02e'; g.fillText('¡TERRENO! ¡ARRIBA!', cx, H0 * .3); }
+  else if (pl.mode === 'land') { g.fillStyle = col; g.font = '700 16px Barlow, system-ui, sans-serif'; g.fillText('APROXIMACIÓN · el instructor endereza solo al tocar', cx, H0 * .3); }
+  g.shadowBlur = 0;
+}
 // minimapa
 const mm = $('minimap'), mctx = mm.getContext('2d');
 const mapBg = document.createElement('canvas'); mapBg.width = mapBg.height = 380;
-const MAPR = 330;
+const MAPR = 470;
 (function drawMapBg() {
   const g = mapBg.getContext('2d'), img = g.createImageData(380, 380);
   for (let y = 0; y < 380; y++) for (let x = 0; x < 380; x++) {
@@ -2697,8 +2848,8 @@ function drawMinimap() {
 // =====================================================================
 // Tormenta
 // =====================================================================
-const PHASES = [{ wait: 55, shrink: 40, r: 190, dmg: 1 }, { wait: 40, shrink: 30, r: 105, dmg: 2 }, { wait: 32, shrink: 25, r: 55, dmg: 4 }, { wait: 25, shrink: 20, r: 24, dmg: 6 }, { wait: 18, shrink: 22, r: 0, dmg: 10 }];
-const storm = { phase: 0, state: 'wait', timer: 0, cx: 0, cz: 0, r: 420, next: null, from: null, dmg: 1 };
+const PHASES = [{ wait: 60, shrink: 45, r: 320, dmg: 1 }, { wait: 45, shrink: 40, r: 190, dmg: 1 }, { wait: 40, shrink: 30, r: 105, dmg: 2 }, { wait: 32, shrink: 25, r: 55, dmg: 4 }, { wait: 25, shrink: 20, r: 24, dmg: 6 }, { wait: 18, shrink: 22, r: 0, dmg: 10 }];
+const storm = { phase: 0, state: 'wait', timer: 0, cx: 0, cz: 0, r: 640, next: null, from: null, dmg: 1 };
 const stormMat = new THREE.ShaderMaterial({
   uniforms: { uTime: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
   vertexShader: `varying vec2 vUv; varying float vH; varying float vD; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vH=w.y; vD=distance(w.xyz, cameraPosition); gl_Position=projectionMatrix*viewMatrix*w; }`,
@@ -2707,12 +2858,12 @@ const stormMat = new THREE.ShaderMaterial({
       vec3 c = mix(vec3(.28,.06,.6), vec3(.85,.4,1.3), s*n); float al = (.32 + .22*s*n) * mix(1., .3, smoothstep(40., 380., vD)); gl_FragColor = vec4(c, al); }`,
 });
 const stormWall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 700, 128, 1, true), stormMat); stormWall.position.y = 150; stormWall.renderOrder = 5; scene.add(stormWall);
-function resetStorm() { Object.assign(storm, { phase: 0, state: 'wait', timer: PHASES[0].wait, cx: 0, cz: 0, r: 420, dmg: 1 }); planNext(); }
+function resetStorm() { Object.assign(storm, { phase: 0, state: 'wait', timer: PHASES[0].wait, cx: 0, cz: 0, r: 640, dmg: 1 }); planNext(); }
 function planNext() {
   const ph = PHASES[storm.phase]; if (!ph) { storm.next = null; return; }
-  const maxOff = Math.max(0, Math.min(storm.r, 300) - ph.r) * .8, a = RNG() * 6.283, d = RNG() * maxOff;
+  const maxOff = Math.max(0, Math.min(storm.r, 420) - ph.r) * .8, a = RNG() * 6.283, d = RNG() * maxOff;
   let nx = storm.cx + Math.cos(a) * d, nz = storm.cz + Math.sin(a) * d;
-  const L = Math.hypot(nx, nz), lim = Math.max(0, 230 - ph.r); if (L > lim) { nx *= lim / L; nz *= lim / L; }
+  const L = Math.hypot(nx, nz), lim = Math.max(0, 340 - ph.r); if (L > lim) { nx *= lim / L; nz *= lim / L; }
   storm.next = { x: nx, z: nz, r: ph.r };
 }
 function stormDist(p) { return Math.hypot(p.x - storm.cx, p.z - storm.cz) - storm.r; }
@@ -2731,7 +2882,7 @@ function updateStorm(dt) {
       else if (storm.timer <= 0) { NET.stormT = 0; storm.dmg = ph.dmg; storm.phase++; storm.state = 'wait'; const n = PHASES[storm.phase]; storm.timer = n ? n.wait : 0; if (n) storm.dmg = n.dmg; planNext(); }
     }
   }
-  stormWall.visible = storm.r < 380; stormWall.position.x = storm.cx; stormWall.position.z = storm.cz; stormWall.scale.set(Math.max(.5, storm.r), 1, Math.max(.5, storm.r));
+  stormWall.visible = storm.r < 600; stormWall.position.x = storm.cx; stormWall.position.z = storm.cz; stormWall.scale.set(Math.max(.5, storm.r), 1, Math.max(.5, storm.r));
   stormTick += dt;
   if (stormTick >= 1) {
     stormTick -= 1;
@@ -2974,7 +3125,7 @@ function useItem(kind) {
 const GRAV = -30;
 function resolve(c) {
   const r = .45, h = 1.8, p = c.pos;
-  const dc = Math.hypot(p.x, p.z); if (dc > 385) { p.x *= 385 / dc; p.z *= 385 / dc; }
+  const dc = Math.hypot(p.x, p.z); if (dc > MAP_LIM - 10) { p.x *= (MAP_LIM - 10) / dc; p.z *= (MAP_LIM - 10) / dc; }
   let ground = Math.max(terrainH(p.x, p.z), -1.4);
   c.hitWall = false;
   query(p.x, p.z, 2);
@@ -3093,8 +3244,8 @@ function updatePlayer(dt) {
       if (st < 2 && dh < (st ? 30 : 60)) c.autoland++;
       _paim.set(dx, clamp((wp[1] - c.y) / Math.max(dh, 1), st >= 2 ? -.1 : -.3, .3) * dh, dz).normalize();
       c.aYaw = Math.atan2(_paim.x, _paim.z); c.aPitch = Math.asin(_paim.y);
-      const tgt = st >= 2 ? 0 : st === 1 ? .45 : .8; thr = clamp((tgt - c.thr) * 4, -1, 1); c.alBrake = st >= 1 && c.vel.length() > (st >= 2 ? 27 : 36);
-    } else if (!c.onGround && thr === 0) thr = clamp((.85 - c.thr) * 2, -1, 1); // motor automático en el aire
+      const vT = st >= 2 ? 28 : st === 1 ? 33 : 42, sp = c.vel.length(); thr = clamp((vT - sp) * .35 + (st >= 2 ? .1 : .3) - c.thr, -1, 1) * 2; c.alBrake = st >= 2 && sp > 34;
+    } else if (!c.onGround && thr === 0) thr = c.landing ? clamp(((29 - c.vel.length()) * .25 + .2 - c.thr) * 2, -1, 1) : clamp((.85 - c.thr) * 2, -1, 1); // motor automático: en la aproximación mantiene ~105 km/h
     updatePlane(c, dt, { thr: Math.abs(thr) < .05 ? 0 : thr, roll: Math.abs(roll) < .2 ? 0 : roll, aim: _paim, guns: mouse.l, boost: !c.autoland && (!!keys.ShiftLeft || T.jump), brake: !!keys.Space || (thr < -.5 && c.thr <= 0) || (!!c.autoland && c.alBrake) });
     if (p.vehicle !== c) return;
     p.pos.set(c.x, c.y, c.z); p.vel.copy(c.vel); p.onGround = c.onGround; p.groundY = planeGround(c.x, c.z);
@@ -3181,12 +3332,12 @@ function randomLand(near) {
   for (let i = 0; i < 40; i++) {
     let x, z;
     if (near) { x = near.x + rnd(-1, 1) * near.r; z = near.z + rnd(-1, 1) * near.r; }
-    else { const a = RNG() * 6.283, d = Math.sqrt(RNG()) * 240; x = Math.cos(a) * d; z = Math.sin(a) * d; }
+    else { const a = RNG() * 6.283, d = Math.sqrt(RNG()) * 360; x = Math.cos(a) * d; z = Math.sin(a) * d; }
     if (terrainH(x, z) > 2.5) return new THREE.Vector3(x, 0, z);
   }
   return new THREE.Vector3(0, 0, 0);
 }
-function safeGoal() { const s = storm.next && storm.state === 'shrink' ? storm.next : { x: storm.cx, z: storm.cz, r: storm.r }; const r = Math.min(s.r, 230) * .75; for (let i = 0; i < 20; i++) { const a = RNG() * 6.283, d = Math.sqrt(RNG()) * r, x = s.x + Math.cos(a) * d, z = s.z + Math.sin(a) * d; if (terrainH(x, z) > 2) return new THREE.Vector3(x, 0, z); } return new THREE.Vector3(s.x, 0, s.z); }
+function safeGoal() { const s = storm.next && storm.state === 'shrink' ? storm.next : { x: storm.cx, z: storm.cz, r: storm.r }; const r = Math.min(s.r, 340) * .75; for (let i = 0; i < 20; i++) { const a = RNG() * 6.283, d = Math.sqrt(RNG()) * r, x = s.x + Math.cos(a) * d, z = s.z + Math.sin(a) * d; if (terrainH(x, z) > 2) return new THREE.Vector3(x, 0, z); } return new THREE.Vector3(s.x, 0, s.z); }
 function botThink(b) {
   const D = DIFF[settings.diff];
   const range = b.weapon && baseT(b.weapon.type) === 'sniper' ? 150 : b.weapon && baseT(b.weapon.type) === 'shotgun' ? 55 : 95;
@@ -3315,7 +3466,7 @@ const _cam = new THREE.Vector3(), _piv = new THREE.Vector3(), _look = new THREE.
 function updateCamera(dt) {
   const p = player;
   if (gstate === 'menu') {
-    menuAng += dt * .05; camera.position.set(Math.cos(menuAng) * 250, 115, Math.sin(menuAng) * 250); camera.lookAt(0, 10, 0);
+    menuAng += dt * .05; camera.position.set(Math.cos(menuAng) * 330, 150, Math.sin(menuAng) * 330); camera.lookAt(0, 10, 0);
     camera.fov = 60; camera.updateProjectionMatrix(); return;
   }
   if (!p.alive || gstate === 'end') {
@@ -3381,13 +3532,13 @@ function startGame(cfg) {
   const sd = cfg ? cfg.seed : (Math.random() * 2e9) | 0; // con semilla: cofres, autobús y vehículos iguales para todos
   withSeed(sd, spawnChests); resetStorm();
   withSeed(sd + 1, () => { const a = RNG() * 6.283;
-  bus.a.set(Math.cos(a) * 360, 175, Math.sin(a) * 360); bus.b.set(-Math.cos(a + rnd(-.5, .5)) * 360, 175, -Math.sin(a + rnd(-.5, .5)) * 360); });
-  bus.dir.subVectors(bus.b, bus.a).normalize(); bus.dur = bus.a.distanceTo(bus.b) / 38; bus.t = 0; bus.active = true; bus.pos.copy(bus.a);
+  bus.a.set(Math.cos(a) * 520, 190, Math.sin(a) * 520); bus.b.set(-Math.cos(a + rnd(-.5, .5)) * 520, 190, -Math.sin(a + rnd(-.5, .5)) * 520); });
+  bus.dir.subVectors(bus.b, bus.a).normalize(); bus.dur = bus.a.distanceTo(bus.b) / 46; bus.t = 0; bus.active = true; bus.pos.copy(bus.a);
   busMesh.visible = true; busMesh.lookAt(_a.copy(bus.pos).add(bus.dir));
   initPlayer(); player.yaw = Math.atan2(bus.dir.x, bus.dir.z); player.pitch = -.25;
   if (cfg && !NET.host) spawnBotsFrom(cfg.bots); else spawnBots(cfg ? cfg.nb : MATCH_BOTS);
   const boss = bots.find(b => b.boss); if (boss) { const h = boss.home; boss.state = 'play'; boss.pos.set(h.x + 8, 0, h.z + 9); boss.pos.y = groundTop(boss.pos.x, boss.pos.z) + .2; boss.onGround = true; }
-  clearSpecials(); withSeed(sd + 2, () => { spawnPinatas(3); spawnCars(cfg ? 6 : 0); spawnPlanes(); });
+  clearSpecials(); withSeed(sd + 2, () => { spawnPinatas(3); spawnCars(cfg ? 8 : 0); spawnPlanes(); });
   if (cfg) netSetupMatch(cfg); else NET.on = false;
   match = { xp: [], landed: false, top10: false };
   alive = chars.length; gameTime = 0; stats = { dmg: 0 }; streak = 0; slowmo = 1; endT = 0;
@@ -3431,7 +3582,7 @@ function toMenu() {
   gstate = 'menu'; clearDynamic(); bus.active = false; busMesh.visible = false; ghost.visible = false;
   $('touch').hidden = true; hud.hidden = true; $('end').hidden = true; $('pause').hidden = true; $('menu').hidden = false; paused = false;
   if (document.pointerLockElement) document.exitPointerLock();
-  storm.r = 420; stormWall.scale.set(420, 1, 420); if (stormGain) stormGain.gain.value = 0; if (windGain) windGain.gain.value = 0;
+  storm.r = 640; stormWall.scale.set(640, 1, 640); if (stormGain) stormGain.gain.value = 0; if (windGain) windGain.gain.value = 0;
   clearSpecials(); clearCars(); clearPlanes(); engineSound(false, 0, false); match = null; renderMenu(); buildPreview(); buildFriends(); setMusic(true); $('end').classList.remove('win');
 }
 
@@ -3888,7 +4039,7 @@ const PINATA_COLS = ['#ff4fa3', '#3be8ff', '#ffd23f', '#06d6a0', '#ff7a1a'];
 const pinataMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .5, emissive: 0x2a0a40, emissiveIntensity: .5 });
 function spawnPinatas(n) {
   for (let i = 0, t = 0; i < n && t < 300; t++) {
-    const a = RNG() * 6.283, d = 40 + RNG() * 200, x = Math.cos(a) * d, z = Math.sin(a) * d, h = terrainH(x, z);
+    const a = RNG() * 6.283, d = 40 + RNG() * 320, x = Math.cos(a) * d, z = Math.sin(a) * d, h = terrainH(x, z);
     if (h < 3 || poiAt(x, z, 8) || blocked(x, z, 2.5) || roadDist(x, z) < 3) continue;
     const parts = LLAMA_PARTS.map((pt, k) => P(Bx(pt[0], pt[1], pt[2]), k === 0 ? '#8a5cff' : PINATA_COLS[k % PINATA_COLS.length], pt[3], pt[4], pt[5]));
     parts.push(P(Bx(1.04, .16, 1.64), '#ffd23f', 0, 1.32, 0), P(Bx(1.04, .16, 1.64), '#3be8ff', 0, 1.06, 0), P(Bx(1.1, .14, .8), '#ff4f7b', 0, 1.66, 0));
@@ -3969,7 +4120,7 @@ function spawnCar(x, z, yaw, color) {
 function clearCars() { for (const c of cars) { scene.remove(c.m.root); if (c.col) removeCollider(c.col); } cars.length = 0; }
 function spawnCars(n) {
   clearCars();
-  const want = n || (IS_TOUCH ? 4 : 7), used = [];
+  const want = n || (IS_TOUCH ? 6 : 10), used = [];
   const order = POIS.filter(p => p.type !== 'lake').sort(() => RNG() - .5);
   for (const p of order) {
     if (cars.length >= want) break;
@@ -4219,7 +4370,8 @@ function buildPlaneGeo() {
   G.fus = fuselageGeo();
   // alas (ala baja), estabilizadores y deriva
   const wing = (sgn, f0, f1, k0, k1) => surfGeo({ x0: sgn * lerp(.3, PLANE_SPAN, k0), x1: sgn * lerp(.3, PLANE_SPAN, k1), c0: lerp(1.9, 1.05, k0), c1: lerp(1.9, 1.05, k1), le0: lerp(.95, .74, k0), le1: lerp(.95, .74, k1), y0: lerp(-.36, -.24, k0), y1: lerp(-.36, -.24, k1), th: .15, f0, f1, u0: k0, u1: k1, K: Math.max(2, Math.round((k1 - k0) * 10)) });
-  G.wingMain = nonIdxNormals(mergeGeometries([wing(1, 0, .74, 0, 1), wing(-1, 0, .74, 0, 1), wing(1, .74, 1, 0, .3), wing(-1, .74, 1, 0, .3)]));
+  G.wingMain = nonIdxNormals(mergeGeometries([wing(1, 0, .74, 0, 1), wing(-1, 0, .74, 0, 1)]));
+  G.flapL = nonIdxNormals(wing(1, .74, 1, 0, .3)); G.flapR = nonIdxNormals(wing(-1, .74, 1, 0, .3));
   G.ailL = nonIdxNormals(wing(1, .74, 1, .3, 1)); G.ailR = nonIdxNormals(wing(-1, .74, 1, .3, 1));
   const tail = (sgn, f0, f1) => surfGeo({ x0: sgn * .1, x1: sgn * 1.6, c0: .95, c1: .6, le0: -2.95, le1: -3.12, y0: .3, y1: .32, th: .1, f0, f1, K: 4 });
   G.stab = nonIdxNormals(mergeGeometries([tail(1, 0, .6), tail(-1, 0, .6)]));
@@ -4230,6 +4382,7 @@ function buildPlaneGeo() {
   const hinge = (x, y, le, c, f) => new THREE.Vector3(x, y, le - f * c);
   G.hAilL = [hinge(lerp(.3, PLANE_SPAN, .3), lerp(-.36, -.24, .3), lerp(.95, .74, .3), lerp(1.9, 1.05, .3), .74), hinge(PLANE_SPAN, -.24, .74, 1.05, .74)];
   G.hAilR = [G.hAilL[0].clone().setX(-G.hAilL[0].x), G.hAilL[1].clone().setX(-PLANE_SPAN)];
+  G.hFlapL = [hinge(.3, -.36, .95, 1.9, .74), G.hAilL[0].clone()]; G.hFlapR = [G.hFlapL[0].clone().setX(-.3), G.hAilR[0].clone()];
   G.hElev = [hinge(-1.6, .32, -3.12, .6, .6), hinge(1.6, .32, -3.12, .6, .6)];
   G.hRud = [new THREE.Vector3(0, .3, -2.55 - .62 * 1.3), new THREE.Vector3(0, 1.55, -3.2 - .62 * .7)];
   // buje y hélice
@@ -4285,11 +4438,13 @@ function makePlaneMesh(L) {
   add(G.navL, PM.red, root, false); add(G.navR, PM.green, root, false); add(G.tailLight, PM.strobe, root, false);
   const pilot = new THREE.Group(); add(G.helmet, PM.helmet, pilot); add(G.visorG, PM.visor, pilot); root.add(pilot); pilot.visible = false;
   const hinged = (geo, h, mat) => { const piv = new THREE.Group(); piv.position.copy(h[0]); const g = geo.clone().translate(-h[0].x, -h[0].y, -h[0].z); add(g, mat, piv); root.add(piv); return { piv, axis: h[1].clone().sub(h[0]).normalize() }; };
-  const surf = { ailL: hinged(G.ailL, G.hAilL, paintW), ailR: hinged(G.ailR, G.hAilR, paintW), elev: hinged(G.elev, G.hElev, paintW), rud: hinged(G.rud, G.hRud, accent) };
+  const surf = { ailL: hinged(G.ailL, G.hAilL, paintW), ailR: hinged(G.ailR, G.hAilR, paintW), elev: hinged(G.elev, G.hElev, paintW), rud: hinged(G.rud, G.hRud, accent), flapL: hinged(G.flapL, G.hFlapL, paintW), flapR: hinged(G.flapR, G.hFlapR, paintW) };
+  // faro de aterrizaje bajo el morro
+  const llight = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(3, 2.8, 2.2), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 })); llight.scale.setScalar(1.6); llight.position.set(0, -.45, 2.7); root.add(llight);
   const prop = new THREE.Group(); prop.position.z = 3.08; root.add(prop);
   add(G.spinner, accent, prop); const blades = add(G.prop, PM.prop, prop);
   const disc = new THREE.Mesh(new THREE.CircleGeometry(1.04, 40), PM.disc.clone()); disc.position.z = .05; prop.add(disc);
-  return { root, surf, prop, blades, disc, pilot, mats, accent };
+  return { root, surf, prop, blades, disc, pilot, mats, accent, llight };
 }
 const _pq = new THREE.Quaternion(), _pqi = new THREE.Quaternion(), _pF = new THREE.Vector3(), _pU = new THREE.Vector3(), _pR = new THREE.Vector3(), _pl = new THREE.Vector3(), _pvel = new THREE.Vector3(), _pax = new THREE.Vector3(), _pe = new THREE.Euler(0, 0, 0, 'YXZ'), _pw = new THREE.Vector3();
 function planeAxes(pl) { _pF.set(0, 0, 1).applyQuaternion(pl.q); _pU.set(0, 1, 0).applyQuaternion(pl.q); _pR.set(-1, 0, 0).applyQuaternion(pl.q); }
@@ -4300,7 +4455,7 @@ const gearH = att => 1.32 * Math.cos(att) - .9 * Math.sin(att);
 const PLANE_ATT0 = .2;
 function spawnPlane(x, z, yaw, livery) {
   const m = makePlaneMesh(livery); scene.add(m.root);
-  const pl = { kind: 'plane', m, x, z, y: terrainH(x, z) + gearH(PLANE_ATT0), yaw, att: PLANE_ATT0, gs: 0, q: new THREE.Quaternion(), vel: new THREE.Vector3(), thr: 0, hp: PLANE_HP, alive: true, driver: null, onGround: true, cols: [], hitCD: new Map(), rpm: 0, ctrl: { p: 0, r: 0, y: 0 }, gunCD: 0, gunSide: 1, heat: 0, hot: false, still: 0, boost: false, vx: 0, vz: 0, vy: 0 };
+  const pl = { kind: 'plane', m, x, z, y: terrainH(x, z) + gearH(PLANE_ATT0), yaw, att: PLANE_ATT0, gs: 0, q: new THREE.Quaternion(), vel: new THREE.Vector3(), thr: 0, hp: PLANE_HP, alive: true, driver: null, onGround: true, wp: 0, wq: 0, wr: 0, flaps: 0, nz: 1, alpha: 0, cols: [], hitCD: new Map(), rpm: 0, ctrl: { p: 0, r: 0, y: 0 }, gunCD: 0, gunSide: 1, heat: 0, hot: false, still: 0, boost: false, vx: 0, vz: 0, vy: 0 };
   pl.q.setFromEuler(_pe.set(-pl.att, yaw, 0)); syncPlaneColliders(pl); placePlaneMesh(pl, 0); planes.push(pl); return pl;
 }
 function clearPlanes() { for (const pl of planes) { scene.remove(pl.m.root); for (const c of pl.cols) removeCollider(c); for (const mt of pl.m.mats) mt.dispose(); } planes.length = 0; }
@@ -4328,6 +4483,8 @@ function placePlaneMesh(pl, dt) {
   S.ailR.piv.quaternion.setFromAxisAngle(S.ailR.axis, clamp(C.r, -1, 1) * .35);
   S.elev.piv.quaternion.setFromAxisAngle(S.elev.axis, clamp(C.p, -1, 1) * .4);
   S.rud.piv.quaternion.setFromAxisAngle(S.rud.axis, clamp(C.y, -1, 1) * .45);
+  const fl = pl.flaps || 0; S.flapL.piv.quaternion.setFromAxisAngle(S.flapL.axis, -fl * .55); S.flapR.piv.quaternion.setFromAxisAngle(S.flapR.axis, fl * .55);
+  m.llight.material.opacity = pl.driver && pl.alive && (fl > .3 || pl.onGround) ? .85 : 0;
   PM.strobe.emissiveIntensity = (gameTime % 1.2) < .06 ? 8 : 0;
 }
 function damagePlane(pl, dmg, by) {
@@ -4404,61 +4561,106 @@ function updatePlane(pl, dt, inp) {
     pl.q.setFromEuler(_pe.set(-pl.att, pl.yaw, 0));
     if (wet) { damagePlane(pl, 50 * dt, pl.lastBy); }
     // despegue
-    const lift = (pl.gs / 27) ** 2 * (1 + pl.att * 2.5);
-    if (pl.thr > .5 && (lift > 1.15 && rot > .05 || pl.gs > 38)) { pl.onGround = false; pl.vel.y = 2.5; pl.y += .1; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Suelta los botones y vuela recto solo'); } } }
+    const lift = .5 * 1.225 * pl.gs * pl.gs * AERO.S * (AERO.CL0 + AERO.CLa * pl.att + (pl.flaps || 0) * .45) * 1.14 / (AERO.m * 9.81); // sustentación / peso
+    if (pl.thr > .5 && (lift > 1.05 && rot > .05 || pl.gs > 40)) { pl.onGround = false; pl.vel.y = 1.5; pl.y += .1; pl.wp = pl.wq = pl.wr = 0; pl.ei = 0; if (pl.driver === player) { sfx('pad', .6); if (match && !match.flew) { match.flew = true; xpGain(30, 'Primer despegue'); announce('¡Despegue!', 'Suelta los botones y vuela recto solo'); } } }
   } else {
-    // ---- vuelo ----
-    let s = Math.max(0, pl.vel.dot(_pF));
-    const eff = clamp((s - 8) / 22, .12, 1), bank = Math.asin(clamp(-_pR.y, -1, 1));
-    let pr = 0, yr = 0, rr = 0;
+    // ---- vuelo: modelo físico (sustentación, resistencia, empuje, momentos aerodinámicos) ----
+    // El jugador indica a dónde quiere ir; un "instructor" mueve alerones, timón de profundidad y de dirección
+    // como lo haría un piloto, sin pasar del ángulo de pérdida ni de 5 G. El avión obedece a la física.
+    const A = AERO;
     _pqi.copy(pl.q).invert();
+    _pvb.copy(pl.vel).applyQuaternion(_pqi); // velocidad en ejes del avión: x izquierda, y arriba, z adelante
+    const V = Math.max(.5, pl.vel.length());
+    const alpha = Math.atan2(-_pvb.y, Math.max(.5, _pvb.z)), beta = Math.atan2(_pvb.x, Math.max(.5, _pvb.z));
+    const rho = 1.225 * Math.exp(-Math.max(0, pl.y) / 8500), qbar = .5 * rho * V * V, qn = qbar / A.qRef;
+    const bank = Math.asin(clamp(-_pR.y, -1, 1));
+    const hAgl = pl.y - planeGround(pl.x, pl.z) - 1.2;
+    const flaps = pl.flaps = lerp(pl.flaps || 0, inp.brake || pl.autoland >= 2 ? 1 : 0, Math.min(1, dt * 1.5));
+    // --- instructor ---
+    let ail = 0, elev = 0, rud = 0, mode = 'free';
     let aim = inp.aim; const dcen = Math.hypot(pl.x, pl.z);
-    if (dcen > 345) aim = _pbk.set(-pl.x / dcen, .1, -pl.z / dcen);
-    if (aim) {
-      _pl.copy(aim).applyQuaternion(_pqi);
-      const ep = Math.atan2(_pl.y, _pl.z), ey = Math.atan2(_pl.x, _pl.z);
-      const mix = clamp((Math.abs(_pl.x) - .03) / .3, 0, 1);
-      let phi = Math.atan2(-_pl.x, _pl.y); if (_pl.z > 0) phi = clamp(phi, -1.35, 1.35);
-      rr = clamp((phi * mix - bank * (1 - mix)) * 2.6, -2.2, 2.2);
-      pr = clamp(ep * 2.5, -1, 1.25) * eff;
-      yr = clamp(ey * 1.4, -.6, .6) * eff;
-    } else rr = clamp(-bank * 1.5, -1, 1);
-    if (Math.abs(inp.roll) > .1) rr = inp.roll * 2.6;
-    // ayudas de vuelo: no chocar con el suelo y aterrizar suave sobre la pista
-    pl.sink = 0;
+    if (dcen > MAP_LIM - 25) aim = _pbk.set(-pl.x / dcen, .12, -pl.z / dcen); // fin del mapa: da la vuelta
     if (pl.driver) {
+      // aviso de terreno: mira 1–3 s hacia delante
+      let ahead = 1e9; for (const t of [.6, 1.3, 2.4]) ahead = Math.min(ahead, pl.y + pl.vel.y * t - planeGround(pl.x + pl.vel.x * t, pl.z + pl.vel.z * t));
+      pl.pullUp = ahead < 16 && pl.vel.y < 1 && !pl.landing;
       const aimP = aim ? Math.asin(clamp(aim.y, -1, 1)) : 0;
-      const landing = Math.abs(pl.x - AF.x) < AF.w && Math.abs(pl.z - AF.z) < AF.len / 2 + 70 && s < 38 && aimP < .03;
-      const clr = pl.y - planeGround(pl.x, pl.z) - 1.3;
-      if (landing) {
-        if (clr < 9) { rr = clamp(-bank * 3, -2, 2); const pa = Math.asin(clamp(_pF.y, -1, 1)); const pt = -Math.asin(clamp((clr > 2.5 ? 4.5 : 1.8) / Math.max(s, 10), 0, .3)); pr = clamp((pt - pa) * 3, -.6, .8) * Math.max(eff, .5); pl.sink = clr > 2.5 ? -4.5 : -1.8; }
-      } else {
-        let ahead = 1e9;
-        for (const t of [.5, 1.1, 1.9]) ahead = Math.min(ahead, pl.y + pl.vel.y * t - planeGround(pl.x + pl.vel.x * t, pl.z + pl.vel.z * t));
-        const pull = clamp((18 - ahead) / 12, 0, 1);
-        if (pull > 0) { rr = lerp(rr, clamp(-bank * 3, -2.2, 2.2), pull); pr = Math.max(pr, 1.3 * pull); if (pl.vel.y < 0) pl.vel.y += Math.min(-pl.vel.y, 14 * pull * dt); pl.assistT = gameTime; }
-      }
+      pl.landing = Math.abs(pl.x - AF.x) < AF.w * 1.2 && Math.abs(pl.z - AF.z) < AF.len / 2 + 90 && V < 42 && (aimP < .05 || pl.autoland >= 2) && hAgl < 30;
+      if (pl.landing) mode = 'land';
+      else if (pl.pullUp) { mode = 'pull'; pl.assistT = gameTime; }
     }
-    // pérdida: el morro cae hacia la velocidad
-    const stall = 1 - smooth(13, 22, s);
-    if (stall > 0) { _pl.copy(pl.vel).normalize().applyQuaternion(_pqi); pr += Math.atan2(_pl.y, Math.max(.2, _pl.z)) * 2.2 * stall - .4 * stall; }
-    rotLocal(pl, 1, 0, 0, -pr * dt); rotLocal(pl, 0, 1, 0, yr * dt); rotLocal(pl, 0, 0, 1, rr * dt); pl.q.normalize();
-    C.p = lerp(C.p, -pr, Math.min(1, dt * 8)); C.r = lerp(C.r, rr / 2.6, Math.min(1, dt * 8)); C.y = lerp(C.y, -yr * 2, Math.min(1, dt * 8));
+    if (mode === 'land') {
+      // aproximación: alas niveladas, rumbo hacia la pista y velocidad vertical controlada; enderezada cerca del suelo
+      const vsCmd = hAgl > 9 ? -3.6 : hAgl > 2.5 ? -2.2 : -.9;
+      const pitchA = Math.asin(clamp(_pF.y, -1, 1));
+      elev = clamp((vsCmd - pl.vel.y) * .16 + (.06 - pitchA) * .3 - pl.wq * .5 + .05, -1, 1);
+      const hdg = Math.atan2(pl.vel.x, pl.vel.z), want = aim ? Math.atan2(aim.x, aim.z) : hdg;
+      let dh = want - hdg; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+      ail = clamp((clamp(-dh * 1.5, -.25, .25) - bank) * 2.2 - pl.wp * .5, -1, 1);
+      rud = clamp(-dh * 2 - beta * 3 - pl.wr * .5, -1, 1);
+    } else if (mode === 'pull') {
+      ail = clamp(-bank * 2.5 - pl.wp * .6, -1, 1); elev = 1; rud = clamp(-beta * 3, -1, 1);
+    } else if (aim) {
+      _pl.copy(aim).applyQuaternion(_pqi); // objetivo en ejes del avión
+      const ep = Math.atan2(_pl.y, _pl.z), ey = Math.atan2(-_pl.x, _pl.z); // arriba / derecha
+      const mix = clamp((Math.abs(_pl.x) - .04) / .3, 0, 1);
+      let phi = Math.atan2(-_pl.x, _pl.y); if (_pl.z > 0) phi = clamp(phi, -1.4, 1.4); // alabeo que pone el objetivo "arriba"
+      const rollErr = phi * mix + (clamp(ey * 1.2, -.5, .5) - bank) * (1 - mix);
+      ail = clamp(rollErr * 2.4 - pl.wp * .55, -1, 1);
+      pl.ei = clamp((pl.ei || 0) + ep * dt * .8, -.25, .25);
+      elev = clamp(ep * 3.2 + pl.ei - pl.wq * .55 + .04, -1, 1);
+      if (_pl.z < 0 && Math.abs(ep) < .3) elev = Math.max(elev, .6); // objetivo detrás: tirar
+      rud = clamp(-beta * 3.2 + ey * 1.4 * (1 - mix) - pl.wr * .4, -1, 1);
+    } else { ail = clamp(-bank * 1.6 - pl.wp * .5, -1, 1); elev = clamp(-pl.wq * .5 + .05, -1, 1); rud = clamp(-beta * 3, -1, 1); }
+    if (Math.abs(inp.roll) > .1 && mode !== 'pull') ail = clamp(inp.roll, -1, 1);
+    // protección de la envolvente: ángulo de ataque y factor de carga
+    const aMax = A.aStall - .035 + flaps * .03;
+    if (alpha > aMax - .05) elev = Math.min(elev, (aMax - alpha) * 9 - pl.wq * .4);
+    const nz = pl.nz || 1; if (nz > 5) elev = Math.min(elev, (5.4 - nz) * .5);
+    if (alpha < -.12) elev = Math.max(elev, (-.12 - alpha) * 9);
+    // mandos con su velocidad de movimiento
+    const k = Math.min(1, dt * 7); pl.ail = lerp(pl.ail || 0, ail, k); pl.elev = lerp(pl.elev || 0, elev, k); pl.rud = lerp(pl.rud || 0, rud, k);
+    const C = pl.ctrl; C.p = -pl.elev; C.r = pl.ail; C.y = -pl.rud;
+    // --- aerodinámica ---
+    let CL;
+    if (alpha < A.aStall) CL = A.CL0 + A.CLa * alpha; else CL = Math.max(.55, A.CL0 + A.CLa * A.aStall - (alpha - A.aStall) * 3.2);
+    if (alpha < -.25) CL = -.9;
+    CL += flaps * .45;
+    const stall = clamp((alpha - A.aStall) / .08, 0, 1); pl.stall = stall;
+    const ge = 1 + .14 * clamp(1 - hAgl / 7, 0, 1); // efecto suelo
+    CL *= ge;
+    const CD = A.CD0 + A.k * CL * CL / ge + flaps * .035 + stall * .25 + (inp.brake ? .06 : 0);
+    const L = qbar * A.S * CL, D = qbar * A.S * CD, Y = qbar * A.S * A.CYb * beta;
+    const vmax = pl.boost ? 96 : 72, Tmax = pl.boost ? 7200 : 4300;
+    const T = pl.thr * Tmax * Math.max(0, 1 - (V / vmax) ** 2) + (pl.boost ? 600 : 0);
+    // fuerzas en el mundo
+    _pvd.copy(pl.vel).divideScalar(V); _pleft.copy(_pR).negate();
+    _pld.crossVectors(_pvd, _pleft).normalize(); // dirección de la sustentación
+    _pfrc.copy(_pld).multiplyScalar(L).addScaledVector(_pvd, -D).addScaledVector(_pleft, Y).addScaledVector(_pF, T);
+    pl.nz = L / (A.m * 9.81);
+    pl.vel.addScaledVector(_pfrc, dt / A.m); pl.vel.y -= 9.81 * dt;
+    // --- momentos: mandos, estabilidad estática y amortiguación ---
+    const qa = Math.max(qn, .12), sq = Math.sqrt(Math.max(qn, .04));
+    pl.wq += (qa * (A.Me * pl.elev - A.Ma * (alpha - A.aTrim) * (qn / qa)) - A.Mq * sq * pl.wq) * dt;
+    pl.wp += (qa * A.Lail * pl.ail + qn * A.Lb * beta - A.Lp * sq * pl.wp + stall * qn * 2.2 * Math.sin(gameTime * 1.7 + pl.x)) * dt;
+    pl.wr += (qa * A.Nr * pl.rud - qn * A.Nb * beta - A.Nrd * sq * pl.wr + qn * .25 * pl.ail) * dt;
+    // un poco de turbulencia para que se sienta vivo
+    if (V > 15) { pl.wq += (RNG() - .5) * dt * .35 * sq; pl.wp += (RNG() - .5) * dt * .5 * sq; }
+    rotLocal(pl, 1, 0, 0, -pl.wq * dt); rotLocal(pl, 0, 1, 0, -pl.wr * dt); rotLocal(pl, 0, 0, 1, pl.wp * dt); pl.q.normalize();
     planeAxes(pl);
-    s += (thrust - .0042 * s * s - 9.8 * _pF.y - (inp.brake ? .012 * s * s : 0) - Math.abs(pr) * s * .06) * dt;
-    s = Math.max(0, s);
-    const liftK = smooth(14, 26, s);
-    pl.vel.addScaledVector(_pF, s - Math.max(0, pl.vel.dot(_pF)));
-    _pvel.copy(_pF).multiplyScalar(Math.max(0, pl.vel.dot(_pF)));
-    pl.vel.lerp(_pvel, Math.min(1, dt * (1 + 2.6 * liftK)));
-    pl.vel.y -= 9.8 * dt * (1 - liftK * clamp(_pU.y * 1.25, 0, 1));
-    if (pl.sink) pl.vel.y = Math.min(pl.vel.y, pl.sink);
-    if (pl.y > 240) pl.vel.y -= (pl.y - 240) * 2 * dt;
-    const dc = Math.hypot(pl.x, pl.z); if (dc > 320) { pl.vel.x -= pl.x / dc * (dc - 320) * 1.5 * dt; pl.vel.z -= pl.z / dc * (dc - 320) * 1.5 * dt; if (pl.driver === player && dc > 335 && (pl.warnT || 0) < gameTime) { pl.warnT = gameTime + 4; announce('', 'Fin del mapa: da la vuelta'); } }
+    pl.alpha = alpha; pl.beta = beta; pl.mode = mode;
+    if (pl.y > 420) pl.vel.y -= (pl.y - 420) * dt;
+    if (dcen > MAP_LIM && pl.driver === player && (pl.warnT || 0) < gameTime) { pl.warnT = gameTime + 4; announce('', 'Fin del mapa: el instructor da la vuelta'); }
     pl.x += pl.vel.x * dt; pl.y += pl.vel.y * dt; pl.z += pl.vel.z * dt;
-    // humo acrobático con turbo
+    const s = Math.max(0, pl.vel.dot(_pF));
+    // humo acrobático con turbo y estelas en las puntas de las alas al tirar fuerte
     if (pl.boost && RNG() < .9) { planeWorld(pl, 0, -.1, -3.7, _pc); smoke.spawn(_pc.x, _pc.y, _pc.z, rnd(-.2, .2), rnd(.1, .4), rnd(-.2, .2), 3.2, rnd(.9, 1.3), 1, 1, 1, 0, 2.6); }
-    if (s > 30 && Math.abs(pr) > .7 && RNG() < .5) for (const sx of [PLANE_SPAN, -PLANE_SPAN]) { planeWorld(pl, sx, -.24, .3, _pc); smoke.spawn(_pc.x, _pc.y, _pc.z, 0, 0, 0, .5, .22, 1, 1, 1, 0, 1.5); }
+    if (pl.nz > 2.3 && V > 28 && RNG() < .8) for (const sx of [PLANE_SPAN, -PLANE_SPAN]) { planeWorld(pl, sx, -.24, .3, _pc); smoke.spawn(_pc.x, _pc.y, _pc.z, 0, 0, 0, .55, .2 + (pl.nz - 2.3) * .05, 1, 1, 1, 0, 1.4); }
+    // avisos al piloto
+    if (pl.driver === player) {
+      if (stall > .2 && (pl.hornT || 0) < gameTime) { pl.hornT = gameTime + .45; tn('square', 880, 870, .18, .05); }
+      if (pl.pullUp && (pl.gpwsT || 0) < gameTime) { pl.gpwsT = gameTime + .7; tn('sawtooth', 520, 640, .22, .05); }
+    }
     // contacto con el suelo
     const gh = planeGround(pl.x, pl.z);
     let minClear = 1e9, gearDown = false;
@@ -4521,7 +4723,9 @@ function updatePlane(pl, dt, inp) {
   syncPlaneColliders(pl); placePlaneMesh(pl, dt);
   if (pl.onGround && pl.gs < .05 && !pl.driver) pl.still += dt; else pl.still = 0;
 }
-const _pbk = new THREE.Vector3();
+const _pbk = new THREE.Vector3(), _pvb = new THREE.Vector3(), _pvd = new THREE.Vector3(), _pleft = new THREE.Vector3(), _pld = new THREE.Vector3(), _pfrc = new THREE.Vector3();
+// avioneta tipo Cessna 172 a escala de juego: masa (kg), superficie alar (m²), coeficientes por radián y momentos (rad/s² por presión dinámica normalizada)
+const AERO = { m: 900, S: 16, CL0: .25, CLa: 5, aStall: .26, CD0: .028, k: .05, CYb: -1, qRef: 980, Me: 5, Ma: 18, Mq: 5, aTrim: .04, Lail: 6, Lp: 3.3, Lb: 1.5, Nr: 2.5, Nb: 6, Nrd: 2.5 };
 const PLANE_IDLE = { thr: -1, roll: 0, aim: null, guns: false, boost: false, brake: true };
 function updatePlanes(dt) {
   for (const pl of planes) {
