@@ -3244,7 +3244,7 @@ function updatePlayer(dt) {
       // como un ILS: primero al punto de entrada alineado con la pista; después sigue el eje y la senda de planeo
       const ex = AF.x, ez = AF.z - AF.len / 2 - 330, dx = ex - c.x, dz = ez - c.z, dh = Math.hypot(dx, dz), sp = c.vel.length();
       if (c.autoland === 1 && (dh < 90 || (Math.abs(c.x - AF.x) < 70 && c.z > ez - 40 && c.z < AF.z - AF.len / 2 - 120 && c.vel.z > 12))) c.autoland = 2;
-      if (c.autoland === 1) { _paim.set(dx, clamp((AF.h + 42 - c.y) / Math.max(dh, 1), -.2, .25) * dh, dz).normalize(); c.aYaw = Math.atan2(_paim.x, _paim.z); c.aPitch = Math.asin(_paim.y); }
+      if (c.autoland === 1) { _paim.set(dx, clamp((AF.h + 42 - c.y) / Math.max(dh, 1), -.32, .25) * dh, dz).normalize(); c.aYaw = Math.atan2(_paim.x, _paim.z); c.aPitch = Math.asin(_paim.y); }
       else { _paim.set(0, -.05, 1); c.aYaw = 0; c.aPitch = -.05; }
       const vT = c.autoland >= 2 ? 30 : 42; thr = clamp(((vT - sp) * .3 + (c.autoland >= 2 ? .2 : .35) - c.thr) * 2, -1, 1); c.alBrake = c.autoland >= 2 && sp > 36;
     } else if (!c.onGround && thr === 0) thr = c.landing ? clamp(((29 - c.vel.length()) * .25 + .2 - c.thr) * 2, -1, 1) : clamp((.85 - c.thr) * 2, -1, 1); // motor automático: en la aproximación mantiene ~105 km/h
@@ -4599,12 +4599,13 @@ function updatePlane(pl, dt, inp) {
       // aproximación: alas niveladas, rumbo hacia la pista y velocidad vertical controlada; enderezada cerca del suelo
       // senda de planeo de 4° hacia la zona de toma; cerca del suelo, enderezada
       const zTd = AF.z - AF.len / 2 + 22, dist = zTd - pl.z, hT = AF.h + 1.2 + Math.max(0, dist) * .07;
-      let vsCmd = dist > 0 ? clamp((hT - pl.y) * .35 - V * .07, -5.5, -.4) : (hAgl > 2.5 ? -2 : -.8);
+      let vsCmd = dist > 0 ? clamp((hT - pl.y) * .35 - V * .07, pl.y - hT > 20 ? -10 : -5.5, -.4) : (hAgl > 2.5 ? -2 : -.8);
+      if (pl.autoland >= 2 && dist < 70 && dist > 0 && (pl.y - hT > 22 || Math.abs(pl.x - AF.x) > 25)) { pl.autoland = 1; if (pl.driver === player) announce('Motor y al aire', 'Llegamos mal colocados: otra vuelta'); }
       if (hAgl < 3) vsCmd = Math.max(vsCmd, -.9);
       if (pl.z > AF.z + AF.len / 2 - 30 && hAgl > 2) { pl.landing = false; if (pl.autoland) { pl.autoland = 1; if (pl.driver === player) announce('Motor y al aire', 'Aproximación demasiado larga: el piloto automático da otra vuelta'); } }
       const pitchA = Math.asin(clamp(_pF.y, -1, 1));
       elev = clamp((vsCmd - pl.vel.y) * .16 + (.06 - pitchA) * .3 - pl.wq * .5 + .05, -1, 1);
-      const hdg = Math.atan2(pl.vel.x, pl.vel.z), onRwy = Math.abs(pl.z - AF.z) < AF.len / 2 + 220 && Math.abs(pl.x - AF.x) < 60;
+      const hdg = Math.atan2(pl.vel.x, pl.vel.z), onRwy = pl.autoland >= 2 || (Math.abs(pl.z - AF.z) < AF.len / 2 + 220 && Math.abs(pl.x - AF.x) < 60);
       // sobre la senda: rumbo de pista corrigiendo la desviación lateral; si no, hacia donde mira el piloto
       const want = onRwy ? Math.atan2(clamp((AF.x - pl.x) * .25, -9, 9), Math.max(8, pl.vel.z)) : aim ? Math.atan2(aim.x, aim.z) : hdg;
       let dh = want - hdg; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
