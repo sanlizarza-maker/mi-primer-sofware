@@ -3241,13 +3241,13 @@ function updatePlayer(dt) {
     }
     // piloto automático de aterrizaje: lejos al sur, alinearse con la pista y bajar
     if (c.autoland) {
-      // circuito de tránsito como en un aeródromo real: viento en cola paralelo a la pista (90 m, por encima del castillo),
+      // circuito de tránsito como en un aeródromo real: tramo paralelo a la pista por el oeste (lejos del castillo y del pico),
       // viraje de 180° descendiendo hacia la final y, ya alineado, senda de planeo hasta la pista
-      const thrZ = AF.z - AF.len / 2, sp = c.vel.length(), D1 = [AF.x + 220, AF.z + AF.len / 2 + 40], D2 = [AF.x + 220, thrZ - 240];
+      const thrZ = AF.z - AF.len / 2, sp = c.vel.length(), D1 = [AF.x - 180, AF.z + AF.len / 2 + 40], D2 = [AF.x - 180, thrZ - 260];
       let tx, tz, ty;
-      if (c.autoland === 1) { [tx, tz] = D1; ty = AF.h + 90; if (Math.hypot(tx - c.x, tz - c.z) < 90 || (c.x > AF.x + 120 && c.z < D1[1] && c.z > D2[1] + 60 && c.vel.z < -10)) c.autoland = 2; }
+      if (c.autoland === 1) { [tx, tz] = D1; ty = AF.h + 90; if (Math.hypot(tx - c.x, tz - c.z) < 90 || (c.x < AF.x - 110 && c.z < D1[1] && c.z > D2[1] + 60 && c.vel.z < -10)) c.autoland = 2; }
       if (c.autoland === 2) { [tx, tz] = D2; ty = AF.h + 90; if (Math.hypot(tx - c.x, tz - c.z) < 80) c.autoland = 3; }
-      if (c.autoland === 3) { tx = AF.x; tz = Math.max(c.z + 170, thrZ - 150); ty = AF.h + 12 + Math.max(0, thrZ + 22 - c.z) * .07; if (Math.abs(c.x - AF.x) < 25 && c.vel.z > 14 && Math.abs(c.vel.x) < 9) c.autoland = 4; }
+      if (c.autoland === 3) { tx = AF.x; tz = Math.max(c.z + 170, thrZ - 150); ty = AF.h + 8 + Math.max(0, thrZ + 22 - c.z) * .07; if (Math.abs(c.x - AF.x) < 35 && c.vel.z > 10 && Math.abs(c.vel.x) < 12) c.autoland = 4; }
       if (c.autoland <= 3) { const dx = tx - c.x, dz = tz - c.z, dh = Math.hypot(dx, dz); _paim.set(dx, clamp((ty - c.y) / Math.max(dh, 1), -.32, .25) * dh, dz).normalize(); c.aYaw = Math.atan2(_paim.x, _paim.z); c.aPitch = Math.asin(_paim.y); }
       else { _paim.set(0, -.05, 1); c.aYaw = 0; c.aPitch = -.05; }
       const vT = c.autoland >= 3 ? 30 : 40; thr = clamp(((vT - sp) * .3 + (c.autoland >= 3 ? .2 : .35) - c.thr) * 2, -1, 1); c.alBrake = c.autoland >= 3 && sp > 36;
