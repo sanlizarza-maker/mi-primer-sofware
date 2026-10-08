@@ -1201,6 +1201,19 @@ function castRay(o, d, maxT, ignore = null, noChars = false, noRamps = false) {
 // =====================================================================
 const box3 = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; return m; };
 const G = { walls: [], paint: [], siding: [], shingle: [], stone: [], roofs: [], wins: [], shop: [], pool: [], sign: [], cglass: [], carpaint: [], dark: [], metal: [], gold: [], glow: [] };
+// letreros de tiendas: un atlas con 16 rótulos
+const SIGN_WORDS = [['CAFÉ', '#6b3f22', '#ffe2b8'], ['PIZZA', '#c0262d', '#fff3d6'], ['TACOS', '#f2a516', '#3a1d00'], ['HELADOS', '#ff8fc2', '#ffffff'], ['FARMACIA', '#1f9d55', '#ffffff'], ['BANCO', '#1d3557', '#f1c453'], ['MODA', '#111111', '#ffffff'], ['JUGUETES', '#3a86ff', '#ffd23f'],
+  ['LIBROS', '#5a3e85', '#fff'], ['PANADERÍA', '#d4a24c', '#3a2400'], ['GIMNASIO', '#e63946', '#fff'], ['CINE', '#14213d', '#fca311'], ['SUSHI', '#ffffff', '#c1121f'], ['ZAPATOS', '#2b9348', '#fff'], ['FLORES', '#ffafcc', '#7b2cbf'], ['MÚSICA', '#7209b7', '#4cc9f0']];
+const signTex = canvasTex(512, 1024, (g, w, h) => {
+  SIGN_WORDS.forEach(([t, bg, fg], i) => { const cx = (i % 2) * 256, cy = Math.floor(i / 2) * 128;
+    g.fillStyle = bg; g.fillRect(cx, cy, 256, 128); g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 8; g.strokeRect(cx + 8, cy + 8, 240, 112);
+    g.fillStyle = fg; g.font = `900 ${t.length > 7 ? 44 : 60}px Barlow Condensed, Impact, Arial Narrow, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, cx + 128, cy + 68); });
+});
+function signBoard(x, y, z, w, h, rot, i) {
+  const g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv, u0 = (i % 2) / 2, v0 = 1 - (Math.floor(i / 2) + 1) / 8;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, u0 + uv.getX(k) / 2, v0 + uv.getY(k) / 8);
+  g.rotateY(rot); g.translate(x, y, z); G.sign.push(g);
+}
 function colorize(g, color) { const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; }
 function gbox(list, w, h, d, x, y, z, color = '#ffffff', rotY = 0) { const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
 function gcyl(list, rt, rb, h, x, y, z, color, seg = 10) { const g = new THREE.CylinderGeometry(rt, rb, h, seg); g.translate(x, y, z); list.push(colorize(g, color)); return g; }
@@ -1728,19 +1741,6 @@ function triMat(tex, scale, amt, key) {
   };
   m.customProgramCacheKey = () => 'tri' + key;
   return m;
-}
-// letreros de tiendas: un atlas con 16 rótulos
-const SIGN_WORDS = [['CAFÉ', '#6b3f22', '#ffe2b8'], ['PIZZA', '#c0262d', '#fff3d6'], ['TACOS', '#f2a516', '#3a1d00'], ['HELADOS', '#ff8fc2', '#ffffff'], ['FARMACIA', '#1f9d55', '#ffffff'], ['BANCO', '#1d3557', '#f1c453'], ['MODA', '#111111', '#ffffff'], ['JUGUETES', '#3a86ff', '#ffd23f'],
-  ['LIBROS', '#5a3e85', '#fff'], ['PANADERÍA', '#d4a24c', '#3a2400'], ['GIMNASIO', '#e63946', '#fff'], ['CINE', '#14213d', '#fca311'], ['SUSHI', '#ffffff', '#c1121f'], ['ZAPATOS', '#2b9348', '#fff'], ['FLORES', '#ffafcc', '#7b2cbf'], ['MÚSICA', '#7209b7', '#4cc9f0']];
-const signTex = canvasTex(512, 1024, (g, w, h) => {
-  SIGN_WORDS.forEach(([t, bg, fg], i) => { const cx = (i % 2) * 256, cy = Math.floor(i / 2) * 128;
-    g.fillStyle = bg; g.fillRect(cx, cy, 256, 128); g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 8; g.strokeRect(cx + 8, cy + 8, 240, 112);
-    g.fillStyle = fg; g.font = `900 ${t.length > 7 ? 44 : 60}px Barlow Condensed, Impact, Arial Narrow, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, cx + 128, cy + 68); });
-});
-function signBoard(x, y, z, w, h, rot, i) {
-  const g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv, u0 = (i % 2) / 2, v0 = 1 - (Math.floor(i / 2) + 1) / 8;
-  for (let k = 0; k < uv.count; k++) uv.setXY(k, u0 + uv.getX(k) / 2, v0 + uv.getY(k) / 8);
-  g.rotateY(rot); g.translate(x, y, z); G.sign.push(g);
 }
 // cristal de ventana: marco blanco, travesaños, reflejo del cielo y un poco de interior
 function winTex(shop) {
