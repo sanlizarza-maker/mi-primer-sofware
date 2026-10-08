@@ -23,6 +23,17 @@ Battle royale en 3D que se juega en el navegador, hecho con Three.js. El juego e
 - Rangos competitivos de Bronce I a Leyenda: se ganan o pierden puntos de rango según el puesto y las bajas. Cada rango importante da monedas y algunos un traje exclusivo (Soldado de Oro, Robo Diamante, Campeón Sombra y Robo Leyenda).
 - Experiencia, niveles, desafíos y 16 trajes. El progreso se guarda en el navegador.
 
+## Jugar con amigos (en línea)
+
+1. Abran el juego cada uno en su dispositivo (iPad, tableta o computadora) con internet.
+2. Uno va a la pestaña **Amigos** y pulsa **Crear sala**. Sale un código de 4 letras.
+3. Los demás escriben ese código en **Unirse**. Caben hasta 8 jugadores.
+4. El anfitrión elige el modo (**Equipo vs bots** o **Todos contra todos**) y pulsa **Empezar partida**.
+
+Cómo funciona: los navegadores se conectan directamente entre sí (WebRTC, con PeerJS solo para encontrarse).
+El anfitrión mueve los bots y la tormenta, así que debe dejar el juego abierto y en primer plano.
+Algunas redes muy cerradas (datos móviles de ciertas compañías, wifi de colegios) pueden bloquear la conexión directa.
+
 ## Controles
 
 | Ordenador | Táctil |
