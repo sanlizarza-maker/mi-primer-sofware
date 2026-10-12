@@ -1,0 +1,580 @@
+<title>FitCoach Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  /* Layout: una columna tipo marcador de partido — tablero de recuperación arriba, coach conversacional debajo */
+  :root {
+    --bg: #eef1f4;
+    --surface: #ffffff;
+    --surface-2: #e3e8ee;
+    --line: #cfd6de;
+    --fg: #14202c;
+    --muted: #586676;
+    --court: #1d4e89;
+    --court-fg: #ffffff;
+    --ball: #6f7d00;
+    --good: #1f8a4c;
+    --warn: #b56a00;
+    --bad: #c2362c;
+    --good-bg: #dff1e6;
+    --warn-bg: #fbecd6;
+    --bad-bg: #f8dfdc;
+    --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --font-body: "Figtree", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f151c; --surface: #18212b; --surface-2: #212c38; --line: #2e3b49;
+      --fg: #e8edf2; --muted: #93a1b0; --court: #3d7cc9; --court-fg: #ffffff; --ball: #d2df4e;
+      --good: #4cc47e; --warn: #f0a23a; --bad: #f06a5f;
+      --good-bg: #16352a; --warn-bg: #3a2c14; --bad-bg: #3d1d1c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f151c; --surface: #18212b; --surface-2: #212c38; --line: #2e3b49;
+    --fg: #e8edf2; --muted: #93a1b0; --court: #3d7cc9; --court-fg: #ffffff; --ball: #d2df4e;
+    --good: #4cc47e; --warn: #f0a23a; --bad: #f06a5f;
+    --good-bg: #16352a; --warn-bg: #3a2c14; --bad-bg: #3d1d1c;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-inline: 16px; padding-block: 24px 48px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 20px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: .02em; margin: 0; text-transform: uppercase; }
+  h1 span { color: var(--court); }
+  .tag { font-size: 13px; color: var(--muted); }
+
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; }
+  h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; margin: 0; text-wrap: balance; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+  .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  label small { font-weight: 400; }
+  input, select, textarea {
+    width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--court); outline-offset: 2px;
+  }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-row input { padding: 0; accent-color: var(--court); }
+  .range-row output { font-family: var(--font-display); font-size: 20px; font-weight: 700; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; }
+
+  button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 10px; border: 1px solid transparent; padding: 11px 16px; }
+  .btn-primary { background: var(--court); color: var(--court-fg); }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-ghost { background: transparent; color: var(--muted); border-color: var(--line); }
+  .btn-ghost:hover { color: var(--fg); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Marcador */
+  .board { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; padding: 16px; border-radius: 12px; }
+  .board[data-zone="green"] { background: var(--good-bg); --zone: var(--good); }
+  .board[data-zone="yellow"] { background: var(--warn-bg); --zone: var(--warn); }
+  .board[data-zone="red"] { background: var(--bad-bg); --zone: var(--bad); }
+  .score { font-family: var(--font-display); font-weight: 700; font-size: 72px; line-height: 1; color: var(--zone); font-variant-numeric: tabular-nums; }
+  .score small { font-size: 22px; color: var(--muted); }
+  .zone { font-family: var(--font-display); font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--zone); }
+  .advice { margin: 4px 0 0; }
+
+  .breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 480px) { .breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .chip { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .chip b { display: block; font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+  .chip span { font-size: 12px; color: var(--muted); }
+
+  .plan { list-style: none; margin: 0; padding: 0; display: grid; }
+  .plan li { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .plan li:first-child { border-top: 0; }
+  .plan .k { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--court); }
+
+  .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; height: 92px; }
+  .day { display: grid; gap: 4px; justify-items: center; align-content: end; height: 100%; }
+  .bar { width: 100%; max-width: 34px; border-radius: 6px 6px 2px 2px; background: var(--surface-2); }
+  .bar[data-zone="green"] { background: var(--good); }
+  .bar[data-zone="yellow"] { background: var(--warn); }
+  .bar[data-zone="red"] { background: var(--bad); }
+  .day span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* Coach */
+  .chat { display: grid; gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .msg { padding: 12px 14px; border-radius: 12px; max-width: 92%; min-width: 0; overflow-wrap: anywhere; }
+  .msg.user { justify-self: end; background: var(--court); color: var(--court-fg); border-bottom-right-radius: 4px; }
+  .msg.coach { justify-self: start; background: var(--surface-2); border-bottom-left-radius: 4px; }
+  .msg.coach p { margin: 0 0 8px; } .msg.coach p:last-child { margin-bottom: 0; }
+  .msg.coach ul, .msg.coach ol { margin: 4px 0 8px; padding-left: 20px; }
+  .msg.coach h4 { font-family: var(--font-display); font-size: 17px; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
+  .msg.thinking { color: var(--muted); font-style: italic; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .suggest { display: flex; flex-wrap: wrap; gap: 8px; }
+  .suggest button { background: var(--surface-2); color: var(--fg); font-weight: 500; font-size: 13px; padding: 7px 12px; border-radius: 999px; }
+  .suggest button:hover { border-color: var(--court); }
+  .composer { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .composer textarea { resize: none; min-height: 46px; max-height: 160px; }
+  .composer .actions { display: flex; gap: 8px; }
+  .row-end { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .unavailable { background: var(--warn-bg); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+  footer { font-size: 12px; color: var(--muted); text-align: center; }
+
+  @media (prefers-reduced-motion: no-preference) { .chat { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>FitCoach <span>Pro</span></h1>
+    <span class="tag">Tennis · Pesas · Escuela — con datos de tu Fitbit</span>
+  </header>
+
+  <!-- DATOS DE HOY -->
+  <section aria-labelledby="t-datos">
+    <h2 id="t-datos">Datos de hoy</h2>
+    <form id="form" class="fields">
+      <div class="field">
+        <label for="sleep">Horas de sueño</label>
+        <input id="sleep" type="number" step="0.25" min="0" max="14" value="7.5" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="rhr">Pulso en reposo hoy <small>(bpm)</small></label>
+        <input id="rhr" type="number" min="30" max="120" value="62" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="baseline">Tu pulso en reposo normal <small>(promedio 7 días)</small></label>
+        <input id="baseline" type="number" min="30" max="120" value="60" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="activity">Entrenamiento de hoy</label>
+        <select id="activity">
+          <option value="tennis">Tennis (técnica y partido)</option>
+          <option value="weights">Pesas + caminadora</option>
+          <option value="both">Tennis + pesas</option>
+          <option value="rest">Descanso / lectura</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="energy">Energía <small>(1 = agotado, 10 = a tope)</small></label>
+        <div class="range-row"><input id="energy" type="range" min="1" max="10" value="7"><output id="energyOut">7</output></div>
+      </div>
+      <div class="field">
+        <label for="soreness">Dolor muscular <small>(1 = nada, 10 = mucho)</small></label>
+        <div class="range-row"><input id="soreness" type="range" min="1" max="10" value="3"><output id="sorenessOut">3</output></div>
+      </div>
+      <div class="field full">
+        <button class="btn-primary" type="submit">Calcular recuperación y plan</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- RESULTADO -->
+  <section id="results" aria-labelledby="t-res">
+    <div class="row-end">
+      <h2 id="t-res">Diagnóstico</h2>
+      <span class="hint" id="resultHint">Ejemplo — calcula con tus datos</span>
+    </div>
+    <div class="board" id="board" data-zone="yellow">
+      <div class="score" id="score">0<small>/100</small></div>
+      <div>
+        <div class="zone" id="zone">—</div>
+        <p class="advice" id="advice"></p>
+      </div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <h2>Plan para hoy</h2>
+    <ul class="plan" id="plan"></ul>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section aria-labelledby="t-hist">
+    <div class="row-end">
+      <h2 id="t-hist">Últimos 7 días</h2>
+      <span class="hint">Se guarda solo en este navegador</span>
+    </div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <!-- COACH -->
+  <section aria-labelledby="t-coach">
+    <div class="row-end">
+      <h2 id="t-coach">Pregúntale al coach</h2>
+      <button class="btn-ghost" id="newChat" type="button">Nueva conversación</button>
+    </div>
+    <p class="hint">El coach conoce tus datos de hoy, tu historial y tu plan. Pregunta lo que quieras: técnica de tennis, rutina de pesas, comida, sueño, cómo organizarte con la escuela.</p>
+
+    <div id="coachUnavailable" class="unavailable" hidden>
+      El chat con el coach funciona cuando abres esta página dentro de Claude (claude.ai o la app). Aquí sigue funcionando el cálculo de recuperación.
+    </div>
+
+    <div id="coachUI">
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="suggest" id="suggest" style="margin-block: 12px;"></div>
+      <form class="composer" id="composer">
+        <textarea id="question" rows="2" placeholder="Ej. ¿Qué como antes de un partido a las 5 pm?"></textarea>
+        <div class="actions">
+          <button class="btn-primary" id="send" type="submit">Enviar</button>
+          <button class="btn-ghost" id="stop" type="button" hidden>Parar</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <footer>Orientación general de entrenamiento, no consejo médico. Si tienes dolor agudo, mareos o dolor en el pecho, para y consulta a un médico.</footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ACT = { tennis: "Tennis", weights: "Pesas + caminadora", both: "Tennis + pesas", rest: "Descanso / lectura" };
+
+  // ---------- almacenamiento local (solo conveniencia) ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  // ---------- cálculo de recuperación ----------
+  function compute(d) {
+    // Sueño: 40 pts. 8h+ = 40; cae rápido por debajo de 6h.
+    const sleepPts = d.sleep >= 8 ? 40 : d.sleep >= 6 ? 20 + (d.sleep - 6) * 10 : Math.max(0, d.sleep / 6 * 20);
+    // Pulso: 30 pts, comparado con TU normal (lo que importa es la subida, no el número absoluto).
+    const delta = d.rhr - d.baseline;
+    const rhrPts = delta <= 0 ? 30 : delta <= 3 ? 22 : delta <= 6 ? 12 : 4;
+    const energyPts = (d.energy / 10) * 20;
+    const sorePts = ((10 - d.soreness) / 9) * 10;
+    let total = Math.round(sleepPts + rhrPts + energyPts + sorePts);
+    total = Math.max(0, Math.min(100, total));
+
+    // Señales que mandan aunque el total salga alto
+    const flags = [];
+    if (delta >= 7) flags.push("Tu pulso está 7+ bpm arriba de lo normal: puede ser cansancio, estrés o que te estás enfermando.");
+    if (d.sleep < 6) flags.push("Menos de 6 h de sueño baja tu reacción y precisión en la cancha.");
+    if (d.soreness >= 8) flags.push("Dolor muscular alto: evita cargar pesado esos músculos hoy.");
+
+    let zone = total >= 80 ? "green" : total >= 55 ? "yellow" : "red";
+    if (delta >= 7 && d.sleep < 6) zone = "red";
+    else if (flags.length && zone === "green") zone = "yellow";
+
+    return { total, zone, delta, flags, parts: { sleepPts, rhrPts, energyPts, sorePts } };
+  }
+
+  const PLANS = {
+    green: {
+      label: "Verde · listo para exigirte",
+      advice: "Estás bien recuperado. Buen día para entrenar fuerte y meter calidad.",
+      tennis: ["Tennis", "Saques a máxima intensidad y sprints laterales. Juega sets competitivos."],
+      weights: ["Pesas", "Sube 2.5–5% la carga en tus básicos si la técnica sale limpia."],
+      cardio: ["Caminadora", "15–20 min progresivos; termina 2–3 min a ritmo fuerte."],
+      study: ["Escuela", "Bloque de 45 min de estudio enfocado, sin celular."]
+    },
+    yellow: {
+      label: "Amarillo · carga moderada",
+      advice: "Tienes energía, pero no estás al 100%. Calidad sobre cantidad: técnica y control.",
+      tennis: ["Tennis", "Consistencia y colocación. Nada de jugar a tope 2 horas."],
+      weights: ["Pesas", "Mismo peso de siempre, deja 2–3 repeticiones en reserva."],
+      cardio: ["Movilidad", "10 min de estiramientos: hombros, muñeca, cadera y pantorrillas."],
+      study: ["Escuela", "Bloques cortos de 25 min con pausas."]
+    },
+    red: {
+      label: "Rojo · toca recuperar",
+      advice: "Tu cuerpo pide descanso. Entrenar fuerte hoy suma riesgo de lesión y de enfermarte, y poco progreso.",
+      tennis: ["Tennis", "Solo peloteo suave 20–30 min, o descansa."],
+      weights: ["Pesas", "Cancela lo pesado. Si vas, movilidad y técnica con peso ligero."],
+      cardio: ["Cardio suave", "20 min caminando ligero. Mucha agua."],
+      study: ["Escuela", "Adelanta tareas con calma y duérmete 30–60 min antes."]
+    }
+  };
+
+  function planFor(zone, activity) {
+    const p = PLANS[zone];
+    const items = [];
+    if (activity === "tennis" || activity === "both") items.push(p.tennis);
+    if (activity === "weights" || activity === "both") items.push(p.weights);
+    if (activity === "rest") items.push(["Descanso", "Día libre de entrenamiento. Camina un poco y estira 10 min."]);
+    items.push(p.cardio, p.study);
+    return items;
+  }
+
+  function readForm() {
+    return {
+      sleep: parseFloat($("sleep").value),
+      rhr: parseInt($("rhr").value, 10),
+      baseline: parseInt($("baseline").value, 10),
+      energy: parseInt($("energy").value, 10),
+      soreness: parseInt($("soreness").value, 10),
+      activity: $("activity").value
+    };
+  }
+
+  let today = null; // último cálculo, para dárselo al coach
+
+  function render(d, isExample) {
+    const r = compute(d);
+    const p = PLANS[r.zone];
+    today = { ...d, ...r, plan: planFor(r.zone, d.activity) };
+
+    $("board").dataset.zone = r.zone;
+    $("score").innerHTML = r.total + "<small>/100</small>";
+    $("zone").textContent = p.label;
+    $("advice").textContent = p.advice + (r.flags.length ? " " + r.flags.join(" ") : "");
+    $("resultHint").textContent = isExample ? "Ejemplo — calcula con tus datos" : "Actualizado " + new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+
+    const sign = r.delta > 0 ? "+" : "";
+    $("breakdown").innerHTML = [
+      [Math.round(r.parts.sleepPts) + "/40", "Sueño"],
+      [Math.round(r.parts.rhrPts) + "/30", "Pulso (" + sign + r.delta + " bpm)"],
+      [Math.round(r.parts.energyPts) + "/20", "Energía"],
+      [Math.round(r.parts.sorePts) + "/10", "Dolor muscular"]
+    ].map(([v, l]) => `<div class="chip"><b>${v}</b><span>${l}</span></div>`).join("");
+
+    $("plan").innerHTML = "";
+    today.plan.forEach(([k, v]) => {
+      const li = document.createElement("li");
+      const a = document.createElement("span"); a.className = "k"; a.textContent = k;
+      const b = document.createElement("span"); b.textContent = v;
+      li.append(a, b); $("plan").appendChild(li);
+    });
+    return r;
+  }
+
+  // ---------- historial ----------
+  const dayKey = (dt) => dt.toISOString().slice(0, 10);
+  function saveHistory(d, r) {
+    const h = store.get("fc_history", {});
+    h[dayKey(new Date())] = { score: r.total, zone: r.zone, sleep: d.sleep, rhr: d.rhr, energy: d.energy, soreness: d.soreness, activity: d.activity };
+    const keys = Object.keys(h).sort().slice(-30);
+    const trimmed = {}; keys.forEach(k => trimmed[k] = h[k]);
+    store.set("fc_history", trimmed);
+  }
+  function last7() {
+    const h = store.get("fc_history", {});
+    const out = [];
+    for (let i = 6; i >= 0; i--) {
+      const dt = new Date(); dt.setDate(dt.getDate() - i);
+      out.push({ date: dt, entry: h[dayKey(dt)] || null });
+    }
+    return out;
+  }
+  function renderWeek() {
+    $("week").innerHTML = last7().map(({ date, entry }) => {
+      const label = date.toLocaleDateString("es", { weekday: "short" }).slice(0, 2);
+      const hgt = entry ? Math.max(8, entry.score * 0.7) : 6;
+      return `<div class="day" title="${entry ? entry.score + '/100' : 'Sin datos'}">
+        <span>${entry ? entry.score : "–"}</span>
+        <div class="bar" data-zone="${entry ? entry.zone : ""}" style="height:${hgt}px"></div>
+        <span>${label}</span></div>`;
+    }).join("");
+  }
+
+  // ---------- formulario ----------
+  ["energy", "soreness"].forEach(id => {
+    $(id).addEventListener("input", () => $(id + "Out").textContent = $(id).value);
+  });
+
+  const saved = store.get("fc_inputs", null);
+  if (saved) {
+    ["sleep", "rhr", "baseline", "energy", "soreness", "activity"].forEach(k => { if (saved[k] != null) $(k).value = saved[k]; });
+    $("energyOut").textContent = $("energy").value;
+    $("sorenessOut").textContent = $("soreness").value;
+  }
+
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const d = readForm();
+    if ([d.sleep, d.rhr, d.baseline, d.energy, d.soreness].some(Number.isNaN)) {
+      $("resultHint").textContent = "Revisa los campos: hay alguno vacío.";
+      return;
+    }
+    store.set("fc_inputs", { sleep: d.sleep, rhr: d.rhr, baseline: d.baseline, energy: d.energy, soreness: d.soreness, activity: d.activity });
+    const r = render(d, false);
+    saveHistory(d, r);
+    renderWeek();
+    $("results").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  });
+
+  render(readForm(), !saved);
+  renderWeek();
+
+  // ---------- coach con Claude ----------
+  const SUGGESTIONS = [
+    "¿Cómo está mi recuperación y qué hago hoy exactamente?",
+    "Dame una rutina de pesas para tennis de 45 min",
+    "¿Qué como antes y después de un partido?",
+    "Ejercicios para mejorar mi saque",
+    "¿Cómo duermo mejor si tengo tarea hasta tarde?",
+    "Me duele el codo al jugar, ¿qué hago?"
+  ];
+
+  function coachContext() {
+    const hist = last7().filter(x => x.entry).map(x => `${dayKey(x.date)}: ${x.entry.score}/100 (${x.entry.zone}), sueño ${x.entry.sleep}h, pulso ${x.entry.rhr}, energía ${x.entry.energy}/10, dolor ${x.entry.soreness}/10, ${ACT[x.entry.activity]}`).join("\n") || "Sin historial todavía.";
+    const t = today;
+    return `DATOS DE HOY (de su Fitbit y cómo se siente):
+- Sueño: ${t.sleep} h
+- Pulso en reposo: ${t.rhr} bpm (su normal: ${t.baseline}; diferencia ${t.delta > 0 ? "+" : ""}${t.delta})
+- Energía: ${t.energy}/10 · Dolor muscular: ${t.soreness}/10
+- Entrenamiento planeado: ${ACT[t.activity]}
+- Puntaje de recuperación de la app: ${t.total}/100, zona ${t.zone}
+- Alertas: ${t.flags.length ? t.flags.join(" ") : "ninguna"}
+- Plan que le mostró la app: ${t.plan.map(([k, v]) => k + ": " + v).join(" | ")}
+
+HISTORIAL RECIENTE:
+${hist}`;
+  }
+
+  function rules() {
+    const now = new Date().toLocaleString("es", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    return `Eres "Coach", el entrenador personal dentro de la app FitCoach Pro. Hablas en español, de tú, como un buen entrenador: directo, cercano y sincero.
+
+SOBRE EL USUARIO: joven estudiante que juega tennis (técnica y partidos), hace pesas con un entrenador, usa caminadora, y quiere rendir en la escuela. Usa un Fitbit (sueño y pulso en reposo).
+
+CÓMO RESPONDES:
+- Responde exactamente lo que te preguntan. Usa sus datos de hoy cuando sean relevantes y dilo ("con 6 h de sueño y el pulso +5...").
+- Sé concreto: series, repeticiones, minutos, horarios, ejemplos de comida reales. Nada de consejos genéricos tipo "escucha a tu cuerpo" sin decir qué hacer.
+- Sé sincero: si algo que quiere hacer no es buena idea, dilo y explica por qué en una frase. Si la evidencia es débil o algo es mito, dilo. No inventes datos.
+- Corto por defecto: 80–200 palabras. Más largo solo si pide una rutina o plan completo.
+- Formato: párrafos cortos y listas con "- ". Puedes usar **negritas** para lo clave. Sin tablas.
+- Si falta un dato importante para responder bien, responde con lo que tienes y al final haz UNA pregunta para afinar.
+- Seguridad: no diagnostiques. Ante dolor agudo, dolor en el pecho, mareos, lesión que no mejora en una semana, o síntomas de enfermedad, recomienda ver a un médico o fisioterapeuta. Sin suplementos peligrosos ni dietas extremas.
+- Si te preguntan algo fuera de deporte, salud o estudio, responde breve y con buena onda, y regresa al tema si tiene sentido.
+
+Fecha y hora actual: ${now}.
+
+${coachContext()}`;
+  }
+
+  // Markdown mínimo y seguro (escapa todo HTML primero)
+  function esc(s) { return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function inline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>"); }
+  function md(text) {
+    const lines = text.split("\n"); let html = ""; let list = null;
+    const close = () => { if (list) { html += `</${list}>`; list = null; } };
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      let m;
+      if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += `<li>${inline(m[1])}</li>`; }
+      else if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += `<li>${inline(m[1])}</li>`; }
+      else if ((m = line.match(/^#{1,4}\s+(.*)/))) { close(); html += `<h4>${inline(m[1])}</h4>`; }
+      else if (line.trim() === "") { close(); }
+      else { close(); html += `<p>${inline(line)}</p>`; }
+    }
+    close(); return html;
+  }
+
+  const chatEl = $("chat");
+  let turns = store.get("fc_chat", []);
+  let sample = null;
+  let ctl = null;
+
+  function addBubble(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + (role === "user" ? "user" : "coach");
+    if (role === "user") div.textContent = text; else div.innerHTML = md(text);
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+  function renderChat() {
+    chatEl.innerHTML = "";
+    if (!turns.length) {
+      addBubble("assistant", "¡Hola! Soy tu coach. Ya vi tus datos de hoy. Pregúntame lo que quieras: cómo entrenar hoy, una rutina, qué comer, cómo mejorar tu derecha o cómo organizarte con la escuela.");
+    }
+    turns.forEach(t => addBubble(t.role, t.content));
+  }
+  function renderSuggestions() {
+    $("suggest").innerHTML = "";
+    SUGGESTIONS.forEach(s => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = s;
+      b.onclick = () => ask(s);
+      $("suggest").appendChild(b);
+    });
+  }
+
+  const ERR = {
+    not_granted: "No se dio permiso para usar Claude. Recarga la página si quieres permitirlo.",
+    sampling_disabled: "Claude no está disponible en esta cuenta.",
+    rate_limited: "Demasiadas preguntas seguidas o llegaste a tu límite de uso. Espera un poco e intenta de nuevo.",
+    session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
+    refused: "El coach no puede responder eso. Prueba preguntarlo de otra forma.",
+    empty_completion: "No llegó respuesta. Intenta una pregunta más corta.",
+    prompt_too_large: "La conversación es muy larga. Empieza una nueva conversación."
+  };
+
+  function setBusy(b) {
+    $("send").disabled = b; $("stop").hidden = !b;
+    $("suggest").querySelectorAll("button").forEach(x => x.disabled = b);
+  }
+
+  async function ask(q) {
+    q = q.trim();
+    if (!q || !sample || ctl) return;
+    $("question").value = "";
+    turns.push({ role: "user", content: q });
+    addBubble("user", q);
+    const bubble = addBubble("assistant", "");
+    bubble.classList.add("thinking");
+    bubble.textContent = "Pensando…";
+    setBusy(true);
+    ctl = new AbortController();
+
+    // Solo los últimos 12 turnos para no crecer sin límite; las reglas siempre van primero
+    const recent = turns.slice(-12);
+    const input = [{ role: "user", content: rules() }, ...recent];
+
+    try {
+      const { text, truncated } = await sample(input, {
+        cache: false,
+        signal: ctl.signal,
+        onText: ({ text }) => { bubble.classList.remove("thinking"); bubble.innerHTML = md(text); chatEl.scrollTop = chatEl.scrollHeight; }
+      });
+      bubble.classList.remove("thinking");
+      bubble.innerHTML = md(text);
+      if (truncated) { const n = document.createElement("div"); n.className = "note"; n.textContent = "Respuesta cortada. Pide “sigue” para continuar."; bubble.appendChild(n); }
+      turns.push({ role: "assistant", content: text });
+      store.set("fc_chat", turns.slice(-30));
+    } catch (e) {
+      bubble.classList.remove("thinking");
+      if (e && e.text) { bubble.innerHTML = md(e.text); turns.push({ role: "assistant", content: e.text }); }
+      else bubble.innerHTML = "";
+      if (e && e.code !== "cancelled") {
+        const n = document.createElement("div"); n.className = "note";
+        n.textContent = ERR[e.code] || "Se cortó la conexión. Intenta de nuevo.";
+        bubble.appendChild(n);
+        if (e.code === "not_granted" || e.code === "sampling_disabled") { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; }
+      } else if (!e.text) bubble.remove();
+      store.set("fc_chat", turns.slice(-30));
+    } finally {
+      ctl = null; setBusy(false);
+    }
+  }
+
+  $("composer").addEventListener("submit", (e) => { e.preventDefault(); ask($("question").value); });
+  $("question").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask($("question").value); }
+  });
+  $("stop").onclick = () => ctl && ctl.abort();
+  $("newChat").onclick = () => { if (ctl) ctl.abort(); turns = []; store.set("fc_chat", []); renderChat(); };
+
+  renderChat();
+  renderSuggestions();
+
+  if (window.claude && window.claude.use) {
+    window.claude.use("sample").then(s => {
+      sample = s;
+      if (!s) { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; }
+    }).catch(() => { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; });
+  } else {
+    $("coachUI").hidden = true; $("coachUnavailable").hidden = false;
+  }
+})();
+</script>
