@@ -126,6 +126,14 @@
   .composer { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
   .composer textarea { resize: none; min-height: 46px; max-height: 160px; }
   .composer .actions { display: flex; gap: 8px; }
+  .composer .actions { flex-wrap: wrap; justify-content: flex-end; }
+  .attach { padding: 11px 13px; }
+  .previews { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .thumb { position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 13px; border-radius: 999px; background: var(--fg); color: var(--bg); }
+  .msg.user .pics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .msg.user .pics img { width: 120px; max-width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
   .row-end { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
   .unavailable { background: var(--warn-bg); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
   footer { font-size: 12px; color: var(--muted); text-align: center; }
@@ -211,7 +219,7 @@
       <h2 id="t-coach">Pregúntale al coach</h2>
       <button class="btn-ghost" id="newChat" type="button">Nueva conversación</button>
     </div>
-    <p class="hint">El coach conoce tus datos de hoy, tu historial y tu plan. Pregunta lo que quieras: técnica de tennis, rutina de pesas, comida, sueño, cómo organizarte con la escuela.</p>
+    <p class="hint">El coach conoce tus datos de hoy, tu historial y tu plan. Pregunta lo que quieras: técnica de tennis, rutina de pesas, comida, sueño, cómo organizarte con la escuela. También puedes mandarle fotos: tu plato de comida, tu postura en un ejercicio, una captura de tu Fitbit o una lesión.</p>
 
     <div id="coachUnavailable" class="unavailable" hidden>
       El chat con el coach funciona cuando abres esta página dentro de Claude (claude.ai o la app). Aquí sigue funcionando el cálculo de recuperación.
@@ -220,9 +228,12 @@
     <div id="coachUI">
       <div class="chat" id="chat" aria-live="polite"></div>
       <div class="suggest" id="suggest" style="margin-block: 12px;"></div>
+      <div class="previews" id="previews" hidden></div>
       <form class="composer" id="composer">
         <textarea id="question" rows="2" placeholder="Ej. ¿Qué como antes de un partido a las 5 pm?"></textarea>
         <div class="actions">
+          <input id="photo" type="file" accept="image/*" multiple hidden>
+          <button class="btn-ghost attach" id="attach" type="button" title="Adjuntar foto" aria-label="Adjuntar foto" hidden>📷 Foto</button>
           <button class="btn-primary" id="send" type="submit">Enviar</button>
           <button class="btn-ghost" id="stop" type="button" hidden>Parar</button>
         </div>
@@ -446,6 +457,7 @@ CÓMO RESPONDES:
 - Formato: párrafos cortos y listas con "- ". Puedes usar **negritas** para lo clave. Sin tablas.
 - Si falta un dato importante para responder bien, responde con lo que tienes y al final haz UNA pregunta para afinar.
 - Seguridad: no diagnostiques. Ante dolor agudo, dolor en el pecho, mareos, lesión que no mejora en una semana, o síntomas de enfermedad, recomienda ver a un médico o fisioterapeuta. Sin suplementos peligrosos ni dietas extremas.
+- Fotos: si manda una foto, primero di en una frase qué ves y luego da tu análisis. Comida: estima porciones y si le sirve para entrenar o recuperar. Postura o técnica: señala 1–3 correcciones concretas, sabiendo que una foto fija no muestra todo el movimiento. Captura de Fitbit: lee los números y úsalos. Lesión o piel: describe lo que ves sin diagnosticar y di si conviene ver a un médico. Si la foto no se ve bien, dilo.
 - Si te preguntan algo fuera de deporte, salud o estudio, responde breve y con buena onda, y regresa al tema si tiene sentido.
 
 Fecha y hora actual: ${now}.
@@ -476,10 +488,17 @@ ${coachContext()}`;
   let sample = null;
   let ctl = null;
 
-  function addBubble(role, text) {
+  function addBubble(role, text, pics) {
     const div = document.createElement("div");
     div.className = "msg " + (role === "user" ? "user" : "coach");
-    if (role === "user") div.textContent = text; else div.innerHTML = md(text);
+    if (role === "user") {
+      if (pics && pics.length) {
+        const row = document.createElement("div"); row.className = "pics";
+        pics.forEach(f => { const img = document.createElement("img"); img.src = URL.createObjectURL(f); img.alt = "Foto enviada"; row.appendChild(img); });
+        div.appendChild(row);
+      }
+      const t = document.createElement("div"); t.textContent = text; div.appendChild(t);
+    } else div.innerHTML = md(text);
     chatEl.appendChild(div);
     chatEl.scrollTop = chatEl.scrollHeight;
     return div;
@@ -507,8 +526,39 @@ ${coachContext()}`;
     session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
     refused: "El coach no puede responder eso. Prueba preguntarlo de otra forma.",
     empty_completion: "No llegó respuesta. Intenta una pregunta más corta.",
-    prompt_too_large: "La conversación es muy larga. Empieza una nueva conversación."
+    prompt_too_large: "La conversación es muy larga. Empieza una nueva conversación.",
+    image_rejected: "No se pudo usar esa foto (formato o tamaño). Prueba con otra en JPG o PNG.",
+    images_unavailable: "Aquí no se pueden mandar fotos. Tu pregunta de texto sí funciona."
   };
+
+  // ---------- fotos ----------
+  let pending = [];      // fotos elegidas para la próxima pregunta
+  let imgLimits = null;  // { maxCount, maxInputBytes, mediaTypes } o null si no se puede
+
+  function renderPreviews() {
+    const box = $("previews");
+    box.innerHTML = "";
+    box.hidden = !pending.length;
+    pending.forEach((f, i) => {
+      const d = document.createElement("div"); d.className = "thumb";
+      const img = document.createElement("img"); img.src = URL.createObjectURL(f); img.alt = f.name;
+      const x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Quitar foto");
+      x.onclick = () => { pending.splice(i, 1); renderPreviews(); };
+      d.append(img, x); box.appendChild(d);
+    });
+  }
+  $("attach").onclick = () => $("photo").click();
+  $("photo").addEventListener("change", () => {
+    const files = Array.from($("photo").files || []);
+    $("photo").value = "";
+    for (const f of files) {
+      if (pending.length >= imgLimits.maxCount) break;
+      if (imgLimits.mediaTypes.length && !imgLimits.mediaTypes.includes(f.type)) continue;
+      if (f.size > imgLimits.maxInputBytes) continue;
+      pending.push(f);
+    }
+    renderPreviews();
+  });
 
   function setBusy(b) {
     $("send").disabled = b; $("stop").hidden = !b;
@@ -517,10 +567,14 @@ ${coachContext()}`;
 
   async function ask(q) {
     q = q.trim();
-    if (!q || !sample || ctl) return;
+    const pics = pending.slice();
+    if ((!q && !pics.length) || !sample || ctl) return;
+    if (!q) q = "Mira esta foto y dime qué opinas como mi coach.";
     $("question").value = "";
-    turns.push({ role: "user", content: q });
-    addBubble("user", q);
+    pending = []; renderPreviews();
+    // Claude solo ve las fotos en este turno; en el historial queda una nota de texto
+    turns.push({ role: "user", content: pics.length ? `[Adjunté ${pics.length} foto${pics.length > 1 ? "s" : ""}] ${q}` : q });
+    addBubble("user", q, pics);
     const bubble = addBubble("assistant", "");
     bubble.classList.add("thinking");
     bubble.textContent = "Pensando…";
@@ -532,11 +586,13 @@ ${coachContext()}`;
     const input = [{ role: "user", content: rules() }, ...recent];
 
     try {
-      const { text, truncated } = await sample(input, {
+      const opts = {
         cache: false,
         signal: ctl.signal,
         onText: ({ text }) => { bubble.classList.remove("thinking"); bubble.innerHTML = md(text); chatEl.scrollTop = chatEl.scrollHeight; }
-      });
+      };
+      if (pics.length) opts.images = pics;
+      const { text, truncated } = await sample(input, opts);
       bubble.classList.remove("thinking");
       bubble.innerHTML = md(text);
       if (truncated) { const n = document.createElement("div"); n.className = "note"; n.textContent = "Respuesta cortada. Pide “sigue” para continuar."; bubble.appendChild(n); }
@@ -550,6 +606,7 @@ ${coachContext()}`;
         const n = document.createElement("div"); n.className = "note";
         n.textContent = ERR[e.code] || "Se cortó la conexión. Intenta de nuevo.";
         bubble.appendChild(n);
+        if (e.code === "images_unavailable") $("attach").hidden = true;
         if (e.code === "not_granted" || e.code === "sampling_disabled") { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; }
       } else if (!e.text) bubble.remove();
       store.set("fc_chat", turns.slice(-30));
@@ -571,7 +628,10 @@ ${coachContext()}`;
   if (window.claude && window.claude.use) {
     window.claude.use("sample").then(s => {
       sample = s;
-      if (!s) { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; }
+      if (!s) { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; return; }
+      s.limits().then(l => {
+        if (l && l.images) { imgLimits = l.images; $("photo").accept = l.images.mediaTypes.join(","); $("attach").hidden = false; }
+      }).catch(() => {});
     }).catch(() => { $("coachUI").hidden = true; $("coachUnavailable").hidden = false; });
   } else {
     $("coachUI").hidden = true; $("coachUnavailable").hidden = false;
