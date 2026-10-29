@@ -125,6 +125,30 @@ svg .strong { fill: var(--ink); font-weight: 600; }
 .report p { margin: 0; font-size: 0.92rem; }
 .empty { color: var(--muted); font-size: 0.92rem; }
 .skeleton { color: var(--muted); font-style: italic; }
+/* Portafolio */
+.pf-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
+.pf-total { font: 600 2rem/1 var(--f-mono); }
+.pf-stats { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.pf-stats div { display: grid; gap: 4px; }
+.pf-stats b { font: 600 1.05rem var(--f-mono); }
+.up-t { color: var(--up); } .down-t { color: var(--down); }
+.tablewrap { overflow-x: auto; }
+table.pf { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 760px; }
+table.pf th { text-align: right; font: 600 0.72rem var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.pf td { text-align: right; padding: 9px 8px; border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.pf th:first-child, table.pf td:first-child { text-align: left; }
+table.pf tfoot td { font-weight: 600; border-bottom: 0; }
+.tk { background: none; border: 0; padding: 0; font: 700 0.95rem var(--f-mono); color: var(--accent); cursor: pointer; }
+.wbar { display: inline-block; width: 46px; height: 6px; background: var(--bg); border-radius: 3px; vertical-align: middle; margin-left: 6px; position: relative; overflow: hidden; }
+.wbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.notes { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 0.92rem; }
+.notes li { padding-left: 14px; position: relative; }
+.notes li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.editor { display: grid; gap: 8px; margin-top: 12px; }
+.editor .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.editor input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-family: var(--f-mono); }
+.editor .x { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; color: var(--muted); }
+.editor .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 footer { font-size: 0.8rem; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .bar i { transition: left .4s, width .4s; } }
 </style>
@@ -139,6 +163,31 @@ footer { font-size: 0.8rem; color: var(--muted); }
   </header>
 
   <div class="warn"><strong>Esto no predice el futuro.</strong> Nadie sabe con certeza si una acción va a subir o bajar. El radar resume lo que dicen los datos de hoy; úsalo para entender, no como orden de compra. No es asesoría financiera.</div>
+
+  <section class="panel" id="pfPanel">
+    <div class="pf-head">
+      <div>
+        <h2>Mi portafolio</h2>
+        <div class="pf-total" id="pfTotal" style="margin-top:8px">—</div>
+        <div class="muted" id="pfSub" style="font-size:0.85rem;margin-top:4px">Cargando tus posiciones…</div>
+      </div>
+      <div class="pf-stats" id="pfStats"></div>
+      <button class="btn ghost" id="pfEditBtn" type="button">Editar posiciones</button>
+    </div>
+    <div class="tablewrap"><table class="pf" id="pfTable"></table></div>
+    <ul class="notes" id="pfNotes"></ul>
+    <form class="editor" id="pfEditor" hidden>
+      <div class="row label"><span>Ticker</span><span>Acciones</span><span>Precio promedio</span><span></span></div>
+      <div id="pfRows" style="display:grid;gap:8px"></div>
+      <div class="row"><span class="label">Efectivo (USD)</span><input id="pfCash" inputmode="decimal" aria-label="Efectivo en dólares"><span></span><span></span></div>
+      <div class="actions">
+        <button class="btn ghost" type="button" id="pfAdd">Agregar posición</button>
+        <button class="btn" type="submit" id="pfSave">Guardar</button>
+        <button class="btn ghost" type="button" id="pfCancel">Cancelar</button>
+      </div>
+      <div class="muted" id="pfMsg" style="font-size:0.85rem"></div>
+    </form>
+  </section>
 
   <div class="search">
     <form id="searchForm">
@@ -185,12 +234,12 @@ footer { font-size: 0.8rem; color: var(--muted); }
       </section>
 
       <section class="panel">
-        <h2>Analistas</h2>
+        <h2 id="anTitle">Analistas</h2>
         <div class="kv" id="analysts"><div class="empty">Sin datos todavía.</div></div>
       </section>
 
       <section class="panel">
-        <h2>Noticias que mueven el sentimiento</h2>
+        <h2 id="newsTitle">Noticias que mueven el sentimiento</h2>
         <div class="news" id="news"><div class="empty">Las noticias con su tono (positivo o negativo) aparecen aquí.</div></div>
       </section>
     </div>
@@ -258,26 +307,75 @@ footer { font-size: 0.8rem; color: var(--muted); }
   }
 
   // ---------- Datos ----------
+  // Tickers con punto que el buscador no reconoce por símbolo.
+  const ALIAS = { "BRK.B": "Berkshire Hathaway", "BRK.A": "Berkshire Hathaway" };
+  const normTicker = (t) => String(t || "").toUpperCase().trim().replace(/[\s\-\/]+/g, ".").replace(/[^A-Z0-9.]/g, "").slice(0, 12);
+  const US_LISTING = /^(XNAS|XNYS|XNMS|ARCX|BATS|XASE):/;
+
   async function resolveTicker(t) {
     if (cacheIds[t]) return cacheIds[t];
-    const r = await mcp.callTool(SERVER, "find_securities", { query: t, security_types: ["COMPANY"], listing_type: "PUBLIC" }, { cache: { staleTime: 86400000, gcTime: 86400000 } });
-    let p = r.payload;
+    const r = await mcp.callTool(SERVER, "find_securities", { query: ALIAS[t] || t, security_types: ["COMPANY", "ETF"] }, { cache: { staleTime: 86400000, gcTime: 86400000 } });
+    const p = r.payload;
     const rows = Array.isArray(p) ? (p[0]?.results || []) : (p?.results || []);
-    const hit = rows.find(x => (x.listing_values || []).some(l => l.split(":")[1] === t)) || rows.find(x => x.listing_type === "PUBLIC");
+    const sym = (l) => l.split(":")[1];
+    const hit = rows.find(x => (x.listing_values || []).some(l => US_LISTING.test(l) && sym(l) === t))
+      || rows.find(x => (x.listing_values || []).some(l => sym(l) === t))
+      || rows.find(x => x.security_type === "ETF" || x.listing_type === "PUBLIC");
     if (!hit) { const e = new Error("no_match"); e.code = "tool_error"; throw e; }
-    return (cacheIds[t] = { id: hit.id, name: hit.name });
+    return (cacheIds[t] = { id: hit.id, name: hit.name, type: hit.security_type });
   }
 
   function tearsheetInput(id) { return { rp_entity_id: id, company_type: "Public", sections: ["company_overview", "analyst_ratings"] }; }
 
+  // La ficha de un ETF llega como texto con tablas; se convierte a la misma forma que la de una empresa.
+  const num = (s) => { const m = String(s ?? "").replace(/,/g, "").match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
+  function mdRows(md, heading) {
+    const lines = md.split("\n");
+    const i = lines.findIndex(l => /^##+ /.test(l) && l.includes(heading));
+    if (i < 0) return [];
+    const out = [];
+    for (const line of lines.slice(i + 1)) {
+      if (/^##+ /.test(line)) break;
+      if (!line.startsWith("|")) continue;
+      const cells = line.split("|").slice(1, -1).map(s => s.trim());
+      if (!cells.every(c => /^-+$/.test(c))) out.push(cells);
+    }
+    return out;
+  }
+  const kvOf = (rows) => Object.fromEntries(rows.filter(r => r.length >= 2).map(r => [r[0], r[1]]));
+  function parseEtf(md, name) {
+    const fo = kvOf(mdRows(md, "Fund Overview")), pp = kvOf(mdRows(md, "Price Performance")), ret = kvOf(mdRows(md, "Returns Overview"));
+    const holdRows = mdRows(md, "Holdings");
+    const holdings = holdRows.filter(r => r.length >= 5 && /^\d+$/.test(r[0])).map(r => ({ name: r[1], weight: num(r[4]) }));
+    const sectors = mdRows(md, "Sector Breakdown").filter(r => r[0] !== "Sector").map(r => ({ name: r[0], weight: num(r[1]) }));
+    const dc = pp["Day Change"] || "";
+    const price = num(pp["Last Price"]), change = num(dc), chp = num((dc.match(/\(([^)]+)\)/) || [])[1]);
+    const upd = Date.parse(((md.match(/\*Last Updated: (.+?)\*/) || [])[1] || "").replace(" UTC", " GMT"));
+    const ts = isNaN(upd) ? null : new Date(upd).toISOString();
+    return {
+      etf: true,
+      company_overview: { company_name: (md.match(/^# ETF Snapshot: (.+)$/m) || [])[1] || name, price, change, change_percentage: chp, exchange: fo["Listing Exchange"], timestamp: ts },
+      price_performance: {
+        current_market: { current_price: price, change, change_percentage: chp, year_high: num(pp["52-Week High"]), year_low: num(pp["52-Week Low"]), price_avg_50: num(pp["50-Day MA"]), price_avg_200: num(pp["200-Day MA"]), as_of: ts },
+        price_changes: ["1D", "5D", "1M", "3M", "6M", "YTD", "1Y"].filter(k => ret[k] != null).map(k => ({ period: k, change_pct: num(ret[k]) }))
+      },
+      fund: { ter: fo["Expense Ratio (TER)"], aum: fo["Assets Under Management (AUM)"], count: fo["Holdings Count"], provider: fo["Provider"], top10: kvOf(holdRows)["Top-10 Weight"], holdings, sectors }
+    };
+  }
+
   async function fetchAll(t) {
-    const { id, name } = await resolveTicker(t);
+    const { id, name, type } = await resolveTicker(t);
+    if (type === "ETF") {
+      const r = await mcp.callTool(SERVER, "bigdata_etf_tearsheet", { rp_entity_id: id, holdings_limit: 25 }, { cache: { staleTime: 60000, gcTime: 600000 } });
+      const md = typeof r.payload === "string" ? r.payload : (r.content || []).filter(c => c.type === "text").map(c => c.text).join("\n");
+      return { ticker: t, id, name, type, overview: parseEtf(md, name), sentiment: null };
+    }
     const [o, s] = await Promise.allSettled([
       mcp.callTool(SERVER, "bigdata_company_tearsheet", tearsheetInput(id), { cache: { staleTime: 60000, gcTime: 600000 } }),
       mcp.callTool(SERVER, "bigdata_sentiment_tearsheet", { rp_entity_id: id }, { cache: { staleTime: 300000, gcTime: 900000 } })
     ]);
     if (o.status === "rejected") throw o.reason;
-    return { ticker: t, id, name, overview: o.value.payload, sentiment: s.status === "fulfilled" ? s.value.payload : null };
+    return { ticker: t, id, name, type, overview: o.value.payload, sentiment: s.status === "fulfilled" ? s.value.payload : null };
   }
 
   // ---------- Algoritmo ----------
@@ -356,7 +454,8 @@ footer { font-size: 0.8rem; color: var(--muted); }
     if (co.market_cap) bits.push("Valor: $" + big(co.market_cap));
     if (co.volume) bits.push("Volumen: " + big(co.volume) + (co.average_volume ? ` (promedio ${big(co.average_volume)})` : ""));
     if (after?.price) bits.push(`Fuera de horario: $${fmt(after.price)}`);
-    if (when) bits.push("Precio de " + new Date(when).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" }));
+    if (d.overview?.etf) bits.push("ETF" + (d.overview.fund?.provider ? " de " + esc(d.overview.fund.provider) : ""));
+    if (when && !isNaN(new Date(when))) bits.push("Precio de " + new Date(when).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" }));
     $("qMeta").innerHTML = bits.map(b => `<span>${b}</span>`).join("");
   }
 
@@ -441,6 +540,14 @@ footer { font-size: 0.8rem; color: var(--muted); }
   }
 
   function renderAnalysts(d) {
+    const fund = d.overview?.fund;
+    $("anTitle").textContent = fund ? "Datos del fondo" : "Analistas";
+    if (fund) {
+      const cell = (k, v) => `<div><span class="label">${k}</span><b>${esc(v ?? "—")}</b></div>`;
+      $("analysts").innerHTML = [cell("Costo anual", fund.ter), cell("Tamaño", fund.aum ? "$" + fund.aum : null), cell("Empresas dentro", fund.count), cell("Peso del top 10", fund.top10),
+        cell("Sector mayor", fund.sectors[0] ? `${fund.sectors[0].name} ${fmt(fund.sectors[0].weight, 1)}%` : null)].join("");
+      return;
+    }
     const an = d.overview?.analyst_data;
     if (!an) { $("analysts").innerHTML = `<div class="empty">Sin cobertura de analistas.</div>`; return; }
     const r = an.ratings || {}, t = an.price_targets || {};
@@ -456,6 +563,15 @@ footer { font-size: 0.8rem; color: var(--muted); }
   }
 
   function renderNews(d) {
+    const fund = d.overview?.fund;
+    $("newsTitle").textContent = fund ? "Qué hay dentro del fondo" : "Noticias que mueven el sentimiento";
+    if (fund) {
+      $("news").innerHTML = fund.holdings.length
+        ? `<p class="muted" style="margin:0 0 8px;font-size:0.88rem">Un ETF no tiene noticias propias: se mueve con las empresas que contiene. Estas son las que más pesan.</p>` +
+          fund.holdings.slice(0, 10).map(h => `<div class="item" style="display:grid;grid-template-columns:3.4rem minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)"><span class="num" style="text-align:right">${fmt(h.weight, 2)}%</span><span>${esc(h.name)}</span></div>`).join("")
+        : `<div class="empty">Sin datos de las empresas del fondo.</div>`;
+      return;
+    }
     const docs = (d.sentiment?.evidence?.docs || []).slice().sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || "")).slice(0, 8);
     const sg = d.sentiment?.signals;
     if (!docs.length) { $("news").innerHTML = `<div class="empty">No hay noticias recientes con sentimiento medido.</div>`; return; }
@@ -474,15 +590,159 @@ footer { font-size: 0.8rem; color: var(--muted); }
     renderSuggest();
   }
 
+  // ---------- Portafolio ----------
+  let portfolio = null, pfRef = null, pfVersionLoaded = false;
+  const pfData = {}; // ticker -> datos de la plataforma
+  const nameKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(" ")[0];
+
+  function pfCalc() {
+    if (!portfolio) return null;
+    const rows = (portfolio.posiciones || []).map(p => {
+      const d = pfData[p.ticker];
+      const cm = d?.overview?.price_performance?.current_market || {};
+      const price = cm.current_price ?? d?.overview?.company_overview?.price ?? null;
+      const value = price != null ? p.acciones * price : null;
+      const cost = p.acciones * p.costo;
+      const dayChg = cm.change != null ? p.acciones * cm.change : null;
+      return { ...p, d, price, value, cost, pl: value != null ? value - cost : null, plPct: value != null && cost ? (value / cost - 1) * 100 : null, dayChg, dayPct: cm.change_percentage ?? null, score: d ? (d.score || (d.score = scoreOf(d))) : null };
+    });
+    const cash = Number(portfolio.efectivo) || 0;
+    const known = rows.filter(r => r.value != null);
+    const invested = known.reduce((s, r) => s + r.value, 0);
+    const total = invested + cash;
+    rows.forEach(r => r.weight = r.value != null && total ? r.value / total * 100 : null);
+    const cost = known.reduce((s, r) => s + r.cost, 0);
+    const day = known.reduce((s, r) => s + (r.dayChg || 0), 0);
+    return { rows, cash, total, invested, cost, pl: invested - cost, plPct: cost ? (invested / cost - 1) * 100 : null, day, dayPct: total - day ? day / (total - day) * 100 : null, complete: known.length === rows.length };
+  }
+
+  // Exposición real: lo que tienes directo + lo que ya traen tus ETF por dentro.
+  function lookThrough(c) {
+    const etfs = c.rows.filter(r => r.d?.overview?.fund && r.value);
+    return c.rows.filter(r => r.d && !r.d.overview?.fund && r.value != null).map(r => {
+      const key = nameKey(r.d.overview?.company_overview?.company_name || r.d.name);
+      let via = 0; const parts = [];
+      etfs.forEach(e => {
+        const h = e.d.overview.fund.holdings.find(h => nameKey(h.name) === key);
+        if (h && h.weight) { const v = e.value * h.weight / 100; via += v; parts.push(`${e.ticker} ${fmt(h.weight, 1)}%`); }
+      });
+      return { ticker: r.ticker, direct: r.value, via, parts };
+    });
+  }
+
+  function renderPortfolio() {
+    const c = pfCalc();
+    if (!c) {
+      $("pfTotal").textContent = "—";
+      $("pfSub").textContent = pfVersionLoaded ? "Todavía no hay posiciones guardadas. Toca “Editar posiciones” para agregar las tuyas." : "Cargando tus posiciones…";
+      $("pfStats").innerHTML = ""; $("pfTable").innerHTML = ""; $("pfNotes").innerHTML = "";
+      return;
+    }
+    const sign = (n) => n > 0 ? "up-t" : n < 0 ? "down-t" : "";
+    const money = (n, d = 2) => n == null ? "—" : (n < 0 ? "-$" : "$") + fmt(Math.abs(n), d);
+    $("pfTotal").textContent = money(c.total);
+    $("pfSub").textContent = c.complete ? `Valor total con ${money(c.cash)} de efectivo · precios de Bigdata.com` : "Cargando precios de algunas posiciones…";
+    $("pfStats").innerHTML = `
+      <div><span class="label">Hoy</span><b class="${sign(c.day)}">${money(c.day)} (${pct(c.dayPct, 2)})</b></div>
+      <div><span class="label">Ganancia sin vender</span><b class="${sign(c.pl)}">${money(c.pl)} (${pct(c.plPct, 1)})</b></div>
+      <div><span class="label">Invertido</span><b>${money(c.cost)}</b></div>`;
+    const rows = c.rows.slice().sort((a, b) => (b.value || 0) - (a.value || 0));
+    const pill = (s) => !s ? `<span class="muted">…</span>` : `<span class="pill ${s.label}" style="font-size:0.78rem;padding:2px 8px">${s.total > 0 ? "+" : ""}${Math.round(s.total)}</span>`;
+    $("pfTable").innerHTML = `<thead><tr><th>Posición</th><th>Acciones</th><th>Precio prom.</th><th>Precio</th><th>Hoy</th><th>Valor</th><th>Ganancia</th><th>Peso</th><th>Señal</th></tr></thead><tbody>` +
+      rows.map(r => `<tr>
+        <td><button class="tk" data-t="${esc(r.ticker)}">${esc(r.ticker)}</button>${r.d?.overview?.fund ? ' <span class="muted" style="font-size:0.75rem">ETF</span>' : ""}</td>
+        <td>${fmt(r.acciones, 4).replace(/0+$/, "").replace(/[.,]$/, "")}</td>
+        <td>${money(r.costo)}</td>
+        <td>${money(r.price)}</td>
+        <td class="${sign(r.dayPct)}">${pct(r.dayPct, 2)}</td>
+        <td>${money(r.value)}</td>
+        <td class="${sign(r.pl)}">${money(r.pl)} <span style="font-size:0.8rem">${pct(r.plPct, 1)}</span></td>
+        <td>${r.weight == null ? "—" : fmt(r.weight, 1) + "%"}<span class="wbar"><i style="width:${Math.min(100, r.weight || 0)}%"></i></span></td>
+        <td>${pill(r.score)}</td></tr>`).join("") +
+      `</tbody><tfoot><tr><td>Efectivo</td><td></td><td></td><td></td><td></td><td>${money(c.cash)}</td><td></td><td>${c.total ? fmt(c.cash / c.total * 100, 1) + "%" : "—"}</td><td></td></tr></tfoot>`;
+    if (!c.complete) { $("pfNotes").innerHTML = ""; return; }
+    const notes = [];
+    const stocks = c.rows.filter(r => r.d && !r.d.overview?.fund), funds = c.rows.filter(r => r.d?.overview?.fund);
+    const sw = stocks.reduce((s, r) => s + (r.weight || 0), 0), fw = funds.reduce((s, r) => s + (r.weight || 0), 0);
+    if (stocks.length && funds.length) notes.push(`${fmt(sw, 0)}% está en ${stocks.length} empresas sueltas y ${fmt(fw, 0)}% en fondos. Las empresas sueltas se mueven más, para arriba y para abajo, que un fondo de cientos de empresas.`);
+    const top = rows[0];
+    if (top?.weight > 20) notes.push(`${top.ticker} es tu posición más grande: ${fmt(top.weight, 1)}% del total.`);
+    lookThrough(c).filter(x => x.via > 0).sort((a, b) => (b.direct + b.via) - (a.direct + a.via)).slice(0, 3).forEach(x => {
+      notes.push(`Exposición real a ${x.ticker}: ${fmt((x.direct + x.via) / c.total * 100, 1)}% (${fmt(x.direct / c.total * 100, 1)}% directo + ${fmt(x.via / c.total * 100, 1)}% dentro de ${x.parts.join(", ")}).`);
+    });
+    const scored = c.rows.filter(r => r.score && r.weight);
+    if (scored.length) {
+      const ws = scored.reduce((s, r) => s + r.score.total * r.weight, 0) / scored.reduce((s, r) => s + r.weight, 0);
+      notes.push(`Señal promedio del portafolio (ponderada por peso): ${ws > 0 ? "+" : ""}${Math.round(ws)}. ${ws >= 25 ? "Las señales de tus posiciones grandes son mayormente positivas." : ws <= -25 ? "Las señales de tus posiciones grandes son mayormente negativas." : "Sin una dirección clara."}`);
+    }
+    const tech = stocks.filter(r => /tech|semicon|software|hardware|electronic/i.test(r.d.overview?.company_overview?.sector + " " + r.d.overview?.company_overview?.industry)).reduce((s, r) => s + (r.weight || 0), 0);
+    if (tech > 30) notes.push(`${fmt(tech, 0)}% está en empresas de tecnología sueltas, sin contar la tecnología que ya traen tus fondos. Si el sector cae, tu portafolio lo va a sentir.`);
+    if (c.cash / c.total < 0.02) notes.push(`Casi no tienes efectivo (${money(c.cash)}). Eso no es malo en sí, solo significa que para comprar algo tendrías que meter dinero o vender.`);
+    $("pfNotes").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
+  }
+
+  let pfBusy = false;
+  async function refreshPortfolio() {
+    if (!mcp || !portfolio || pfBusy || document.hidden) return;
+    pfBusy = true;
+    try {
+      await Promise.allSettled((portfolio.posiciones || []).map(async p => {
+        const d = await fetchAll(p.ticker);
+        d.score = scoreOf(d); pfData[p.ticker] = d;
+        renderPortfolio();
+      }));
+    } finally { pfBusy = false; renderPortfolio(); renderChips(); }
+  }
+  setInterval(refreshPortfolio, 120000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshPortfolio(); });
+  $("pfTable").addEventListener("click", (e) => { const b = e.target.closest(".tk"); if (b) { load(b.dataset.t); $("quotePanel").scrollIntoView({ behavior: "smooth", block: "start" }); } });
+
+  // Editor
+  function editorRow(p = {}) {
+    const i = $("pfRows").children.length;
+    const div = document.createElement("div"); div.className = "row";
+    div.innerHTML = `<input id="pfT${i}" placeholder="AAPL" value="${esc(p.ticker || "")}" aria-label="Ticker" style="text-transform:uppercase">
+      <input id="pfQ${i}" inputmode="decimal" placeholder="0.8" value="${p.acciones ?? ""}" aria-label="Acciones">
+      <input id="pfC${i}" inputmode="decimal" placeholder="309.84" value="${p.costo ?? ""}" aria-label="Precio promedio">
+      <button type="button" class="x" aria-label="Quitar">Quitar</button>`;
+    div.querySelector(".x").onclick = () => div.remove();
+    $("pfRows").appendChild(div);
+  }
+  $("pfEditBtn").onclick = () => {
+    $("pfRows").innerHTML = ""; $("pfMsg").textContent = "";
+    (portfolio?.posiciones || []).forEach(editorRow);
+    if (!portfolio?.posiciones?.length) editorRow();
+    $("pfCash").value = portfolio?.efectivo ?? "";
+    $("pfEditor").hidden = false; $("pfEditBtn").hidden = true;
+  };
+  $("pfCancel").onclick = () => { $("pfEditor").hidden = true; $("pfEditBtn").hidden = false; };
+  $("pfAdd").onclick = () => editorRow();
+  $("pfEditor").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!pfRef) { $("pfMsg").textContent = "No se puede guardar en esta vista. Abre la página en claude.ai con tu cuenta."; return; }
+    const dec = (v) => parseFloat(String(v).replace(",", "."));
+    const pos = [...$("pfRows").children].map(r => { const [t, q, c] = r.querySelectorAll("input"); return { ticker: normTicker(t.value), acciones: dec(q.value), costo: dec(c.value) }; })
+      .filter(p => p.ticker);
+    const bad = pos.find(p => !(p.acciones > 0) || !(p.costo >= 0));
+    if (bad) { $("pfMsg").textContent = `Revisa ${bad.ticker}: las acciones deben ser mayores a 0 y el precio promedio un número.`; return; }
+    $("pfSave").disabled = true;
+    try {
+      await pfRef.set({ posiciones: pos, efectivo: dec($("pfCash").value) || 0, actualizado: new Date().toISOString() });
+      $("pfEditor").hidden = true; $("pfEditBtn").hidden = false;
+    } catch (err) { $("pfMsg").textContent = "No se pudo guardar (" + (err?.code || "error") + "). Intenta de nuevo."; }
+    finally { $("pfSave").disabled = false; }
+  });
+
   // ---------- Lista y búsqueda ----------
+  function chipList() { return [...new Set([...(portfolio?.posiciones || []).map(p => p.ticker), ...watch])]; }
   function renderChips() {
-    $("watchChips").innerHTML = watch.map(t => `<button class="chip" data-t="${esc(t)}" aria-pressed="${current?.ticker === t}">${esc(t)}</button>`).join("");
+    $("watchChips").innerHTML = chipList().map(t => `<button class="chip" data-t="${esc(t)}" aria-pressed="${current?.ticker === t}">${esc(t)}</button>`).join("");
   }
   $("watchChips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) load(b.dataset.t); });
-  $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); const t = $("tickerInput").value.trim().toUpperCase(); if (t) load(t); });
+  $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); const t = $("tickerInput").value; if (t.trim()) load(t); });
 
   async function load(t) {
-    t = t.replace(/[^A-Z0-9.\-]/g, "");
+    t = normTicker(t);
     if (!t) return;
     if (!mcp) { setStatus("err", "Abre esta página en claude.ai para datos en vivo"); return; }
     $("searchBtn").disabled = true;
@@ -493,8 +753,9 @@ footer { font-size: 0.8rem; color: var(--muted); }
       renderAll(d);
       setStatus("live", `En vivo · actualizado ${new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`);
       try { localStorage.setItem("radar.last", t); } catch {}
-      // Mantener el precio al día cada minuto mientras la página esté abierta.
-      unwatch.push(mcp.watchTool(SERVER, "bigdata_company_tearsheet", tearsheetInput(d.id), (ev) => {
+      if (portfolio?.posiciones?.some(p => p.ticker === t)) { pfData[t] = d; renderPortfolio(); }
+      // Mantener el precio al día cada minuto mientras la página esté abierta (las fichas de ETF se refrescan con el portafolio).
+      if (d.type !== "ETF") unwatch.push(mcp.watchTool(SERVER, "bigdata_company_tearsheet", tearsheetInput(d.id), (ev) => {
         if (current?.ticker !== t) return;
         if (ev.type === "data") {
           current.overview = ev.result.payload; renderAll(current);
@@ -539,15 +800,28 @@ footer { font-size: 0.8rem; color: var(--muted); }
       media_50d: cm.price_avg_50, media_200d: cm.price_avg_200, max_52s: cm.year_high, min_52s: cm.year_low,
       cambios_pct: Object.fromEntries((ov.price_performance?.price_changes || []).map(x => [x.period, x.change_pct])),
       analistas: ov.analyst_data, beta: ov.company_overview?.beta,
+      fondo: ov.fund ? { costo_anual: ov.fund.ter, empresas: ov.fund.count, top_holdings: ov.fund.holdings.slice(0, 10), sectores: ov.fund.sectors.slice(0, 6) } : undefined,
       sentimiento: d.sentiment?.signals, resumen_noticias: (d.sentiment?.narrative || "").slice(0, 2500),
       titulares: (d.sentiment?.evidence?.docs || []).slice(0, 10).map(x => ({ t: x.headline, s: x.sentiment, f: x.timestamp })),
       puntaje_algoritmo: s ? { total: Math.round(s.total), etiqueta: s.label, coincidencia: Math.round(s.conf * 100) / 100, factores: s.factors.map(f => ({ factor: f.key, valor: Math.round(f.v * 100), peso: f.w })) } : null
     };
   }
+  function pfCompact() {
+    const c = pfCalc(); if (!c) return null;
+    const r2 = (n, d = 2) => n == null ? null : Math.round(n * 10 ** d) / 10 ** d;
+    return {
+      valor_total: r2(c.total), efectivo: c.cash, invertido_costo: r2(c.cost), ganancia_sin_vender: r2(c.pl), ganancia_pct: r2(c.plPct), cambio_hoy: r2(c.day), cambio_hoy_pct: r2(c.dayPct),
+      posiciones: c.rows.map(r => ({ ticker: r.ticker, tipo: r.d?.overview?.fund ? "ETF" : "acción", acciones: r.acciones, precio_promedio: r.costo, precio: r.price, valor: r2(r.value), ganancia: r2(r.pl), ganancia_pct: r2(r.plPct), peso_pct: r2(r.weight, 1), hoy_pct: r2(r.dayPct), puntaje: r.score ? Math.round(r.score.total) : null })),
+      exposicion_real: lookThrough(c).filter(x => x.via > 0).map(x => ({ ticker: x.ticker, total_pct: r2((x.direct + x.via) / c.total * 100, 1), via: x.parts }))
+    };
+  }
   const tools = [
+    { name: "mi_portafolio", description: "Las posiciones reales del usuario con precios en vivo: valor, ganancia, peso de cada una, puntaje del algoritmo y exposición real contando lo que traen sus ETF por dentro.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() { if (!portfolio) return "El usuario no ha guardado su portafolio."; await refreshPortfolio(); return pfCompact(); } },
     { name: "analizar_accion", description: "Trae datos en vivo de Bigdata.com de una acción de EE. UU. (precio, medias, cambios, analistas, sentimiento de noticias) y el puntaje del algoritmo de la plataforma.",
       inputSchema: { type: "object", properties: { ticker: { type: "string", description: "Ticker, p. ej. NVDA" } }, required: ["ticker"] },
-      async execute({ ticker }) { const t = String(ticker).toUpperCase().replace(/[^A-Z0-9.\-]/g, ""); if (current?.ticker === t) return compact(current); return compact(await fetchAll(t)); } },
+      async execute({ ticker }) { const t = normTicker(ticker); if (current?.ticker === t) return compact(current); return compact(pfData[t] || await fetchAll(t)); } },
     { name: "panorama_mercado", description: "Resumen del mercado global hoy: índices (S&P 500, Nasdaq…), sectores, bonos, materias primas y monedas, con cambios de 1 día a 1 año.",
       inputSchema: { type: "object", properties: {} },
       async execute() { const r = await mcp.callTool(SERVER, "bigdata_market_tearsheet", {}, { cache: { staleTime: 300000, gcTime: 900000 } }); const p = r.payload; return (typeof p === "string" ? p : JSON.stringify(p)).slice(0, 9000); } }
@@ -561,7 +835,9 @@ REGLAS:
 - Explica conceptos difíciles con palabras simples, el usuario está aprendiendo.
 - Si te piden "¿compro?", da los pros, los contras y qué vigilar; la decisión es suya. Recuerda que no es asesoría financiera, en una línea, sin sermones.
 - Corto: 100–220 palabras. Listas con "- " y **negritas** para lo clave. Sin tablas.
+- El usuario tiene un portafolio real (abajo). Si pregunta por "mi portafolio", "mis acciones" o qué hacer, usa esos datos o llama a mi_portafolio. Habla de concentración, diversificación y riesgo con números concretos. No le digas qué comprar o vender: explica opciones y sus riesgos.
 Fecha y hora: ${new Date().toLocaleString("es")}.
+Portafolio del usuario: ${JSON.stringify(pfCompact()) || "no guardado"}
 Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
   }
   async function ask(q) {
@@ -583,7 +859,9 @@ Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
   }
   function renderSuggest() {
     const t = current?.ticker || "AAPL";
-    const qs = [`¿Por qué el algoritmo marca así a ${t}?`, `¿Qué riesgos tiene ${t} ahora?`, "¿Cómo está el mercado hoy?", `Compara ${t} con ${t === "NVDA" ? "AMD" : "NVDA"}`];
+    const qs = portfolio
+      ? ["¿Cómo va mi portafolio hoy?", "¿Estoy muy concentrado?", `¿Por qué el algoritmo marca así a ${t}?`, "¿Cómo está el mercado hoy?"]
+      : [`¿Por qué el algoritmo marca así a ${t}?`, `¿Qué riesgos tiene ${t} ahora?`, "¿Cómo está el mercado hoy?", `Compara ${t} con ${t === "NVDA" ? "AMD" : "NVDA"}`];
     $("suggest").innerHTML = qs.map(q => `<button type="button">${esc(q)}</button>`).join("");
   }
   $("suggest").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) ask(b.textContent); });
@@ -604,7 +882,7 @@ Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
   }
 
   // ---------- Arranque ----------
-  renderChips(); renderGauge(null); renderSuggest();
+  renderChips(); renderGauge(null); renderSuggest(); renderPortfolio();
   let last = null; try { last = localStorage.getItem("radar.last"); } catch {}
 
   if (!window.claude?.use) {
@@ -613,8 +891,19 @@ Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
     return;
   }
   window.claude.use("sample").then(s => { sample = s; if (!s) { $("chatNote").textContent = "El agente no está disponible en esta vista."; $("chatBtn").disabled = true; } });
-  window.claude.use("db").then(d => {
-    db = d; if (!d) return;
+  window.claude.use("db").then(async d => {
+    db = d;
+    if (!d) { $("pfSub").textContent = "Abre esta página en claude.ai con tu cuenta para ver tu portafolio."; return; }
+    // El portafolio vive en el espacio privado del usuario: nadie más lo ve, aunque compartas la página.
+    const u = await window.claude.use("user");
+    const uid = u ? await u.id().catch(() => null) : null;
+    if (uid) {
+      pfRef = d.collection("data/users/" + uid).doc("portafolio");
+      pfRef.onSnapshot(snap => {
+        portfolio = snap.data() || null; pfVersionLoaded = true;
+        renderPortfolio(); renderChips(); renderSuggest(); refreshPortfolio();
+      }, () => { $("pfSub").textContent = "No se pudo leer tu portafolio."; });
+    }
     d.doc("config/lista").onSnapshot(snap => {
       const t = snap.data()?.tickers;
       if (Array.isArray(t) && t.length) { watch = t.map(x => String(x).toUpperCase()).slice(0, 12); renderChips(); }
@@ -624,7 +913,8 @@ Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
   window.claude.use("mcp").then(m => {
     mcp = m;
     if (!m) { setStatus("err", "Abre esta página en claude.ai para ver datos en vivo"); return; }
-    load(last && /^[A-Z0-9.\-]{1,12}$/.test(last) ? last : watch[0]);
+    refreshPortfolio();
+    load(last && /^[A-Z0-9.]{1,12}$/.test(last) ? last : chipList()[0]);
   });
 })();
 </script>
