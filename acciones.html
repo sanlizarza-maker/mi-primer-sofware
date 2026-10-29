@@ -1,0 +1,630 @@
+<title>Radar de Acciones</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: terminal de dos columnas — análisis a la izquierda, agente a la derecha; una columna en teléfono */
+:root {
+  --bg: #eef1f4; --panel: #ffffff; --ink: #14202b; --muted: #5b6875; --line: #d5dbe1;
+  --accent: #1f5fbf; --accent-soft: #e3ecfa;
+  --up: #12805c; --up-soft: #dff3ea; --down: #c23b2a; --down-soft: #fbe5e1; --flat: #8a6a12; --flat-soft: #f6eed5;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f151c; --panel: #17202a; --ink: #e4eaf0; --muted: #94a2b0; --line: #2a3643;
+  --accent: #6ea3f2; --accent-soft: #1b2b42;
+  --up: #3fc490; --up-soft: #133126; --down: #f07a68; --down-soft: #3a1c18; --flat: #e0b84a; --flat-soft: #33290f;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f151c; --panel: #17202a; --ink: #e4eaf0; --muted: #94a2b0; --line: #2a3643;
+  --accent: #6ea3f2; --accent-soft: #1b2b42;
+  --up: #3fc490; --up-soft: #133126; --down: #f07a68; --down-soft: #3a1c18; --flat: #e0b84a; --flat-soft: #33290f;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+h1, h2, h3 { font-family: var(--f-display); font-stretch: 85%; margin: 0; text-wrap: balance; }
+h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+.label { font: 600 0.72rem/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+a { color: var(--accent); }
+button, input { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+header.top p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.live { background: var(--up); box-shadow: 0 0 0 3px var(--up-soft); }
+.dot.err { background: var(--down); }
+
+.warn { background: var(--flat-soft); border: 1px solid color-mix(in srgb, var(--flat) 35%, transparent); border-radius: 8px; padding: 10px 14px; font-size: 0.92rem; }
+
+.search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.search form { display: flex; gap: 8px; flex: 1 1 260px; min-width: 0; }
+.search input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-family: var(--f-mono); text-transform: uppercase; }
+.btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--panel); font-weight: 600; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); cursor: pointer; font: 600 0.85rem var(--f-mono); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 18px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.panel > h2 { margin-bottom: 12px; }
+
+/* Encabezado de la acción */
+.quote { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: end; justify-content: space-between; }
+.quote .name { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; font-stretch: 80%; }
+.quote .price { font: 600 2.2rem/1 var(--f-mono); }
+.chg { font-family: var(--f-mono); font-weight: 600; }
+.chg.up { color: var(--up); } .chg.down { color: var(--down); }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+
+/* Veredicto */
+.verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+@media (max-width: 520px) { .verdict { grid-template-columns: minmax(0, 1fr); } }
+.gauge { width: 150px; max-width: 100%; }
+.pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 0.95rem var(--f-display); font-stretch: 90%; }
+.pill.up { background: var(--up-soft); color: var(--up); }
+.pill.down { background: var(--down-soft); color: var(--down); }
+.pill.flat { background: var(--flat-soft); color: var(--flat); }
+.factors { display: grid; gap: 10px; margin-top: 14px; }
+.factor { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 3.2rem; gap: 10px; align-items: center; font-size: 0.92rem; }
+@media (max-width: 520px) { .factor { grid-template-columns: 7rem minmax(0, 1fr) 3rem; } }
+.bar { position: relative; height: 10px; background: var(--bg); border-radius: 5px; }
+.bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.bar i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+.why { margin: 4px 0 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.9rem; color: var(--muted); }
+.why li::before { content: "› "; color: var(--accent); }
+
+/* Rango y rendimiento */
+.charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 640px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+svg text { fill: var(--muted); font: 11px var(--f-mono); }
+svg .strong { fill: var(--ink); font-weight: 600; }
+
+/* Noticias */
+.news { display: grid; gap: 0; }
+.news a.item { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.news a.item:first-child { border-top: 0; }
+.news .s { font: 600 0.8rem var(--f-mono); text-align: center; border-radius: 6px; padding: 3px 0; align-self: start; }
+.news .s.up { background: var(--up-soft); color: var(--up); } .news .s.down { background: var(--down-soft); color: var(--down); }
+.news .h { font-weight: 600; line-height: 1.3; }
+.news .src { font-size: 0.8rem; color: var(--muted); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.kv div { display: grid; gap: 4px; }
+.kv b { font: 600 1.05rem var(--f-mono); }
+
+/* Agente */
+.chat { display: flex; flex-direction: column; gap: 10px; max-height: 560px; }
+.msgs { overflow-y: auto; display: grid; gap: 10px; padding-right: 4px; min-height: 120px; }
+.msg { padding: 10px 12px; border-radius: 10px; font-size: 0.95rem; overflow-wrap: anywhere; }
+.msg.user { background: var(--accent-soft); justify-self: end; max-width: 90%; }
+.msg.bot { background: var(--bg); }
+.msg p { margin: 0 0 6px; } .msg p:last-child { margin: 0; }
+.msg ul { margin: 4px 0; padding-left: 18px; }
+.chat form { display: flex; gap: 8px; }
+.chat textarea { flex: 1; min-width: 0; resize: vertical; min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font: inherit; color: inherit; }
+.suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.suggest button { font-size: 0.82rem; padding: 5px 9px; border-radius: 999px; border: 1px dashed var(--line); background: transparent; cursor: pointer; color: var(--muted); }
+
+.report { border-top: 1px solid var(--line); padding: 12px 0; display: grid; gap: 6px; }
+.report:first-of-type { border-top: 0; padding-top: 0; }
+.report .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.report p { margin: 0; font-size: 0.92rem; }
+.empty { color: var(--muted); font-size: 0.92rem; }
+.skeleton { color: var(--muted); font-style: italic; }
+footer { font-size: 0.8rem; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: left .4s, width .4s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Radar de Acciones</h1>
+      <p>Señales con datos reales de <a href="https://bigdata.com" target="_blank" rel="noopener">Bigdata.com</a>: tendencia, impulso, noticias y analistas, juntas en un solo puntaje que te explica el porqué.</p>
+    </div>
+    <div class="status" id="status"><span class="dot" id="statusDot"></span><span id="statusText">Conectando…</span></div>
+  </header>
+
+  <div class="warn"><strong>Esto no predice el futuro.</strong> Nadie sabe con certeza si una acción va a subir o bajar. El radar resume lo que dicen los datos de hoy; úsalo para entender, no como orden de compra. No es asesoría financiera.</div>
+
+  <div class="search">
+    <form id="searchForm">
+      <input id="tickerInput" placeholder="Ticker: AAPL, NVDA, TSLA…" autocomplete="off" maxlength="12" aria-label="Ticker de la acción">
+      <button class="btn" id="searchBtn">Analizar</button>
+    </form>
+    <div class="chips" id="watchChips"></div>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" id="quotePanel">
+        <div class="quote">
+          <div>
+            <div class="label" id="qTicker">—</div>
+            <div class="name" id="qName">Elige una acción</div>
+            <div class="meta" id="qMeta"><span>Escribe un ticker o toca uno de tu lista.</span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="price" id="qPrice">—</div>
+            <div class="chg" id="qChg"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Veredicto del algoritmo</h2>
+        <div class="verdict">
+          <svg class="gauge" id="gauge" viewBox="0 0 150 92" role="img" aria-label="Puntaje de -100 a 100"></svg>
+          <div>
+            <div id="vPill"><span class="pill flat">Sin datos</span></div>
+            <p class="muted" id="vText" style="margin:8px 0 0">Cuando cargues una acción, aquí verás si las señales apuntan hacia arriba, hacia abajo o a ningún lado, y qué tan de acuerdo están entre ellas.</p>
+          </div>
+        </div>
+        <div class="factors" id="factors"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Precio en contexto</h2>
+        <div class="charts">
+          <div><div class="label">Rango de 52 semanas</div><svg id="rangeChart" viewBox="0 0 320 120" width="100%"></svg></div>
+          <div><div class="label">Cambio por periodo</div><svg id="perfChart" viewBox="0 0 320 170" width="100%"></svg></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Analistas</h2>
+        <div class="kv" id="analysts"><div class="empty">Sin datos todavía.</div></div>
+      </section>
+
+      <section class="panel">
+        <h2>Noticias que mueven el sentimiento</h2>
+        <div class="news" id="news"><div class="empty">Las noticias con su tono (positivo o negativo) aparecen aquí.</div></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2>Agente IA</h2>
+        <div class="chat">
+          <div class="msgs" id="msgs">
+            <div class="msg bot"><p>Hola. Analizo acciones con los datos en vivo de esta página y puedo buscar cualquier otra empresa o el mercado general. Te digo lo que veo, sin promesas de que algo vaya a subir.</p></div>
+          </div>
+          <div class="suggest" id="suggest"></div>
+          <form id="chatForm">
+            <textarea id="chatInput" rows="2" placeholder="Pregúntale al agente…" aria-label="Pregunta para el agente"></textarea>
+            <button class="btn" id="chatBtn">Enviar</button>
+          </form>
+          <div class="muted" id="chatNote" style="font-size:0.8rem"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Reportes del agente 24 h</h2>
+        <p class="muted" style="margin:0 0 12px;font-size:0.9rem">Un agente automático revisa tu lista cada cierto tiempo y deja aquí su reporte.</p>
+        <div id="reports"><div class="empty">Todavía no hay reportes. Aparecerán aquí cuando el agente automático haga su primera revisión.</div></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>Datos: <a href="https://bigdata.com" target="_blank" rel="noopener">Bigdata.com</a> (precios, analistas y sentimiento de noticias de RavenPack). Los precios pueden tener retraso. El puntaje es un resumen de señales, no una predicción.</footer>
+</div>
+
+<script>
+(() => {
+  const SERVER = "Bigdata.com";
+  const DEFAULT_WATCH = ["AAPL", "NVDA", "MSFT", "TSLA", "AMZN"];
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const clamp = (x, a = -1, b = 1) => Math.max(a, Math.min(b, x));
+  const fmt = (n, d = 2) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("es", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (n, d = 1) => (n == null || isNaN(n)) ? "—" : (n > 0 ? "+" : "") + fmt(n, d) + "%";
+  const big = (n) => n >= 1e12 ? fmt(n / 1e12, 2) + " B" : n >= 1e9 ? fmt(n / 1e9, 1) + " mil M" : n >= 1e6 ? fmt(n / 1e6, 1) + " M" : fmt(n, 0);
+
+  let mcp = null, sample = null, db = null;
+  let watch = DEFAULT_WATCH.slice();
+  let current = null;        // { ticker, id, name, overview, sentiment, score }
+  let unwatch = [];
+  const cacheIds = {};       // ticker -> {id, name}
+
+  function setStatus(kind, text) {
+    $("statusDot").className = "dot" + (kind ? " " + kind : "");
+    $("statusText").textContent = text;
+  }
+
+  function errText(e) {
+    switch (e?.code) {
+      case "server_not_connected": return "Agrega el conector Bigdata.com en claude.ai → Configuración → Conectores.";
+      case "needs_reauth": return "Vuelve a conectar Bigdata.com en claude.ai → Configuración → Conectores.";
+      case "selection_required": return "Tienes más de un conector Bigdata.com; elige uno en el aviso de claude.ai.";
+      case "not_in_manifest": case "approval_required": return "La página necesita tu permiso para usar Bigdata.com. Vuelve a intentarlo y acepta el aviso.";
+      case "server_unavailable": return "Bigdata.com no respondió. Intenta de nuevo en unos segundos.";
+      case "tool_error": return "Bigdata.com no encontró datos para esa acción.";
+      case "not_granted": case "capability_disabled": return "Abre esta página dentro de claude.ai para ver datos en vivo.";
+      default: return "No se pudieron cargar los datos (" + (e?.code || "error") + ").";
+    }
+  }
+
+  // ---------- Datos ----------
+  async function resolveTicker(t) {
+    if (cacheIds[t]) return cacheIds[t];
+    const r = await mcp.callTool(SERVER, "find_securities", { query: t, security_types: ["COMPANY"], listing_type: "PUBLIC" }, { cache: { staleTime: 86400000, gcTime: 86400000 } });
+    let p = r.payload;
+    const rows = Array.isArray(p) ? (p[0]?.results || []) : (p?.results || []);
+    const hit = rows.find(x => (x.listing_values || []).some(l => l.split(":")[1] === t)) || rows.find(x => x.listing_type === "PUBLIC");
+    if (!hit) { const e = new Error("no_match"); e.code = "tool_error"; throw e; }
+    return (cacheIds[t] = { id: hit.id, name: hit.name });
+  }
+
+  function tearsheetInput(id) { return { rp_entity_id: id, company_type: "Public", sections: ["company_overview", "analyst_ratings"] }; }
+
+  async function fetchAll(t) {
+    const { id, name } = await resolveTicker(t);
+    const [o, s] = await Promise.allSettled([
+      mcp.callTool(SERVER, "bigdata_company_tearsheet", tearsheetInput(id), { cache: { staleTime: 60000, gcTime: 600000 } }),
+      mcp.callTool(SERVER, "bigdata_sentiment_tearsheet", { rp_entity_id: id }, { cache: { staleTime: 300000, gcTime: 900000 } })
+    ]);
+    if (o.status === "rejected") throw o.reason;
+    return { ticker: t, id, name, overview: o.value.payload, sentiment: s.status === "fulfilled" ? s.value.payload : null };
+  }
+
+  // ---------- Algoritmo ----------
+  // Cada factor va de -1 (bajista) a +1 (alcista). Los pesos se reparten entre los factores con datos.
+  function scoreOf(d) {
+    const ov = d.overview || {};
+    const pp = ov.price_performance || {};
+    const cm = pp.current_market || {};
+    const ch = {}; (pp.price_changes || []).forEach(x => ch[x.period] = x.change_pct);
+    const an = ov.analyst_data || {};
+    const sg = d.sentiment?.signals?.sentiment;
+    const price = cm.current_price ?? ov.company_overview?.price;
+    const f = [];
+
+    if (price && cm.price_avg_50 && cm.price_avg_200) {
+      const a = clamp((price / cm.price_avg_50 - 1) / 0.05);
+      const b = clamp((price / cm.price_avg_200 - 1) / 0.10);
+      const c = clamp((cm.price_avg_50 / cm.price_avg_200 - 1) / 0.05);
+      const v = (a + b + c) / 3;
+      f.push({ key: "Tendencia", w: 0.25, v, why: `Precio ${pct((price / cm.price_avg_50 - 1) * 100)} vs. media de 50 días y ${pct((price / cm.price_avg_200 - 1) * 100)} vs. la de 200 días${cm.price_avg_50 > cm.price_avg_200 ? " (la de 50 está arriba de la de 200: tendencia sana)" : " (la de 50 está debajo de la de 200: tendencia débil)"}.` });
+    }
+    if (ch["1M"] != null || ch["3M"] != null || ch["6M"] != null) {
+      const parts = [[ch["1M"], 8, 0.5], [ch["3M"], 15, 0.3], [ch["6M"], 25, 0.2]].filter(x => x[0] != null);
+      const wsum = parts.reduce((s, x) => s + x[2], 0);
+      const v = parts.reduce((s, x) => s + clamp(x[0] / x[1]) * x[2], 0) / wsum;
+      f.push({ key: "Impulso", w: 0.20, v, why: `Cambió ${pct(ch["1M"])} en 1 mes, ${pct(ch["3M"])} en 3 meses y ${pct(ch["6M"])} en 6 meses.` });
+    }
+    if (sg && sg.current != null) {
+      const v = clamp(0.6 * clamp(sg.current * 2) + 0.4 * clamp((sg.momentum || 0) * 4));
+      const tone = sg.current > 0.1 ? "positivo" : sg.current < -0.1 ? "negativo" : "neutral";
+      f.push({ key: "Noticias", w: 0.20, v, why: `El tono de las noticias es ${tone} (${fmt(sg.current, 2)} en escala de -1 a 1) y ${sg.momentum >= 0 ? "mejora" : "empeora"} frente a su promedio.` });
+    }
+    const r = an.ratings;
+    if (r) {
+      const tot = (r.strong_buy || 0) + (r.buy || 0) + (r.hold || 0) + (r.sell || 0) + (r.strong_sell || 0);
+      if (tot > 0) {
+        const cons = ((r.strong_buy || 0) + (r.buy || 0) - (r.sell || 0) - (r.strong_sell || 0)) / tot;
+        const tgt = an.price_targets?.target_median ?? an.price_targets?.target_consensus;
+        const up = tgt && price ? (tgt / price - 1) * 100 : null;
+        // Los analistas suelen ser optimistas: ~50% neto "comprar" y objetivos ~8% arriba son lo normal, no una señal.
+        const consAdj = clamp((cons - 0.5) / 0.5);
+        const v = up == null ? consAdj : clamp(0.5 * consAdj + 0.5 * clamp((up - 8) / 20));
+        f.push({ key: "Analistas", w: 0.20, v, why: `${Math.round(((r.strong_buy || 0) + (r.buy || 0)) / tot * 100)}% de ${tot} analistas dicen comprar; su precio objetivo (mediana) ${up == null ? "no está disponible" : "está " + pct(up) + " del precio actual"}.` });
+      }
+    }
+    if (price && cm.year_high && cm.year_low && cm.year_high > cm.year_low) {
+      const pos = (price - cm.year_low) / (cm.year_high - cm.year_low);
+      // Cerca del máximo anual = fuerza, pero también menos margen; se trata como señal suave.
+      const v = clamp((pos - 0.5) * 1.2);
+      f.push({ key: "Rango anual", w: 0.15, v, why: `Está al ${Math.round(pos * 100)}% de su rango del último año (0% = mínimo, 100% = máximo).` });
+    }
+    if (!f.length) return null;
+    const W = f.reduce((s, x) => s + x.w, 0);
+    const total = f.reduce((s, x) => s + x.v * x.w, 0) / W * 100;
+    const signs = f.map(x => Math.sign(Math.round(x.v * 10)));
+    const agree = Math.abs(signs.reduce((s, x) => s + x, 0)) / f.length;
+    const coverage = W / 1.0;
+    const conf = agree * 0.7 + coverage * 0.3;
+    return { total, factors: f, conf, label: total >= 25 ? "up" : total <= -25 ? "down" : "flat" };
+  }
+
+  // ---------- Render ----------
+  function renderQuote(d) {
+    const co = d.overview?.company_overview || {};
+    const cm = d.overview?.price_performance?.current_market || {};
+    const after = d.overview?.aftermarket_trades_quotes?.trade;
+    $("qTicker").textContent = d.ticker + (co.exchange ? " · " + co.exchange : "");
+    $("qName").textContent = co.company_name || d.name;
+    $("qPrice").textContent = "$" + fmt(cm.current_price ?? co.price);
+    const c = cm.change_percentage ?? co.change_percentage;
+    $("qChg").className = "chg " + (c >= 0 ? "up" : "down");
+    $("qChg").textContent = `${c >= 0 ? "▲" : "▼"} ${fmt(Math.abs(cm.change ?? co.change))} (${pct(c, 2)}) hoy`;
+    const when = co.timestamp || cm.as_of;
+    const bits = [];
+    if (co.sector) bits.push(esc(co.sector));
+    if (co.market_cap) bits.push("Valor: $" + big(co.market_cap));
+    if (co.volume) bits.push("Volumen: " + big(co.volume) + (co.average_volume ? ` (promedio ${big(co.average_volume)})` : ""));
+    if (after?.price) bits.push(`Fuera de horario: $${fmt(after.price)}`);
+    if (when) bits.push("Precio de " + new Date(when).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" }));
+    $("qMeta").innerHTML = bits.map(b => `<span>${b}</span>`).join("");
+  }
+
+  function renderGauge(s) {
+    const g = $("gauge");
+    const cx = 75, cy = 80, r = 62;
+    const arc = (a0, a1, col) => {
+      const p = (a) => [cx + r * Math.cos(Math.PI * (1 - a)), cy - r * Math.sin(Math.PI * (1 - a))];
+      const [x0, y0] = p(a0), [x1, y1] = p(a1);
+      return `<path d="M${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1}" stroke="${col}" stroke-width="12" fill="none"/>`;
+    };
+    let html = arc(0, 0.375, "var(--down-soft)") + arc(0.375, 0.625, "var(--flat-soft)") + arc(0.625, 1, "var(--up-soft)");
+    if (s) {
+      const a = (s.total + 100) / 200;
+      const x = cx + (r - 2) * Math.cos(Math.PI * (1 - a)), y = cy - (r - 2) * Math.sin(Math.PI * (1 - a));
+      const col = s.label === "up" ? "var(--up)" : s.label === "down" ? "var(--down)" : "var(--flat)";
+      html += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="5" fill="${col}"/>`;
+      html += `<text x="${cx}" y="${cy - 22}" text-anchor="middle" class="strong" style="font-size:20px">${s.total > 0 ? "+" : ""}${Math.round(s.total)}</text>`;
+    }
+    html += `<text x="8" y="91">-100</text><text x="142" y="91" text-anchor="end">+100</text>`;
+    g.innerHTML = html;
+  }
+
+  function renderVerdict(s) {
+    renderGauge(s);
+    if (!s) { $("factors").innerHTML = ""; return; }
+    const lbl = { up: "Sesgo alcista", down: "Sesgo bajista", flat: "Neutral / sin dirección clara" }[s.label];
+    const confTxt = s.conf >= 0.75 ? "alta" : s.conf >= 0.45 ? "media" : "baja";
+    $("vPill").innerHTML = `<span class="pill ${s.label}">${lbl}</span> <span class="muted" style="font-size:0.9rem">· coincidencia entre señales: ${confTxt}</span>`;
+    const top = s.factors.slice().sort((a, b) => Math.abs(b.v * b.w) - Math.abs(a.v * a.w));
+    $("vText").textContent = s.label === "flat"
+      ? "Las señales se cancelan entre sí. En estos casos lo honesto es decir que no hay ventaja clara."
+      : `Lo que más pesa: ${top[0].key.toLowerCase()}${top[1] ? " y " + top[1].key.toLowerCase() : ""}. ${confTxt === "baja" ? "Ojo: las señales no están de acuerdo, así que el sesgo es débil." : ""}`;
+    $("factors").innerHTML = s.factors.map(x => {
+      const col = x.v >= 0.15 ? "var(--up)" : x.v <= -0.15 ? "var(--down)" : "var(--flat)";
+      const left = x.v >= 0 ? 50 : 50 + x.v * 50, width = Math.abs(x.v) * 50;
+      return `<div class="factor"><span><strong>${x.key}</strong> <span class="muted mono" style="font-size:0.75rem">${Math.round(x.w * 100)}%</span></span>
+        <div class="bar"><i style="left:${left}%;width:${Math.max(width, 1)}%;background:${col}"></i></div>
+        <span class="num" style="text-align:right">${x.v > 0 ? "+" : ""}${Math.round(x.v * 100)}</span></div>`;
+    }).join("") + `<ul class="why">${s.factors.map(x => `<li>${esc(x.why)}</li>`).join("")}</ul>`;
+  }
+
+  function renderRange(d) {
+    const cm = d.overview?.price_performance?.current_market || {};
+    const an = d.overview?.analyst_data?.price_targets || {};
+    const svg = $("rangeChart");
+    if (!cm.year_low || !cm.year_high) { svg.innerHTML = `<text x="0" y="20">Sin datos de rango</text>`; return; }
+    const marks = [
+      { v: cm.year_low, t: "Mín 52s" }, { v: cm.year_high, t: "Máx 52s" },
+      { v: cm.price_avg_200, t: "Media 200d" }, { v: cm.price_avg_50, t: "Media 50d" },
+      { v: an.target_median, t: "Objetivo" }
+    ].filter(m => m.v);
+    const price = cm.current_price;
+    const lo = Math.min(...marks.map(m => m.v), price), hi = Math.max(...marks.map(m => m.v), price);
+    const X = (v) => 20 + (v - lo) / (hi - lo || 1) * 280;
+    let h = `<rect x="${X(cm.year_low)}" y="52" width="${X(cm.year_high) - X(cm.year_low)}" height="10" rx="5" fill="var(--accent-soft)"/>`;
+    const above = marks.filter(m => m.t.startsWith("Media")), below = marks.filter(m => !m.t.startsWith("Media"));
+    above.forEach((m, i) => { h += `<line x1="${X(m.v)}" x2="${X(m.v)}" y1="${30 + i * 0}" y2="62" stroke="var(--muted)" stroke-dasharray="2 2"/><text x="${X(m.v)}" y="${22 + i * 12}" text-anchor="middle">${m.t} ${fmt(m.v, 0)}</text>`; });
+    below.forEach((m, i) => { h += `<line x1="${X(m.v)}" x2="${X(m.v)}" y1="52" y2="${80 + (i % 2) * 14}" stroke="var(--muted)"/><text x="${X(m.v)}" y="${92 + (i % 2) * 14}" text-anchor="middle">${m.t} ${fmt(m.v, 0)}</text>`; });
+    h += `<circle cx="${X(price)}" cy="57" r="7" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`;
+    h += `<text x="${X(price)}" y="118" text-anchor="middle" class="strong">Hoy $${fmt(price)}</text>`;
+    svg.innerHTML = h;
+  }
+
+  function renderPerf(d) {
+    const rows = (d.overview?.price_performance?.price_changes || []).filter(x => x.change_pct != null);
+    const svg = $("perfChart");
+    if (!rows.length) { svg.innerHTML = `<text x="0" y="20">Sin datos</text>`; return; }
+    const m = Math.max(5, ...rows.map(r => Math.abs(r.change_pct)));
+    const mid = 170, half = 100, rh = 22;
+    const names = { "1D": "1 día", "5D": "5 días", "1M": "1 mes", "3M": "3 meses", "6M": "6 meses", "YTD": "En el año", "1Y": "1 año" };
+    let h = `<line x1="${mid}" x2="${mid}" y1="0" y2="${rows.length * rh}" stroke="var(--line)"/>`;
+    rows.forEach((r, i) => {
+      const w = Math.abs(r.change_pct) / m * half, y = i * rh + 4;
+      const up = r.change_pct >= 0;
+      h += `<text x="0" y="${y + 11}">${names[r.period] || r.period}</text>`;
+      h += `<rect x="${up ? mid : mid - w}" y="${y}" width="${Math.max(w, 1)}" height="14" rx="3" fill="${up ? "var(--up)" : "var(--down)"}"/>`;
+      h += `<text x="${up ? mid + w + 4 : mid - w - 4}" y="${y + 11}" text-anchor="${up ? "start" : "end"}" class="strong">${pct(r.change_pct)}</text>`;
+    });
+    svg.setAttribute("viewBox", `0 0 320 ${rows.length * rh + 6}`);
+    svg.innerHTML = h;
+  }
+
+  function renderAnalysts(d) {
+    const an = d.overview?.analyst_data;
+    if (!an) { $("analysts").innerHTML = `<div class="empty">Sin cobertura de analistas.</div>`; return; }
+    const r = an.ratings || {}, t = an.price_targets || {};
+    const cell = (k, v) => `<div><span class="label">${k}</span><b>${v}</b></div>`;
+    $("analysts").innerHTML = [
+      cell("Consenso", esc(r.consensus || "—")),
+      cell("Comprar", (r.strong_buy || 0) + (r.buy || 0)),
+      cell("Mantener", r.hold ?? "—"),
+      cell("Vender", (r.sell || 0) + (r.strong_sell || 0)),
+      cell("Objetivo mediana", "$" + fmt(t.target_median, 0)),
+      cell("Rango objetivos", `$${fmt(t.target_low, 0)}–${fmt(t.target_high, 0)}`)
+    ].join("");
+  }
+
+  function renderNews(d) {
+    const docs = (d.sentiment?.evidence?.docs || []).slice().sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || "")).slice(0, 8);
+    const sg = d.sentiment?.signals;
+    if (!docs.length) { $("news").innerHTML = `<div class="empty">No hay noticias recientes con sentimiento medido.</div>`; return; }
+    const head = sg ? `<p class="muted" style="margin:0 0 8px;font-size:0.88rem">Atención de medios: ${pct(sg.media_attention?.momentum_pct, 0)} vs. su promedio · ${big(sg.document_count || 0)} documentos analizados en ${d.sentiment.lookback_days || 90} días.</p>` : "";
+    $("news").innerHTML = head + docs.map(x => {
+      const cls = x.sentiment >= 0 ? "up" : "down";
+      const tag = x.url ? "a" : "div";
+      return `<${tag} class="item" ${x.url ? `href="${esc(x.url)}" target="_blank" rel="noopener"` : ""}><span class="s ${cls}">${x.sentiment > 0 ? "+" : ""}${fmt(x.sentiment, 2)}</span>
+        <span><span class="h">${esc(x.headline)}</span><br><span class="src">${esc(x.source)} · ${x.timestamp ? new Date(x.timestamp + (x.timestamp.endsWith("Z") ? "" : "Z")).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" }) : ""}</span></span></${tag}>`;
+    }).join("");
+  }
+
+  function renderAll(d) {
+    current = d; current.score = scoreOf(d);
+    renderQuote(d); renderVerdict(current.score); renderRange(d); renderPerf(d); renderAnalysts(d); renderNews(d);
+    renderSuggest();
+  }
+
+  // ---------- Lista y búsqueda ----------
+  function renderChips() {
+    $("watchChips").innerHTML = watch.map(t => `<button class="chip" data-t="${esc(t)}" aria-pressed="${current?.ticker === t}">${esc(t)}</button>`).join("");
+  }
+  $("watchChips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) load(b.dataset.t); });
+  $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); const t = $("tickerInput").value.trim().toUpperCase(); if (t) load(t); });
+
+  async function load(t) {
+    t = t.replace(/[^A-Z0-9.\-]/g, "");
+    if (!t) return;
+    if (!mcp) { setStatus("err", "Abre esta página en claude.ai para datos en vivo"); return; }
+    $("searchBtn").disabled = true;
+    setStatus("", `Cargando ${t}…`);
+    unwatch.forEach(u => u()); unwatch = [];
+    try {
+      const d = await fetchAll(t);
+      renderAll(d);
+      setStatus("live", `En vivo · actualizado ${new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`);
+      try { localStorage.setItem("radar.last", t); } catch {}
+      // Mantener el precio al día cada minuto mientras la página esté abierta.
+      unwatch.push(mcp.watchTool(SERVER, "bigdata_company_tearsheet", tearsheetInput(d.id), (ev) => {
+        if (current?.ticker !== t) return;
+        if (ev.type === "data") {
+          current.overview = ev.result.payload; renderAll(current);
+          const at = ev.result.cache?.storedAt ? new Date(ev.result.cache.storedAt) : new Date();
+          setStatus("live", `En vivo · actualizado ${at.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`);
+        } else if (["needs_reauth", "server_not_connected", "not_in_manifest", "approval_required", "blocked_by_policy"].includes(ev.error.code)) {
+          setStatus("err", errText(ev.error));
+        }
+      }, { cache: { staleTime: 60000, gcTime: 600000 }, refetchInterval: 60000 }));
+    } catch (e) {
+      setStatus("err", e?.message === "no_match" ? `No encontré "${t}" como acción pública.` : errText(e));
+    } finally {
+      $("searchBtn").disabled = false; renderChips();
+    }
+  }
+
+  // ---------- Agente IA ----------
+  const history = [];
+  function md(s) {
+    const inline = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    const out = []; let list = null;
+    s.split("\n").forEach(line => {
+      const m = line.match(/^\s*[-*] (.*)/);
+      if (m) { if (!list) { list = []; } list.push(`<li>${inline(m[1])}</li>`); return; }
+      if (list) { out.push(`<ul>${list.join("")}</ul>`); list = null; }
+      if (line.trim()) out.push(`<p>${inline(line.replace(/^#+\s*/, ""))}</p>`);
+    });
+    if (list) out.push(`<ul>${list.join("")}</ul>`);
+    return out.join("");
+  }
+  function addMsg(role, html) {
+    const div = document.createElement("div"); div.className = "msg " + role; div.innerHTML = html;
+    $("msgs").appendChild(div); $("msgs").scrollTop = $("msgs").scrollHeight; return div;
+  }
+  function compact(d) {
+    if (!d) return null;
+    const ov = d.overview || {}, cm = ov.price_performance?.current_market || {};
+    const s = d.score || scoreOf(d);
+    return {
+      ticker: d.ticker, empresa: ov.company_overview?.company_name || d.name,
+      precio: cm.current_price, cambio_hoy_pct: cm.change_percentage, momento_precio: ov.company_overview?.timestamp,
+      media_50d: cm.price_avg_50, media_200d: cm.price_avg_200, max_52s: cm.year_high, min_52s: cm.year_low,
+      cambios_pct: Object.fromEntries((ov.price_performance?.price_changes || []).map(x => [x.period, x.change_pct])),
+      analistas: ov.analyst_data, beta: ov.company_overview?.beta,
+      sentimiento: d.sentiment?.signals, resumen_noticias: (d.sentiment?.narrative || "").slice(0, 2500),
+      titulares: (d.sentiment?.evidence?.docs || []).slice(0, 10).map(x => ({ t: x.headline, s: x.sentiment, f: x.timestamp })),
+      puntaje_algoritmo: s ? { total: Math.round(s.total), etiqueta: s.label, coincidencia: Math.round(s.conf * 100) / 100, factores: s.factors.map(f => ({ factor: f.key, valor: Math.round(f.v * 100), peso: f.w })) } : null
+    };
+  }
+  const tools = [
+    { name: "analizar_accion", description: "Trae datos en vivo de Bigdata.com de una acción de EE. UU. (precio, medias, cambios, analistas, sentimiento de noticias) y el puntaje del algoritmo de la plataforma.",
+      inputSchema: { type: "object", properties: { ticker: { type: "string", description: "Ticker, p. ej. NVDA" } }, required: ["ticker"] },
+      async execute({ ticker }) { const t = String(ticker).toUpperCase().replace(/[^A-Z0-9.\-]/g, ""); if (current?.ticker === t) return compact(current); return compact(await fetchAll(t)); } },
+    { name: "panorama_mercado", description: "Resumen del mercado global hoy: índices (S&P 500, Nasdaq…), sectores, bonos, materias primas y monedas, con cambios de 1 día a 1 año.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() { const r = await mcp.callTool(SERVER, "bigdata_market_tearsheet", {}, { cache: { staleTime: 300000, gcTime: 900000 } }); const p = r.payload; return (typeof p === "string" ? p : JSON.stringify(p)).slice(0, 9000); } }
+  ];
+  function system() {
+    return `Eres el agente de "Radar de Acciones", una plataforma de análisis de acciones. Hablas español, de tú, directo y sincero.
+REGLAS:
+- Nunca prometas que una acción va a subir o bajar. Habla de probabilidades, señales y riesgos. Si las señales se contradicen, dilo claro.
+- Usa SIEMPRE datos reales: llama a analizar_accion para cualquier acción que mencionen (aunque sea la que está en pantalla, si no tienes sus datos) y a panorama_mercado para preguntas del mercado general. No inventes cifras ni noticias.
+- Cita números concretos (precio, % de cambio, medias, puntaje del algoritmo) y di de cuándo son.
+- Explica conceptos difíciles con palabras simples, el usuario está aprendiendo.
+- Si te piden "¿compro?", da los pros, los contras y qué vigilar; la decisión es suya. Recuerda que no es asesoría financiera, en una línea, sin sermones.
+- Corto: 100–220 palabras. Listas con "- " y **negritas** para lo clave. Sin tablas.
+Fecha y hora: ${new Date().toLocaleString("es")}.
+Acción en pantalla: ${current ? JSON.stringify(compact(current)) : "ninguna"}`;
+  }
+  async function ask(q) {
+    q = q.trim(); if (!q || !sample) return;
+    $("chatInput").value = ""; $("chatBtn").disabled = true;
+    addMsg("user", md(q));
+    history.push({ role: "user", content: q });
+    const bot = addMsg("bot", `<p class="skeleton">Pensando…</p>`);
+    const input = history.slice(-10).map((m, i, arr) => i === 0 ? { role: m.role, content: system() + "\n\nPREGUNTA:\n" + m.content } : m);
+    if (input[0].role !== "user") input.shift();
+    try {
+      const r = await sample(input, { tools, cache: false, modelTier: "default", onText: ({ text }) => { bot.innerHTML = md(text); $("msgs").scrollTop = $("msgs").scrollHeight; } });
+      bot.innerHTML = md(r.text);
+      history.push({ role: "assistant", content: r.text });
+    } catch (e) {
+      history.pop();
+      bot.innerHTML = `<p>${e?.code === "rate_limited" ? "Muchas preguntas seguidas. Espera un momento y vuelve a intentar." : e?.code === "not_granted" ? "El agente necesita tu permiso para responder. Vuelve a enviar y acepta el aviso." : "No pude responder (" + esc(e?.code || "error") + ")."}</p>`;
+    } finally { $("chatBtn").disabled = false; }
+  }
+  function renderSuggest() {
+    const t = current?.ticker || "AAPL";
+    const qs = [`¿Por qué el algoritmo marca así a ${t}?`, `¿Qué riesgos tiene ${t} ahora?`, "¿Cómo está el mercado hoy?", `Compara ${t} con ${t === "NVDA" ? "AMD" : "NVDA"}`];
+    $("suggest").innerHTML = qs.map(q => `<button type="button">${esc(q)}</button>`).join("");
+  }
+  $("suggest").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) ask(b.textContent); });
+  $("chatForm").addEventListener("submit", (e) => { e.preventDefault(); ask($("chatInput").value); });
+  $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask($("chatInput").value); } });
+
+  // ---------- Reportes del agente 24 h ----------
+  function renderReports(docs) {
+    if (!docs.length) { $("reports").innerHTML = `<div class="empty">Todavía no hay reportes. Aparecerán aquí cuando el agente automático haga su primera revisión.</div>`; return; }
+    $("reports").innerHTML = docs.map(d => {
+      const r = d.data() || {};
+      const items = Array.isArray(r.acciones) ? r.acciones : [];
+      return `<div class="report"><div class="row"><strong>${esc(r.titulo || "Reporte")}</strong><span class="muted mono" style="font-size:0.8rem">${r.fecha ? new Date(r.fecha).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" }) : ""}</span></div>
+        ${r.resumen ? `<p>${esc(r.resumen)}</p>` : ""}
+        ${items.length ? `<div class="chips">${items.map(a => `<span class="pill ${a.etiqueta === "up" ? "up" : a.etiqueta === "down" ? "down" : "flat"}" style="font-size:0.8rem" title="${esc(a.nota || "")}">${esc(a.ticker)} ${a.puntaje > 0 ? "+" : ""}${esc(a.puntaje ?? "")}</span>`).join("")}</div>` : ""}
+        ${items.filter(a => a.nota).map(a => `<p class="muted"><strong>${esc(a.ticker)}:</strong> ${esc(a.nota)}</p>`).join("")}</div>`;
+    }).join("");
+  }
+
+  // ---------- Arranque ----------
+  renderChips(); renderGauge(null); renderSuggest();
+  let last = null; try { last = localStorage.getItem("radar.last"); } catch {}
+
+  if (!window.claude?.use) {
+    setStatus("err", "Abre esta página en claude.ai para ver datos en vivo");
+    $("chatNote").textContent = "El agente funciona cuando abres esta página dentro de Claude.";
+    return;
+  }
+  window.claude.use("sample").then(s => { sample = s; if (!s) { $("chatNote").textContent = "El agente no está disponible en esta vista."; $("chatBtn").disabled = true; } });
+  window.claude.use("db").then(d => {
+    db = d; if (!d) return;
+    d.doc("config/lista").onSnapshot(snap => {
+      const t = snap.data()?.tickers;
+      if (Array.isArray(t) && t.length) { watch = t.map(x => String(x).toUpperCase()).slice(0, 12); renderChips(); }
+    }, () => {});
+    d.collection("reportes").orderBy("fecha", "desc").limit(10).onSnapshot(snap => renderReports(snap.docs), () => {});
+  });
+  window.claude.use("mcp").then(m => {
+    mcp = m;
+    if (!m) { setStatus("err", "Abre esta página en claude.ai para ver datos en vivo"); return; }
+    load(last && /^[A-Z0-9.\-]{1,12}$/.test(last) ? last : watch[0]);
+  });
+})();
+</script>
