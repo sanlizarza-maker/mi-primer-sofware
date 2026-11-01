@@ -1,0 +1,56 @@
+{
+  "owner": "sanlizarza",
+  "broker": "Interactive Brokers (captura del 2026-11-01)",
+  "base_currency": "USD",
+  "cash": 6.27,
+  "positions": [
+    {
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "type": "stock",
+      "shares": 0.8,
+      "avg_cost": 309.84,
+      "rp_id": "D8442A"
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "type": "stock",
+      "shares": 0.8,
+      "avg_cost": 266.32,
+      "rp_id": "0157B1"
+    },
+    {
+      "ticker": "BRK.B",
+      "name": "Berkshire Hathaway Inc. Cl B",
+      "type": "stock",
+      "shares": 0.3,
+      "avg_cost": 510.85,
+      "rp_id": "168A5D"
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA Corp.",
+      "type": "stock",
+      "shares": 0.8,
+      "avg_cost": 211.97,
+      "rp_id": "E09E2B"
+    },
+    {
+      "ticker": "VOO",
+      "name": "Vanguard S&P 500 ETF",
+      "type": "etf",
+      "shares": 0.3,
+      "avg_cost": 687.55,
+      "rp_id": "384423"
+    },
+    {
+      "ticker": "VXUS",
+      "name": "Vanguard Total Intl Stock ETF",
+      "type": "etf",
+      "shares": 1.3,
+      "avg_cost": 87.55,
+      "rp_id": "4ED3EA"
+    }
+  ]
+}
