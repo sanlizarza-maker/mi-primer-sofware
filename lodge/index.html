@@ -392,6 +392,7 @@
       </div>
       <div class="error" id="error" role="alert"></div>
       <button type="submit" class="btn">Solicitar reserva por WhatsApp</button>
+      <a id="waSend" class="btn" target="_blank" rel="noopener" style="display:none;margin-top:12px;background:#25d366;text-align:center"></a>
     </form>
   </div>
 </section>
@@ -489,7 +490,10 @@
       `• Total estimado: $${n * PRICES[room]} USD`,
       $("msg").value.trim() ? `• Comentarios: ${$("msg").value.trim()}` : ""
     ].filter(Boolean).join("\n");
-    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    const link = $("waSend");
+    link.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
+    link.style.display = "block";
+    link.textContent = `Abrir WhatsApp y enviar solicitud ($${n * PRICES[room]} USD) →`;
   });
 </script>
 </body>
