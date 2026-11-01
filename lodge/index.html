@@ -108,6 +108,11 @@
   .exp p { color: #b9c7c3; font-size: .93rem; }
 
   /* Servicios */
+  .pool { display: grid; grid-template-columns: 1.3fr 1fr; background: var(--white); border: 1px solid var(--line); margin-bottom: 28px; }
+  .pool-art svg { width: 100%; height: 100%; min-height: 260px; display: block; }
+  .pool-text { padding: 48px 44px; display: flex; flex-direction: column; justify-content: center; }
+  .pool-text h3 { font-size: 2.2rem; margin: 10px 0 14px; }
+  .pool-text p { color: var(--muted); }
   .calm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
   .calm-item { background: var(--white); border: 1px solid var(--line); padding: 38px 28px; text-align: center; }
   .calm-item svg { width: 42px; height: 42px; stroke: var(--sea); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; margin: 0 auto 20px; display: block; }
@@ -156,6 +161,9 @@
     .intro, .booking { grid-template-columns: 1fr; gap: 50px; }
     .rooms { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
     .exp-grid, .calm { grid-template-columns: 1fr 1fr; }
+    .pool { grid-template-columns: 1fr; }
+    .pool-art svg { min-height: 200px; }
+    .pool-text { padding: 32px 26px; }
     .links { display: none; position: absolute; top: 76px; left: 0; right: 0; background: var(--sand); flex-direction: column; padding: 24px; gap: 20px; box-shadow: 0 10px 20px rgba(0,0,0,.08); }
     .links.open { display: flex; }
     .links a { color: var(--ink); }
@@ -319,7 +327,26 @@
     <div class="section-head reveal">
       <div class="eyebrow">En el lodge</div>
       <h2>Un lugar para desconectar</h2>
-      <p>Somos un lodge tranquilo. Aquí no hay fiestas ni música alta: solo el sonido del mar, buena comida y espacios pensados para descansar.</p>
+      <p>Somos un lodge tranquilo. Aquí no hay fiestas ni música alta: solo el sonido del mar, una piscina frente al mar y espacios pensados para descansar.</p>
+    </div>
+    <div class="pool reveal">
+      <div class="pool-art">
+        <svg viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1c79a"/><stop offset="1" stop-color="#e7a37f"/></linearGradient></defs>
+          <rect width="400" height="110" fill="url(#sky)"/>
+          <circle cx="300" cy="100" r="26" fill="#ffe1b3" opacity=".9"/>
+          <rect y="100" width="400" height="45" fill="#3f7f86"/>
+          <path d="M0 118h400M0 130h400" stroke="#6fa6aa" stroke-width="1.5" opacity=".6"/>
+          <rect y="140" width="400" height="80" fill="#5fb3b8"/>
+          <path d="M20 168c30-6 50 6 80 0s50 6 80 0 50 6 80 0 50 6 80 0 50 6 80 0M10 192c30-6 50 6 80 0s50 6 80 0 50 6 80 0 50 6 80 0 50 6 80 0" stroke="#bfe6e6" stroke-width="2" fill="none" opacity=".7"/>
+          <rect y="138" width="400" height="5" fill="#e9dfcd"/>
+        </svg>
+      </div>
+      <div class="pool-text">
+        <div class="eyebrow">Piscina</div>
+        <h3>Piscina con vista al mar</h3>
+        <p>Nada frente al Pacífico, con el horizonte como único límite. El lugar perfecto para ver caer el sol en silencio.</p>
+      </div>
     </div>
     <div class="calm reveal">
       <div class="calm-item">
