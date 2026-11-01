@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Catalina Lodge · Villas de lujo en Santa Catalina, Panamá</title>
+<title>La Escondida Santa Catalina · Lodge de lujo en Panamá</title>
 <meta name="description" content="12 villas de lujo frente al Pacífico en Santa Catalina, Veraguas, Panamá. Surf, buceo en Coiba y descanso absoluto. Desde $250 por noche.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@300;400;500&display=swap">
 <style>
   /* ======= CAMBIA AQUÍ LOS DATOS DE TU NEGOCIO =======
-     Nombre: busca "Catalina Lodge" y reemplázalo.
+     Nombre: busca "La Escondida" y reemplázalo.
      WhatsApp: cambia WHATSAPP en el <script> al final.
      Fotos: cambia las URLs en las variables --img-* de abajo. */
   :root {
@@ -172,7 +172,7 @@
 
 <nav id="nav">
   <div class="wrap">
-    <a href="#" class="logo">Catalina Lodge</a>
+    <a href="#" class="logo">La Escondida</a>
     <button class="menu-toggle" aria-label="Abrir menú" id="menuBtn">☰</button>
     <div class="links" id="links">
       <a href="#lodge">El Lodge</a>
@@ -346,7 +346,7 @@
       <ul class="contact-list">
         <li><span>Ubicación</span>Santa Catalina, Soná, Veraguas, Panamá</li>
         <li><span>WhatsApp</span><a href="#" class="wa-link">+507 0000-0000</a></li>
-        <li><span>Email</span><a href="mailto:reservas@catalinalodge.com">reservas@catalinalodge.com</a></li>
+        <li><span>Email</span><a href="mailto:reservas@laescondidasantacatalina.com">reservas@laescondidasantacatalina.com</a></li>
         <li><span>Check-in</span>3:00 p.m. · Check-out 11:00 a.m.</li>
       </ul>
     </div>
@@ -400,12 +400,12 @@
 <footer>
   <div class="wrap">
     <div>
-      <div class="logo">Catalina Lodge</div>
+      <div class="logo">La Escondida</div>
       <p style="margin-top:10px">Villas de lujo · Santa Catalina, Panamá</p>
     </div>
     <div>
       <a href="#villas">Villas</a> &nbsp;·&nbsp; <a href="#experiencias">Experiencias</a> &nbsp;·&nbsp; <a href="#reservar">Reservar</a>
-      <p style="margin-top:10px">© <span id="year"></span> Catalina Lodge</p>
+      <p style="margin-top:10px">© <span id="year"></span> La Escondida Santa Catalina</p>
     </div>
   </div>
 </footer>
@@ -424,7 +424,7 @@
   const $ = (id) => document.getElementById(id);
 
   document.querySelectorAll(".wa-link").forEach(a => {
-    a.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola, quisiera información sobre Catalina Lodge.")}`;
+    a.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola, quisiera información sobre La Escondida Santa Catalina.")}`;
     a.target = "_blank"; a.rel = "noopener";
   });
 
@@ -480,7 +480,7 @@
     if (guests > MAX_GUESTS[room]) return err.textContent = `${NAMES[room]} admite hasta ${MAX_GUESTS[room]} huéspedes. Elige la Villa Familiar para grupos más grandes.`;
 
     const text = [
-      "Hola, quiero solicitar una reserva en Catalina Lodge:",
+      "Hola, quiero solicitar una reserva en La Escondida Santa Catalina:",
       `• Nombre: ${name}`,
       `• Villa: ${NAMES[room]}`,
       `• Llegada: ${$("checkin").value}`,
