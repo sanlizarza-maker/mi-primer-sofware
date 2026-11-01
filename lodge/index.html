@@ -108,10 +108,12 @@
   .exp p { color: #b9c7c3; font-size: .93rem; }
 
   /* Servicios */
-  .amenities { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px 40px; }
-  .amenity { border-top: 1px solid var(--line); padding-top: 18px; }
-  .amenity h3 { font-size: 1.35rem; margin-bottom: 6px; }
-  .amenity p { color: var(--muted); font-size: .9rem; }
+  .calm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .calm-item { background: var(--white); border: 1px solid var(--line); padding: 38px 28px; text-align: center; }
+  .calm-item svg { width: 42px; height: 42px; stroke: var(--sea); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; margin: 0 auto 20px; display: block; }
+  .calm-item h3 { font-size: 1.5rem; margin-bottom: 10px; }
+  .calm-item p { color: var(--muted); font-size: .92rem; }
+  .calm-note { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 36px; font-style: italic; }
 
   /* Testimonios */
   .quote { background: var(--sand-2); text-align: center; }
@@ -153,7 +155,7 @@
   @media (max-width: 960px) {
     .intro, .booking { grid-template-columns: 1fr; gap: 50px; }
     .rooms { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
-    .exp-grid, .amenities { grid-template-columns: 1fr 1fr; }
+    .exp-grid, .calm { grid-template-columns: 1fr 1fr; }
     .links { display: none; position: absolute; top: 76px; left: 0; right: 0; background: var(--sand); flex-direction: column; padding: 24px; gap: 20px; box-shadow: 0 10px 20px rgba(0,0,0,.08); }
     .links.open { display: flex; }
     .links a { color: var(--ink); }
@@ -161,7 +163,7 @@
     section { padding: 80px 0; }
   }
   @media (max-width: 560px) {
-    .exp-grid, .amenities, .row { grid-template-columns: 1fr; }
+    .exp-grid, .calm, .row { grid-template-columns: 1fr; }
     form { padding: 28px 22px; }
     .contact-list li { grid-template-columns: 1fr; gap: 2px; }
   }
@@ -178,6 +180,7 @@
       <a href="#lodge">El Lodge</a>
       <a href="#villas">Villas</a>
       <a href="#experiencias">Experiencias</a>
+      <a href="#lodge-servicios">Servicios</a>
       <a href="#reservar" class="btn">Reservar</a>
     </div>
   </div>
@@ -203,7 +206,7 @@
       <div class="eyebrow">El Lodge</div>
       <h2>Un refugio íntimo en uno de los rincones más salvajes de Panamá</h2>
       <p>Con solo doce villas, cada huésped recibe una atención personal y discreta. Despierta con el sonido de las olas, pasa el día entre arrecifes y termina con un atardecer sobre el Pacífico.</p>
-      <p>Santa Catalina es un pueblo de pescadores y surfistas, puerta de entrada a Coiba, Patrimonio de la Humanidad por la UNESCO. Aquí el lujo es el espacio, la calma y la naturaleza intacta.</p>
+      <p>Santa Catalina es un pueblo de pescadores y surfistas, puerta de entrada a Coiba, Patrimonio de la Humanidad por la UNESCO. Aquí el lujo es el espacio, la calma y la naturaleza intacta: somos un lodge tranquilo, pensado para descansar.</p>
     </div>
     <div class="stats reveal">
       <div><strong>12</strong><span>Villas</span></div>
@@ -311,22 +314,36 @@
   </div>
 </section>
 
-<section>
+<section id="lodge-servicios">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">Servicios</div>
-      <h2>Todo lo que necesitas</h2>
+      <div class="eyebrow">En el lodge</div>
+      <h2>Un lugar para desconectar</h2>
+      <p>Somos un lodge tranquilo. Aquí no hay fiestas ni música alta: solo el sonido del mar, buena comida y espacios pensados para descansar.</p>
     </div>
-    <div class="amenities reveal">
-      <div class="amenity"><h3>Piscina</h3><p>Piscina infinita rodeada de jardines tropicales.</p></div>
-      <div class="amenity"><h3>Restaurante</h3><p>Pesca del día y cocina local con ingredientes frescos.</p></div>
-      <div class="amenity"><h3>Desayuno</h3><p>Servido en tu terraza o en el restaurante.</p></div>
-      <div class="amenity"><h3>Traslados</h3><p>Desde Ciudad de Panamá o el aeropuerto de Santiago.</p></div>
-      <div class="amenity"><h3>Spa y yoga</h3><p>Masajes y clases al amanecer.</p></div>
-      <div class="amenity"><h3>Tours</h3><p>Surf, buceo, pesca y excursiones a Coiba.</p></div>
-      <div class="amenity"><h3>Wi-Fi</h3><p>Conexión en todas las villas y áreas comunes.</p></div>
-      <div class="amenity"><h3>Concierge</h3><p>Atención personalizada en español e inglés.</p></div>
+    <div class="calm reveal">
+      <div class="calm-item">
+        <svg viewBox="0 0 40 40"><path d="M6 34h28M10 34V20M30 34V20M4 20 20 6l16 14M15 34v-6a5 5 0 0 1 10 0v6"/></svg>
+        <h3>Rancho de yoga</h3>
+        <p>Un rancho abierto entre la vegetación, ideal para practicar al amanecer o al atardecer con la brisa del Pacífico.</p>
+      </div>
+      <div class="calm-item">
+        <svg viewBox="0 0 40 40"><path d="M7 16h22v8a9 9 0 0 1-9 9h-4a9 9 0 0 1-9-9zM29 18h3a4 4 0 0 1 0 8h-3M13 5c-2 3 2 5 0 8M19 5c-2 3 2 5 0 8M25 5c-2 3 2 5 0 8"/></svg>
+        <h3>Cafetería de alta calidad</h3>
+        <p>Café de especialidad panameño, preparado con cuidado para empezar el día sin prisa.</p>
+      </div>
+      <div class="calm-item">
+        <svg viewBox="0 0 40 40"><path d="M8 6v10a4 4 0 0 0 8 0V6M12 6v28M28 34V6c-4 2-6 7-6 13h6"/></svg>
+        <h3>Restaurante</h3>
+        <p>Cocina fresca con pesca del día e ingredientes locales, en un ambiente relajado frente a la naturaleza.</p>
+      </div>
+      <div class="calm-item">
+        <svg viewBox="0 0 40 40"><path d="M8 6h24L20 20zM20 20v12M13 34h14M24 10l6-5"/></svg>
+        <h3>Bar exclusivo para huéspedes</h3>
+        <p>Un bar íntimo y sereno, abierto solo a quienes se hospedan con nosotros. Cócteles al atardecer, conversación tranquila.</p>
+      </div>
     </div>
+    <p class="calm-note reveal">El bar es de uso exclusivo para huéspedes del lodge.</p>
   </div>
 </section>
 
