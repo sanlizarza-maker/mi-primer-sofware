@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
@@ -161,17 +162,26 @@ for index, center in ipairs(plotCenters) do
 
 	local pedestals = {}
 	local columns = { -24, -12, 0, 12, 24 }
-	local rows = { 8, -6 }
-	for _, rowOffset in ipairs(rows) do
+	local rows = { 12, 1, -10 } -- la tercera fila es la del pase "+5 Espacios"
+	for rowIndex, rowOffset in ipairs(rows) do
+		local vip = rowIndex == 3
 		for _, x in ipairs(columns) do
 			local ped = makePart({
-				Name = "Pedestal",
+				Name = vip and "PedestalVIP" or "Pedestal",
 				Size = Vector3.new(6, 2, 6),
 				Position = center + Vector3.new(x, 2, dir * rowOffset),
-				Color = Color3.fromRGB(240, 240, 240),
-				Material = Enum.Material.Marble,
+				Color = vip and Color3.fromRGB(255, 205, 60) or Color3.fromRGB(240, 240, 240),
+				Material = vip and Enum.Material.Metal or Enum.Material.Marble,
 				Parent = folder,
 			})
+			if vip then
+				local tag = Instance.new("BillboardGui")
+				tag.Size = UDim2.fromOffset(120, 30)
+				tag.StudsOffset = Vector3.new(0, 2, 0)
+				tag.MaxDistance = 40
+				tag.Parent = ped
+				makeLabel(tag, "📦 Pase VIP", UDim2.fromScale(1, 1), Color3.fromRGB(255, 220, 90))
+			end
 			table.insert(pedestals, ped)
 		end
 	end
@@ -194,7 +204,7 @@ for index, center in ipairs(plotCenters) do
 	local lockButton = makePart({
 		Name = "BotonEscudo",
 		Size = Vector3.new(4, 1, 4),
-		Position = center + Vector3.new(25, 1.5, dir * 17),
+		Position = center + Vector3.new(27, 1.5, dir * 19),
 		Color = Color3.fromRGB(255, 60, 60),
 		Material = Enum.Material.Neon,
 		Parent = folder,
@@ -355,8 +365,16 @@ end
 
 local states = {} -- [Player] = estado
 
+local function hasPass(st, key)
+	return st.passes[key] == true
+end
+
+local function slotsFor(st)
+	return Config.SlotsPerPlot + (hasPass(st, "ExtraSlots") and Config.ExtraSlotsAmount or 0)
+end
+
 local function freeSlot(st)
-	for i = 1, Config.SlotsPerPlot do
+	for i = 1, slotsFor(st) do
 		if not st.slots[i] then
 			return i
 		end
@@ -365,12 +383,16 @@ local function freeSlot(st)
 end
 
 local function multiplier(st)
-	return 1 + st.rebirths.Value * Config.RebirthBonus
+	local m = 1 + st.rebirths.Value * Config.RebirthBonus
+	if hasPass(st, "DoubleCoins") then
+		m *= 2
+	end
+	return m
 end
 
 local function incomeOf(st)
 	local total = 0
-	for i = 1, Config.SlotsPerPlot do
+	for i = 1, Config.MaxSlots do
 		local s = st.slots[i]
 		if s then
 			local def = Config.GetCreature(s.id)
@@ -643,7 +665,7 @@ local function save(player, st)
 		return
 	end
 	local creatures = {}
-	for i = 1, Config.SlotsPerPlot do
+	for i = 1, Config.MaxSlots do
 		local s = st.slots[i]
 		if s then
 			table.insert(creatures, { id = s.id, mut = s.mut })
@@ -656,6 +678,9 @@ local function save(player, st)
 		coins = st.coins.Value,
 		rebirths = st.rebirths.Value,
 		creatures = creatures,
+		codes = st.codes,
+		lastDaily = st.lastDaily,
+		streak = st.streak,
 	}
 	for attempt = 1, 3 do
 		local ok, err = pcall(function()
@@ -672,6 +697,17 @@ end
 ---------------------------------------------------------------------
 -- Entrada / salida de jugadores
 ---------------------------------------------------------------------
+
+local function sendDaily(player, st)
+	local now = os.time()
+	local nextAt = st.lastDaily + Config.DailyCooldown
+	local streak = st.streak
+	if now - st.lastDaily > Config.DailyStreakReset then
+		streak = 0
+	end
+	local nextDay = math.min(streak + 1, Config.DailyMaxStreak)
+	remote:FireClient(player, "Daily", math.max(0, nextAt - now), nextDay)
+end
 
 local function onCharacter(player, char)
 	local st = states[player]
@@ -725,8 +761,25 @@ Players.PlayerAdded:Connect(function(player)
 		loaded = false,
 		loadFailed = false,
 		lastRebirth = 0,
+		lastAction = 0,
+		passes = {},
+		codes = {},
+		lastDaily = 0,
+		streak = 0,
 	}
 	states[player] = st
+
+	-- Pases de pago
+	for _, pass in ipairs(Config.Gamepasses) do
+		if pass.id ~= 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				st.passes[pass.key] = true
+			end
+		end
+	end
 
 	player.CharacterAdded:Connect(function(char)
 		onCharacter(player, char)
@@ -755,6 +808,9 @@ Players.PlayerAdded:Connect(function(player)
 	if type(data) == "table" then
 		coins.Value = tonumber(data.coins) or Config.StartingCoins
 		rebirths.Value = tonumber(data.rebirths) or 0
+		st.codes = type(data.codes) == "table" and data.codes or {}
+		st.lastDaily = tonumber(data.lastDaily) or 0
+		st.streak = tonumber(data.streak) or 0
 		if type(data.creatures) == "table" then
 			for _, c in ipairs(data.creatures) do
 				local slot = freeSlot(st)
@@ -768,6 +824,8 @@ Players.PlayerAdded:Connect(function(player)
 		end
 	end
 	st.loaded = true
+	sendDaily(player, st)
+	remote:FireClient(player, "Passes", st.passes)
 
 	notify(player, "👋 ¡Bienvenido! Compra criaturas en la cinta amarilla. Ganan monedas solas.")
 	notify(player, "😈 Puedes robar criaturas de otras bases. Usa el botón 🛡️ para proteger la tuya.")
@@ -798,7 +856,7 @@ Players.PlayerRemoving:Connect(function(player)
 		end
 	end
 
-	for i = 1, Config.SlotsPerPlot do
+	for i = 1, Config.MaxSlots do
 		local s = st.slots[i]
 		if s and s.model then
 			s.model:Destroy()
@@ -851,10 +909,11 @@ for _, plot in ipairs(plots) do
 			notify(player, "El escudo se está recargando: " .. math.ceil(st.lockCooldownUntil - now) .. "s")
 			return
 		end
-		st.lockedUntil = now + Config.LockDuration
-		st.lockCooldownUntil = now + Config.LockDuration + Config.LockCooldown
+		local duration = Config.LockDuration * (hasPass(st, "VipShield") and 2 or 1)
+		st.lockedUntil = now + duration
+		st.lockCooldownUntil = now + duration + Config.LockCooldown
 		plot.shield.Transparency = 0.2
-		notify(player, "🛡️ ¡Escudo activado por " .. Config.LockDuration .. " segundos!", Color3.fromRGB(120, 200, 255))
+		notify(player, "🛡️ ¡Escudo activado por " .. duration .. " segundos!", Color3.fromRGB(120, 200, 255))
 	end)
 end
 
@@ -934,10 +993,7 @@ end)
 -- Renacimiento
 ---------------------------------------------------------------------
 
-remote.OnServerEvent:Connect(function(player, action)
-	if action ~= "Rebirth" then
-		return
-	end
+local function doRebirth(player)
 	local st = states[player]
 	if not st or not st.loaded then
 		return
@@ -955,7 +1011,7 @@ remote.OnServerEvent:Connect(function(player, action)
 	if st.carrying then
 		returnToOwner(st, "Renaciste.")
 	end
-	for i = 1, Config.SlotsPerPlot do
+	for i = 1, Config.MaxSlots do
 		local s = st.slots[i]
 		if s then
 			s.model:Destroy()
@@ -966,6 +1022,133 @@ remote.OnServerEvent:Connect(function(player, action)
 	st.coins.Value = Config.StartingCoins
 	notifyAll("🔁 " .. player.DisplayName .. " renació (nivel " .. st.rebirths.Value .. ")! Ahora gana x" .. multiplier(st), Color3.fromRGB(200, 150, 255))
 	task.spawn(save, player, st)
+end
+
+---------------------------------------------------------------------
+-- Códigos
+---------------------------------------------------------------------
+
+local function giveCreature(st, id)
+	local slot = freeSlot(st)
+	if not slot then
+		return false
+	end
+	placeInSlot(st, slot, id, nil)
+	return true
+end
+
+local function redeemCode(player, text)
+	local st = states[player]
+	if not st or not st.loaded or type(text) ~= "string" then
+		return
+	end
+	local code = string.upper((text:gsub("%s+", "")))
+	local reward = Config.Codes[code]
+	if not reward then
+		notify(player, "❌ Ese código no existe.")
+		return
+	end
+	if st.codes[code] then
+		notify(player, "Ya usaste ese código.")
+		return
+	end
+	if reward.creature then
+		local def = Config.GetCreature(reward.creature)
+		if not def or not giveCreature(st, reward.creature) then
+			notify(player, "Necesitas un espacio libre en tu base para este código.")
+			return
+		end
+		notify(player, "🎁 ¡Código canjeado! Recibiste " .. def.name .. ".", Color3.fromRGB(120, 255, 120))
+	end
+	if reward.coins then
+		st.coins.Value += reward.coins
+		notify(player, "🎁 ¡Código canjeado! +$" .. Config.FormatNumber(reward.coins), Color3.fromRGB(120, 255, 120))
+	end
+	st.codes[code] = true
+	task.spawn(save, player, st)
+end
+
+---------------------------------------------------------------------
+-- Recompensa diaria
+---------------------------------------------------------------------
+
+local function claimDaily(player)
+	local st = states[player]
+	if not st or not st.loaded then
+		return
+	end
+	local now = os.time()
+	if now - st.lastDaily < Config.DailyCooldown then
+		sendDaily(player, st)
+		notify(player, "Aún no puedes reclamar la recompensa diaria.")
+		return
+	end
+	if now - st.lastDaily > Config.DailyStreakReset then
+		st.streak = 0
+	end
+	st.streak = math.min(st.streak + 1, Config.DailyMaxStreak)
+	st.lastDaily = now
+
+	local amount = st.streak * math.max(Config.DailyBaseCoins, incomeOf(st) * Config.DailyIncomeSeconds)
+	st.coins.Value += amount
+	notify(player, "📅 Día " .. st.streak .. ": +$" .. Config.FormatNumber(amount), Color3.fromRGB(255, 220, 90))
+
+	if st.streak == Config.DailyMaxStreak then
+		local list = creaturesByRarity[Config.DailyBonusRarity]
+		if list and #list > 0 then
+			local def = list[rng:NextInteger(1, #list)]
+			if giveCreature(st, def.id) then
+				notify(player, "🌟 ¡Premio del día 7: " .. def.name .. "!", Color3.fromRGB(200, 120, 255))
+			else
+				st.coins.Value += def.price
+				notify(player, "🌟 Tu base estaba llena: te damos $" .. Config.FormatNumber(def.price) .. " en su lugar.")
+			end
+		end
+		st.streak = 0 -- empieza un nuevo ciclo de 7 días
+	end
+	sendDaily(player, st)
+	task.spawn(save, player, st)
+end
+
+---------------------------------------------------------------------
+-- Mensajes del cliente
+---------------------------------------------------------------------
+
+remote.OnServerEvent:Connect(function(player, action, arg)
+	local st = states[player]
+	if not st then
+		return
+	end
+	local now = os.clock()
+	if now - st.lastAction < 0.5 then
+		return -- anti-spam
+	end
+	st.lastAction = now
+	if action == "Rebirth" then
+		doRebirth(player)
+	elseif action == "Code" then
+		redeemCode(player, arg)
+	elseif action == "Daily" then
+		claimDaily(player)
+	end
+end)
+
+-- Compras de pases durante la partida
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	if not purchased then
+		return
+	end
+	local st = states[player]
+	if not st then
+		return
+	end
+	for _, pass in ipairs(Config.Gamepasses) do
+		if pass.id == passId and pass.id ~= 0 then
+			st.passes[pass.key] = true
+			notify(player, "💎 ¡Gracias por comprar " .. pass.name .. "! Ya está activo.", Color3.fromRGB(120, 220, 255))
+			remote:FireClient(player, "Passes", st.passes)
+		end
+	end
 end)
 
 ---------------------------------------------------------------------

@@ -15,7 +15,19 @@ pero con mecánicas y personajes propios.
 - **Vender (F):** recuperas el 50% del valor.
 - **Renacer 🔁:** reinicia tus monedas y criaturas, pero ganas +50% para siempre.
 - **Lluvia de suerte 🍀:** cada 5 minutos, durante 60 s, salen muchas más criaturas raras y mutaciones.
+- **📅 Recompensa diaria:** cada 20 h. Racha de 7 días (se pierde si pasas 48 h sin entrar); el día 7 regala una criatura Épica.
+- **🎁 Códigos:** `LANZAMIENTO`, `CAPIBARA`, `POLLOESPACIAL` (cámbialos en `Config`).
+- **🛒 Tienda de pases:** x2 Monedas, +5 Espacios (pedestales dorados), Escudo VIP.
 - El progreso se guarda solo (DataStore).
+
+## Configurar los pases de pago (para ganar Robux)
+1. Publica el juego primero (File → Publish to Roblox).
+2. Ve a **create.roblox.com → Creaciones → tu juego → Monetización → Pases** y crea 3 pases
+   (x2 Monedas, +5 Espacios, Escudo VIP), con imagen y precio.
+3. Copia el **ID** de cada pase (el número de su enlace) y pégalo en `Config.Gamepasses` en lugar del `0`.
+4. El precio que se muestra en la tienda se lee automáticamente de Roblox.
+
+Mientras un pase tenga `id = 0`, en la tienda pone "Pronto" y no se puede comprar.
 
 ## Instalación en Roblox Studio (sin programas extra)
 1. Abre Roblox Studio → **New** → **Baseplate**.

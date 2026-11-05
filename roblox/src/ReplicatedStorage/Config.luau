@@ -24,6 +24,44 @@ Config.RebirthBonus = 0.5         -- +50% de ingresos por cada renacimiento
 Config.AutosaveInterval = 120
 Config.DataStoreName = "CriaturasCaoticas_v1"
 
+---------------------------------------------------------------------
+-- PASES DE PAGO (Gamepasses)
+-- 1) Crea cada pase en create.roblox.com → tu juego → Monetización → Pases.
+-- 2) Copia el número (ID) del pase y ponlo en "id" aquí abajo.
+-- Mientras el id sea 0, el pase aparece en la tienda pero no se puede comprar.
+---------------------------------------------------------------------
+Config.Gamepasses = {
+	{ key = "DoubleCoins", id = 0, name = "💰 x2 Monedas",       desc = "Ganas el doble de monedas para siempre" },
+	{ key = "ExtraSlots",  id = 0, name = "📦 +5 Espacios",      desc = "Tu base tiene 15 pedestales en vez de 10" },
+	{ key = "VipShield",   id = 0, name = "🛡️ Escudo VIP",       desc = "Tu escudo dura el doble (60 s)" },
+}
+Config.ExtraSlotsAmount = 5
+Config.MaxSlots = Config.SlotsPerPlot + Config.ExtraSlotsAmount
+
+---------------------------------------------------------------------
+-- CÓDIGOS (escríbelos en MAYÚSCULAS). Añade códigos nuevos en cada actualización
+-- y publícalos en tu TikTok/Discord: es de lo que más atrae jugadores.
+-- coins = monedas que da · creature = id de criatura que regala (necesita espacio libre)
+---------------------------------------------------------------------
+Config.Codes = {
+	LANZAMIENTO = { coins = 500 },
+	CAPIBARA    = { coins = 2500 },
+	POLLOESPACIAL = { creature = "pollo" },
+}
+
+---------------------------------------------------------------------
+-- RECOMPENSA DIARIA
+-- Se puede reclamar cada 20 h. Si pasan más de 48 h sin reclamar, la racha vuelve al día 1.
+-- Recompensa = día de racha × máx(DailyBaseCoins, ingresos por segundo × DailyIncomeSeconds)
+-- El día 7 además regala una criatura Épica al azar.
+---------------------------------------------------------------------
+Config.DailyCooldown = 20 * 3600
+Config.DailyStreakReset = 48 * 3600
+Config.DailyMaxStreak = 7
+Config.DailyBaseCoins = 250
+Config.DailyIncomeSeconds = 60
+Config.DailyBonusRarity = "Épico"
+
 -- Rarezas (de más común a más rara)
 Config.Rarities = {
 	{ name = "Común",      weight = 55,   color = Color3.fromRGB(200, 200, 200), size = 3 },
