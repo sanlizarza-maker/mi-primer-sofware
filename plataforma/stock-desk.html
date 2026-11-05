@@ -105,6 +105,26 @@ td .nm { color: var(--muted); font-size: 12px; display: block; }
 button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .small { font-size: 12px; color: var(--muted); }
 .unavail { background: var(--bubble); border-radius: var(--r); padding: 12px; font-size: 14px; }
+.status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; font-size: 13.5px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.status[data-state="live"] .dot { background: var(--up); }
+.status[data-state="loading"] .dot { background: var(--accent); }
+.status[data-state="error"] .dot { background: var(--down); }
+.status .msg-s { flex: 1 1 260px; min-width: 0; }
+.status a { color: var(--accent); }
+.status button { font: inherit; font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.status button:disabled { opacity: .5; cursor: default; }
+.mkt { display: flex; flex-wrap: wrap; gap: 8px; }
+.mkt:empty { display: none; }
+.mkt .q { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; display: inline-flex; gap: 8px; align-items: baseline; }
+.mkt .q .l { color: var(--muted); }
+.live-tag { font-size: 11px; color: var(--up); font-weight: 600; letter-spacing: .04em; }
+.news { display: flex; flex-direction: column; gap: 10px; }
+.news:empty::before { content: "Las noticias de tus acciones aparecerán aquí cuando Bigdata.com responda."; color: var(--muted); font-size: 14px; }
+.news a { color: var(--ink); text-decoration: none; font-weight: 500; }
+.news a:hover { text-decoration: underline; }
+.news .m { font-size: 12px; color: var(--muted); }
+.tool-note { font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 6px; }
 </style>
 
 <div class="wrap">
@@ -113,10 +133,19 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
       <div class="tag">Mesa de análisis personal</div>
       <h1>Stock Desk</h1>
     </div>
-    <div class="asof">Cartera según tu captura de IBKR del jue 5-nov-2026, 17:16 · No se actualiza sola</div>
+    <div class="asof">Posiciones de tu captura de IBKR del 5-nov-2026 · Precios, mercado y noticias de Bigdata.com</div>
   </header>
 
+  <div class="status" id="status" data-state="loading">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="msg-s" id="status-msg">Conectando con Bigdata.com…</span>
+    <button type="button" id="refresh">Actualizar</button>
+  </div>
+
+  <div class="mkt" id="mkt" aria-label="Mercado"></div>
+
   <section class="kpis" id="kpis"></section>
+
 
   <div class="main">
     <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
@@ -127,6 +156,12 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
           <thead><tr><th>Posición</th><th class="r">Precio</th><th class="r">Valor</th><th class="r">Peso</th><th class="r">Ganancia</th><th class="r">Objetivo analistas</th><th>Calificación</th></tr></thead>
           <tbody></tbody>
         </table></div>
+      </section>
+
+      <section class="panel">
+        <h2>Noticias de tus acciones</h2>
+        <p class="sub">Últimas 36 horas en Bigdata.com.</p>
+        <div class="news" id="news"></div>
       </section>
 
       <section class="panel">
@@ -145,7 +180,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
         <div class="avatar" aria-hidden="true">A</div>
         <div>
           <h2>Tu analista senior</h2>
-          <p>Piensa como research de banca de inversión. Conoce tu cartera.</p>
+          <p>Piensa como research de banca de inversión. Conoce tu cartera y busca en Bigdata.com.</p>
         </div>
       </div>
       <div class="log" id="log" aria-live="polite"></div>
@@ -164,30 +199,32 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
             <button type="submit" class="btn" id="send">Preguntar</button>
           </div>
         </div>
-        <div class="small">Cada pregunta usa tu cuenta de Claude. El analista no navega internet: trabaja con tu cartera y las notas de esta página. Es análisis informativo, no asesoría regulada.</div>
+        <div class="small">Cada pregunta usa tu cuenta de Claude, y sus búsquedas usan tus créditos de Bigdata.com. Es análisis informativo, no asesoría regulada.</div>
       </form>
     </aside>
   </div>
 </div>
 
+
 <script>
 (function () {
-  // ---- Data: your book as of the IBKR screenshot (Nov 5, 2026, 17:16) ----
+  // ---- Your book: positions from the IBKR screenshot (Nov 5, 2026, 17:16). Prices go live from Bigdata.com. ----
+  const SERVER = "Bigdata.com";
   const BOOK = {
-    asOf: "2026-11-05 17:16 (captura de IBKR)",
+    asOf: "5-nov-2026 17:16 (captura de IBKR)",
     cash: 110.93,
     cashNote: "Efectivo de la venta de VXUS; el buying power mostraba $5.21, probablemente aún sin liquidar.",
-    dailyPL: -45, dailyPLpct: -3.91, realizedPL: -9,
+    snapDailyPL: -45, snapDailyPLpct: -3.91, realizedPL: -9,
     positions: [
-      { t: "AAPL", n: "Apple", sh: 0.8, cost: 309.84, px: 342.26, pt: 344.46, rating: "Neutral", conv: "Media" },
-      { t: "AMZN", n: "Amazon", sh: 0.8, cost: 266.32, px: 256.60, pt: 328.48, rating: "Overweight", conv: "Media" },
-      { t: "VOO", n: "Vanguard S&P 500 ETF", sh: 0.3, cost: 687.55, px: 671.89, pt: null, rating: "Core", conv: "" },
-      { t: "BRK.B", n: "Berkshire Hathaway B", sh: 0.3, cost: 510.85, px: 570.34, pt: 628.00, rating: "Overweight", conv: "Media" },
-      { t: "NVDA", n: "NVIDIA", sh: 0.8, cost: 211.97, px: 181.95, pt: 339.17, rating: "Overweight", conv: "Baja" }
+      { t: "AAPL", n: "Apple", id: "D8442A", sh: 0.8, cost: 309.84, px: 342.26, pt: 344.46, rating: "Neutral", conv: "Media" },
+      { t: "AMZN", n: "Amazon", id: "0157B1", sh: 0.8, cost: 266.32, px: 256.60, pt: 328.48, rating: "Overweight", conv: "Media" },
+      { t: "VOO", n: "Vanguard S&P 500 ETF", id: "384423", sh: 0.3, cost: 687.55, px: 671.89, pt: null, rating: "Core", conv: "" },
+      { t: "BRK.B", n: "Berkshire Hathaway B", id: "168A5D", sh: 0.3, cost: 510.85, px: 570.34, pt: 628.00, rating: "Overweight", conv: "Media" },
+      { t: "NVDA", n: "NVIDIA", id: "E09E2B", sh: 0.8, cost: 211.97, px: 181.95, pt: 339.17, rating: "Overweight", conv: "Baja" }
     ]
   };
   const NOTES = [
-    { k: "alert", h: "NVIDIA −12% en dos días", b: "De $206.69 (3-nov) a $181.95. Causa no confirmada por falta de datos. Reporta el 17-nov." },
+    { k: "alert", h: "NVIDIA −12% en dos días", b: "De $206.69 (3-nov) a $181.95 (5-nov). Reporta el 17-nov." },
     { k: "alert", h: "Concentración en tecnología", b: "Apple + Amazon + NVIDIA suman más de la mitad de la cartera, y VOO tiene esas mismas empresas arriba." },
     { k: "watch", h: "Vendiste VXUS", b: "Era tu única diversificación fuera de EE.UU. Pérdida realizada −$9; queda efectivo." },
     { k: "watch", h: "Apple: márgenes a la baja", b: "Superó estimados en Q4, pero guió margen bruto de 45–46% en diciembre por el costo de la memoria." },
@@ -204,85 +241,279 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
   const usd = (x) => "$" + x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const sgn = (x, d = 1) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const hhmm = (ms) => new Date(ms).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  // ---- Derived figures ----
-  const rows = BOOK.positions.map((p) => ({ ...p, val: p.sh * p.px, cb: p.sh * p.cost }));
-  const invested = rows.reduce((s, r) => s + r.val, 0);
-  const total = invested + BOOK.cash;
-  const costSum = rows.reduce((s, r) => s + r.cb, 0);
-  const unreal = invested - costSum;
-  rows.forEach((r) => { r.w = r.val / total * 100; r.pl = (r.px / r.cost - 1) * 100; r.up = r.pt ? (r.pt / r.px - 1) * 100 : null; });
-  const tech = rows.filter((r) => ["AAPL", "AMZN", "NVDA"].includes(r.t)).reduce((s, r) => s + r.w, 0);
+  // ---- Live state ----
+  const live = { quotes: {}, quotesAt: null, market: [], marketAt: null, news: [] };
+  let mcp = null;
 
-  // ---- KPIs ----
-  const kpis = [
-    { l: "Valor total", v: usd(total), n: "Incluye " + usd(BOOK.cash) + " en efectivo" },
-    { l: "Día", v: sgn(BOOK.dailyPL, 0) + " USD", n: sgn(BOOK.dailyPLpct, 2) + "% hoy", cls: BOOK.dailyPL >= 0 ? "up" : "down" },
-    { l: "Ganancia sobre costo", v: (unreal >= 0 ? "+" : "−") + usd(Math.abs(unreal)), n: sgn(unreal / costSum * 100, 2) + "% en lo invertido", cls: unreal >= 0 ? "up" : "down" },
-    { l: "En 3 tecnológicas", v: tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: tech > 40 ? "warn" : "" },
-    { l: "Efectivo", v: (BOOK.cash / total * 100).toFixed(1) + "%", n: "Pendiente de decidir" }
-  ];
-  const kp = document.getElementById("kpis");
-  kpis.forEach((k) => { const c = el("div", "kpi"); c.append(el("div", "tag", k.l)); c.append(el("div", "v " + (k.cls || ""), k.v)); c.append(el("div", "n", k.n)); kp.append(c); });
+  // ---- Derived figures (live price when we have it, else the snapshot) ----
+  function compute() {
+    const rows = BOOK.positions.map((p) => {
+      const q = live.quotes[p.id];
+      const px = q && q.px ? q.px : p.px;
+      const pt = q && q.pt ? q.pt : p.pt;
+      return { ...p, px, pt, chg: q ? q.chg : null, sent: q ? q.sent : null, isLive: !!(q && q.px), val: p.sh * px, cb: p.sh * p.cost };
+    });
+    const invested = rows.reduce((s, r) => s + r.val, 0);
+    const total = invested + BOOK.cash;
+    const costSum = rows.reduce((s, r) => s + r.cb, 0);
+    rows.forEach((r) => { r.w = r.val / total * 100; r.pl = (r.px / r.cost - 1) * 100; r.up = r.pt ? (r.pt / r.px - 1) * 100 : null; });
+    const tech = rows.filter((r) => ["AAPL", "AMZN", "NVDA"].includes(r.t)).reduce((s, r) => s + r.w, 0);
+    const anyLive = rows.some((r) => r.isLive);
+    let dayUsd = null;
+    if (anyLive && rows.every((r) => r.chg != null)) dayUsd = rows.reduce((s, r) => s + r.val - r.val / (1 + r.chg / 100), 0);
+    return { rows, invested, total, costSum, unreal: invested - costSum, tech, anyLive, dayUsd };
+  }
 
-  // ---- Book table ----
-  const tb = document.querySelector("#book tbody");
-  const maxW = Math.max(...rows.map((r) => r.w), 25);
-  rows.slice().sort((a, b) => b.w - a.w).forEach((r) => {
-    const tr = el("tr");
-    const c0 = el("td"); c0.append(el("span", "tk", r.t)); c0.append(el("span", "nm", r.n)); tr.append(c0);
-    tr.append(el("td", "r num", usd(r.px)));
-    tr.append(el("td", "r num", usd(r.val)));
-    const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 20 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
-    wb.append(bar, el("span", "num" + (r.w > 20 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
-    tr.append(el("td", "r num " + (r.pl >= 0 ? "up" : "down"), sgn(r.pl) + "%"));
-    tr.append(el("td", "r num", r.pt ? usd(r.pt) + " (" + sgn(r.up, 0) + "%)" : "—"));
-    const cr = el("td"); cr.append(el("span", "pill " + (r.rating === "Overweight" ? "ow" : "nt"), r.rating + (r.conv ? " · " + r.conv : ""))); tr.append(cr);
-    tb.append(tr);
-  });
-  const trc = el("tr"); const cc = el("td"); cc.append(el("span", "tk", "Efectivo")); cc.append(el("span", "nm", "USD")); trc.append(cc);
-  trc.append(el("td", "r", "")); trc.append(el("td", "r num", usd(BOOK.cash))); trc.append(el("td", "r num", (BOOK.cash / total * 100).toFixed(1) + "%"));
-  trc.append(el("td", "", "")); trc.append(el("td", "", "")); trc.append(el("td", "", "")); tb.append(trc);
+  function renderKpis(c) {
+    const kp = document.getElementById("kpis"); kp.replaceChildren();
+    const day = c.dayUsd != null
+      ? { v: sgn(c.dayUsd, 2) + " USD", n: sgn(c.dayUsd / (c.total - c.dayUsd) * 100, 2) + "% en la última sesión", cls: c.dayUsd >= 0 ? "up" : "down" }
+      : { v: sgn(BOOK.snapDailyPL, 0) + " USD", n: sgn(BOOK.snapDailyPLpct, 2) + "% el 5-nov (captura)", cls: BOOK.snapDailyPL >= 0 ? "up" : "down" };
+    const items = [
+      { l: "Valor total", v: usd(c.total), n: "Incluye " + usd(BOOK.cash) + " en efectivo", liveTag: c.anyLive },
+      { l: "Día", v: day.v, n: day.n, cls: day.cls, liveTag: c.dayUsd != null },
+      { l: "Ganancia sobre costo", v: (c.unreal >= 0 ? "+" : "−") + usd(Math.abs(c.unreal)), n: sgn(c.unreal / c.costSum * 100, 2) + "% en lo invertido", cls: c.unreal >= 0 ? "up" : "down", liveTag: c.anyLive },
+      { l: "En 3 tecnológicas", v: c.tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: c.tech > 40 ? "warn" : "" },
+      { l: "Efectivo", v: (BOOK.cash / c.total * 100).toFixed(1) + "%", n: "Pendiente de decidir" }
+    ];
+    items.forEach((k) => {
+      const d = el("div", "kpi"); const t = el("div", "tag", k.l);
+      if (k.liveTag) { t.append(" "); t.append(el("span", "live-tag", "● EN VIVO")); }
+      d.append(t, el("div", "v " + (k.cls || ""), k.v), el("div", "n", k.n)); kp.append(d);
+    });
+  }
 
-  // ---- Notes & calendar ----
+  function renderBook(c) {
+    const tb = document.querySelector("#book tbody"); tb.replaceChildren();
+    const maxW = Math.max(...c.rows.map((r) => r.w), 25);
+    c.rows.slice().sort((a, b) => b.w - a.w).forEach((r) => {
+      const tr = el("tr");
+      const c0 = el("td"); c0.append(el("span", "tk", r.t)); c0.append(el("span", "nm", r.n)); tr.append(c0);
+      const cp = el("td", "r num", usd(r.px));
+      if (r.chg != null) { cp.append(el("span", "nm " + (r.chg >= 0 ? "up" : "down"), sgn(r.chg, 2) + "% hoy")); }
+      tr.append(cp);
+      tr.append(el("td", "r num", usd(r.val)));
+      const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 20 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
+      wb.append(bar, el("span", "num" + (r.w > 20 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
+      tr.append(el("td", "r num " + (r.pl >= 0 ? "up" : "down"), sgn(r.pl) + "%"));
+      tr.append(el("td", "r num", r.pt ? usd(r.pt) + " (" + sgn(r.up, 0) + "%)" : "—"));
+      const cr = el("td"); cr.append(el("span", "pill " + (r.rating === "Overweight" ? "ow" : "nt"), r.rating + (r.conv ? " · " + r.conv : ""))); tr.append(cr);
+      tb.append(tr);
+    });
+    const trc = el("tr"); const cc = el("td"); cc.append(el("span", "tk", "Efectivo")); cc.append(el("span", "nm", "USD")); trc.append(cc);
+    trc.append(el("td", "r", "")); trc.append(el("td", "r num", usd(BOOK.cash))); trc.append(el("td", "r num", (BOOK.cash / c.total * 100).toFixed(1) + "%"));
+    trc.append(el("td"), el("td"), el("td")); tb.append(trc);
+  }
+
+  function renderMarket() {
+    const m = document.getElementById("mkt"); m.replaceChildren();
+    live.market.forEach((x) => {
+      const q = el("span", "q"); q.append(el("span", "l", x.l), el("span", "num", x.v));
+      if (x.c) q.append(el("span", "num " + (/^-/.test(x.c) ? "down" : "up"), x.c));
+      m.append(q);
+    });
+  }
+
+  function renderNews() {
+    const box = document.getElementById("news"); box.replaceChildren();
+    live.news.slice(0, 8).forEach((n) => {
+      const d = el("div");
+      const a = el("a", "", n.headline); a.href = n.url || "https://bigdata.com"; a.target = "_blank"; a.rel = "noopener";
+      d.append(a, el("div", "m", [n.source, n.when].filter(Boolean).join(" · ")));
+      box.append(d);
+    });
+  }
+
+  function renderAll() { const c = compute(); renderKpis(c); renderBook(c); renderMarket(); renderNews(); }
+
+  // ---- Static panels ----
   const nt = document.getElementById("notes");
   NOTES.forEach((n) => { const d = el("div", "note " + n.k); d.append(el("b", "", n.h)); d.append(document.createTextNode(n.b)); nt.append(d); });
   const cal = document.getElementById("cal");
   CAL.forEach((c) => { const d = el("div"); d.append(el("span", "d", c.d), el("span", "", c.e), el("span", c.r === "Alta" ? "warn" : "small", c.r)); cal.append(d); });
 
+  // ---- Status line ----
+  const statusEl = document.getElementById("status");
+  const statusMsg = document.getElementById("status-msg");
+  const refreshBtn = document.getElementById("refresh");
+  function setStatus(state, text, link) {
+    statusEl.dataset.state = state;
+    statusMsg.replaceChildren(document.createTextNode(text));
+    if (link) { statusMsg.append(" "); const a = el("a", "", link.t); a.href = link.h; a.target = "_blank"; a.rel = "noopener"; statusMsg.append(a); }
+  }
+  function explain(err) {
+    const code = err && err.code;
+    const msg = (err && err.message) || "";
+    if (code === "tool_error" && /credit/i.test(msg)) return { t: "Bigdata.com no tiene créditos: se muestra la instantánea del 5-nov.", link: { t: "Recargar créditos", h: "https://app.bigdata.com/" } };
+    if (code === "server_not_connected" || code === "selection_required") return { t: "Conecta Bigdata.com en Configuración → Conectores de Claude para ver datos en vivo." };
+    if (code === "needs_reauth") return { t: "Vuelve a conectar Bigdata.com en Configuración → Conectores de Claude." };
+    if (code === "not_in_manifest" || code === "not_granted" || code === "capability_disabled" || code === "capability_removed") return { t: "Esta página no tiene permiso para usar Bigdata.com. Actívalo desde el menú de permisos de la página." };
+    if (code === "blocked_by_policy" || code === "approval_required") return { t: "Tu organización bloquea Bigdata.com en esta página." };
+    if (code === "server_unavailable" || code === "rate_limited") return { t: "Bigdata.com no responde ahora. Prueba Actualizar en un momento." };
+    if (code === "tool_error") return { t: "Bigdata.com devolvió un error: " + msg.slice(0, 140) };
+    return { t: "No se pudo traer datos de Bigdata.com. Prueba Actualizar." };
+  }
+  let lastError = null;
+  function reportError(err, retract) {
+    lastError = err;
+    const e = explain(err);
+    setStatus("error", e.t, e.link);
+    if (retract && ["needs_reauth", "server_not_connected", "blocked_by_policy", "approval_required", "not_in_manifest"].includes(err && err.code)) { live.quotes = {}; live.market = []; live.news = []; renderAll(); }
+  }
+  function reportLive() {
+    lastError = null;
+    const at = live.quotesAt || live.marketAt;
+    setStatus("live", "En vivo con Bigdata.com" + (at ? " · precios de " + hhmm(at) : "") + ". Se actualiza solo cada 5 minutos.");
+  }
+
+  // ---- Parsers ----
+  function parseQuotes(payload) {
+    const arr = payload && (Array.isArray(payload) ? payload : payload.structured || payload.rows || payload.data);
+    if (!Array.isArray(arr)) return false;
+    let newest = 0;
+    arr.forEach((r) => {
+      if (!r || !r.rp_entity_id) return;
+      const reg = r.price && typeof r.price.value === "number" ? r.price.value : null;
+      const regAt = r.price && r.price.as_of ? Date.parse(r.price.as_of) : 0;
+      const am = r.aftermarket && typeof r.aftermarket.price === "number" ? r.aftermarket.price : null;
+      const amAt = r.aftermarket && r.aftermarket.traded_at ? Date.parse(r.aftermarket.traded_at) : 0;
+      let px = reg, chg = typeof r.change_1d_pct === "number" ? r.change_1d_pct : null, at = regAt;
+      if (am && reg && amAt > regAt) { px = am; chg = (am / reg - 1) * 100; at = amAt; }
+      if (px == null) return;
+      newest = Math.max(newest, at || 0);
+      live.quotes[r.rp_entity_id] = { px, chg, pt: r.price_target && typeof r.price_target.value === "number" ? r.price_target.value : null, sent: r.sentiment ? r.sentiment.value : null };
+    });
+    live.quotesAt = newest || Date.now();
+    return Object.keys(live.quotes).length > 0;
+  }
+  function parseMarket(payload) {
+    const text = typeof payload === "string" ? payload : (payload && typeof payload.text === "string" ? payload.text : "");
+    if (!text) return false;
+    const lines = text.split("\n");
+    const cells = (name) => {
+      const line = lines.find((l) => l.startsWith("| " + name + " |"));
+      return line ? line.split("|").slice(1, -1).map((s) => s.trim()) : null;
+    };
+    const out = [];
+    const add = (label, name, pi, ci, fmt) => { const c = cells(name); if (c && c[pi]) out.push({ l: label, v: fmt ? fmt(c[pi]) : c[pi], c: c[ci] || "" }); };
+    add("S&P 500", "S&P 500", 2, 3);
+    add("Nasdaq 100", "NASDAQ 100", 2, 3);
+    add("VIX", "CBOE Volatility Index", 2, 3);
+    add("Bono 10 años", "10 Year", 1, 2);
+    add("Petróleo WTI", "Crude Oil", 2, 3, (v) => "$" + v);
+    add("Oro", "Gold Futures", 2, 3, (v) => "$" + v);
+    add("Bitcoin", "BTC/USD", 2, 3, (v) => "$" + v);
+    live.market = out; live.marketAt = Date.now();
+    return out.length > 0;
+  }
+  function trimSearch(payload, max) {
+    const res = payload && Array.isArray(payload.results) ? payload.results : [];
+    return res.slice(0, max).map((r) => ({
+      headline: String(r.headline || "").slice(0, 200),
+      when: r.timestamp ? String(r.timestamp).slice(0, 16).replace("T", " ") : "",
+      source: r.source && r.source.name ? String(r.source.name) : "",
+      url: typeof r.url === "string" && /^https:\/\//.test(r.url) ? r.url : "",
+      text: (r.chunks || []).map((c) => c && c.text ? String(c.text) : "").join(" ").slice(0, 600)
+    }));
+  }
+
+  // ---- Live wiring ----
+  const QUOTES_INPUT = { rp_entity_ids: BOOK.positions.map((p) => p.id), metrics: ["PRICE", "PRICE_CHANGE_1D", "AFTERMARKET", "PRICE_TARGET", "SENTIMENT"] };
+  function newsInput() {
+    const start = new Date(Date.now() - 36 * 3600 * 1000); start.setUTCMinutes(0, 0, 0);
+    return { request: { search_mode: "fast", query: { text: "latest news and analyst actions", max_chunks: 12, filters: {
+      entity: { search_in: "ALL", any_of: BOOK.positions.filter((p) => p.t !== "VOO").map((p) => p.id) },
+      document_type: { mode: "INCLUDE", values: [{ type: "NEWS" }] },
+      timestamp: { start: start.toISOString().replace(".000", "") } } } } };
+  }
+  async function loadNews(refresh) {
+    try {
+      const r = await mcp.callTool(SERVER, "bigdata_search", newsInput(), { cache: { staleTime: 300000, gcTime: 1800000, refresh: !!refresh } });
+      live.news = trimSearch(r.payload, 8); renderNews();
+    } catch (e) { if (!lastError) reportError(e, false); }
+  }
+  async function loadMarket(refresh) {
+    try {
+      const r = await mcp.callTool(SERVER, "bigdata_market_tearsheet", {}, { cache: { staleTime: 300000, gcTime: 1800000, refresh: !!refresh } });
+      if (parseMarket(r.payload)) { renderMarket(); if (!lastError) reportLive(); }
+    } catch (e) { if (!lastError) reportError(e, false); }
+  }
+
+  refreshBtn.addEventListener("click", async () => {
+    if (!mcp) return;
+    refreshBtn.disabled = true; setStatus("loading", "Actualizando desde Bigdata.com…");
+    lastError = null;
+    try { await mcp.invalidate(SERVER, "bigdata_portfolio_tearsheet"); } catch (_) {}
+    await Promise.all([loadMarket(true), loadNews(true)]);
+    if (!lastError && Object.keys(live.quotes).length) reportLive();
+    refreshBtn.disabled = false;
+  });
+
+  renderAll();
+  setStatus("loading", "Conectando con Bigdata.com…");
+
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("mcp").then((m) => {
+      mcp = m;
+      if (!m) { refreshBtn.disabled = true; setStatus("error", "Los datos en vivo solo funcionan al abrir esta página dentro de Claude. Se muestra la instantánea del 5-nov."); return; }
+      m.watchTool(SERVER, "bigdata_portfolio_tearsheet", QUOTES_INPUT, (ev) => {
+        if (ev.type === "data") {
+          if (parseQuotes(ev.result.payload)) { renderAll(); reportLive(); }
+          else setStatus("error", "Bigdata.com respondió en un formato inesperado. Se muestra la instantánea del 5-nov.");
+        } else reportError(ev.error, true);
+      }, { cache: { staleTime: 60000, gcTime: 1800000 }, refetchInterval: 300000 });
+      loadMarket(false);
+      loadNews(false);
+    });
+  } else {
+    refreshBtn.disabled = true;
+    setStatus("error", "Los datos en vivo solo funcionan al abrir esta página dentro de Claude. Se muestra la instantánea del 5-nov.");
+  }
+
   // ---- Analyst desk ----
-  const bookText = rows.map((r) => `${r.t} (${r.n}): ${r.sh} acc, costo prom $${r.cost}, precio $${r.px}, valor ${usd(r.val)}, peso ${r.w.toFixed(1)}%, P&L ${sgn(r.pl)}%, objetivo consenso ${r.pt ? "$" + r.pt : "n/d"}, rating del desk ${r.rating}${r.conv ? " (convicción " + r.conv + ")" : ""}`).join("\n");
-  const RULES = `Eres el analista senior de equity research y estrategia de inversión de "Stock Desk", la mesa de análisis personal de un inversionista minorista. Piensas y escribes con el rigor de los equipos de research de los grandes bancos de inversión (estilo J.P. Morgan o UBS Global Wealth Management): tesis clara, drivers de estimados, valuación vs. precio objetivo, riesgos, catalizadores con fecha, escenarios base/alcista/bajista y acciones concretas. No eres empleado de ningún banco ni hablas en su nombre.
+  function buildRules() {
+    const c = compute();
+    const bookText = c.rows.map((r) => `${r.t} (${r.n}): ${r.sh} acc, costo prom $${r.cost}, precio ${r.isLive ? "EN VIVO" : "de la captura"} $${r.px.toFixed(2)}${r.chg != null ? " (" + sgn(r.chg, 2) + "% en la sesión)" : ""}, valor ${usd(r.val)}, peso ${r.w.toFixed(1)}%, P&L ${sgn(r.pl)}%, objetivo consenso ${r.pt ? "$" + r.pt.toFixed(2) : "n/d"}, rating del desk ${r.rating}${r.conv ? " (convicción " + r.conv + ")" : ""}`).join("\n");
+    const mkt = live.market.length ? live.market.map((x) => `${x.l} ${x.v} (${x.c})`).join("; ") : "sin datos de mercado en vivo";
+    const news = live.news.length ? live.news.slice(0, 6).map((n) => `- [${n.when}] ${n.headline} (${n.source})`).join("\n") : "- (sin titulares en vivo)";
+    return `Eres el analista senior de equity research y estrategia de inversión de "Stock Desk", la mesa de análisis personal de un inversionista minorista. Piensas y escribes con el rigor de los equipos de research de los grandes bancos de inversión (estilo J.P. Morgan o UBS Global Wealth Management): tesis clara, drivers de estimados, valuación vs. precio objetivo, riesgos, catalizadores con fecha, escenarios base/alcista/bajista y acciones concretas. No eres empleado de ningún banco ni hablas en su nombre.
 
 ESTILO
-- Español, directo y sincero. Si una idea del usuario es mala, dilo y explica por qué. Sin relleno ni frases de cortesía.
-- Empieza con la conclusión en 1–2 frases (bottom line up front). Luego el razonamiento.
-- Usa encabezados cortos con "## ", viñetas con "- " y **negritas** para cifras clave. Tablas markdown solo si aportan.
-- Cuantifica todo lo que puedas con los datos de abajo (pesos, $, %). Haz las cuentas; muestra el resultado.
-- Ten en cuenta el tamaño real de la cuenta (~$1,100): a esta escala el ahorro mensual pesa más que elegir acciones; dilo cuando sea relevante.
-- Termina con "Qué haría yo" (máximo 3 acciones concretas) cuando la pregunta lo amerite.
+- Español, directo y sincero. Si una idea del usuario es mala, dilo y explica por qué. Sin relleno.
+- Empieza con la conclusión en 1–2 frases. Luego el razonamiento.
+- Usa "## " para encabezados, "- " para viñetas y **negritas** para cifras clave. Tablas markdown solo si aportan.
+- Cuantifica con los datos (pesos, $, %). Haz las cuentas.
+- Ten presente el tamaño de la cuenta (~$1,100): a esta escala el ahorro mensual pesa más que elegir acciones.
+- Termina con "Qué haría yo" (máximo 3 acciones concretas) cuando aplique.
 
-LÍMITES (no los rompas)
-- No tienes internet ni datos en tiempo real. Tus datos son los de abajo (corte ${BOOK.asOf}). Si te preguntan por algo posterior o que no está aquí, dilo explícitamente y razona con escenarios; nunca inventes precios, noticias, cifras de resultados ni precios objetivo.
-- Distingue hechos (de estos datos) de tu opinión y de supuestos.
-- Es análisis informativo, no asesoría financiera personalizada ni recomendación regulada; menciónalo en una línea solo cuando des recomendaciones de compra/venta.
+DATOS Y HERRAMIENTAS
+- Fecha y hora del usuario ahora: ${new Date().toString()}.
+${toolsOn ? "- Tienes herramientas conectadas a Bigdata.com (https://bigdata.com): úsalas para noticias, resultados, research de brokers o cualquier dato reciente antes de opinar sobre eventos. Haz pocas búsquedas y enfocadas (una por tema). Cita la fuente y la fecha de cada noticia (\"según X vía Bigdata.com, fecha\"). Si una herramienta falla o no hay créditos, dilo y sigue con lo que tienes." : "- No tienes herramientas de búsqueda en esta vista: trabaja solo con los datos de abajo."}
+- Nunca inventes precios, noticias, cifras de resultados ni precios objetivo. Distingue hechos, opinión y supuestos.
+- Es análisis informativo, no asesoría financiera personalizada ni recomendación regulada; dilo en una línea solo cuando recomiendes comprar o vender.
 
-CARTERA DEL USUARIO (IBKR, ${BOOK.asOf})
+CARTERA DEL USUARIO (posiciones de ${BOOK.asOf}; precios ${c.anyLive ? "en vivo de Bigdata.com a las " + (live.quotesAt ? hhmm(live.quotesAt) : "ahora") : "de la captura"})
 ${bookText}
-Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / total * 100).toFixed(1)}%). ${BOOK.cashNote}
-Valor total: ${usd(total)}. P&L del día: ${BOOK.dailyPL} USD (${BOOK.dailyPLpct}%). P&L no realizado: ${sgn(unreal, 2)} USD. P&L realizado: ${BOOK.realizedPL} USD (venta de VXUS).
-Exposición directa a Apple+Amazon+NVIDIA: ${tech.toFixed(1)}% (límite prudente del desk: 40%; máximo por posición: 20%).
+Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / c.total * 100).toFixed(1)}%). ${BOOK.cashNote}
+Valor total: ${usd(c.total)}. P&L no realizado: ${sgn(c.unreal, 2)} USD. P&L realizado: ${BOOK.realizedPL} USD (venta de VXUS).
+Exposición directa a Apple+Amazon+NVIDIA: ${c.tech.toFixed(1)}% (límite del desk: 40%; máximo por posición: 20%).
 
-NOTAS DEL DESK (de reportes 1–5 nov 2026, fuente principal Bigdata.com)
+MERCADO (Bigdata.com): ${mkt}
+TITULARES RECIENTES DE SUS ACCIONES (Bigdata.com):
+${news}
+
+NOTAS DEL DESK (reportes 1–5 nov 2026)
 ${NOTES.map((n) => "- " + n.h + ": " + n.b).join("\n")}
-- Apple Q4 FY26: ingresos $114.5B (+12%), EPS $2.10 vs $1.99, iPhone $57.6B récord; guía dic.: ingresos +7–10%, margen bruto 45–46% (consenso ~46.9%), Servicios +8–9% (consenso 10.7%). Cotiza ~35x utilidades futuras.
-- Amazon Q3: ingresos $201.9B (+12%), utilidad operativa $28.1B, AWS +39.3%, capex 2026 ~$220B y más en 2027, FCF negativo; varios brokers recortaron PT pero mantienen Compra; UBS subió a $352.
+- Apple Q4 FY26: ingresos $114.5B (+12%), EPS $2.10 vs $1.99, iPhone $57.6B récord; guía dic.: ingresos +7–10%, margen bruto 45–46% (consenso ~46.9%), Servicios +8–9% (consenso 10.7%). ~35x utilidades futuras.
+- Amazon Q3: ingresos $201.9B (+12%), utilidad operativa $28.1B, AWS +39.3%, capex 2026 ~$220B y más en 2027, FCF negativo.
 - Berkshire Q3: utilidad operativa ajustada $13.01B vs $13.50B un año antes (−3.6%); UBS Buy, PT $628.
 - NVIDIA: DOJ revisa la compra de Hugging Face ($12.9B); exige a socios de nube ≥51% de ingresos fuera de China; Melius bajó PT de $420 a $315.
-- Mercado: Nasdaq 100 tuvo en octubre su peor mes desde mar-2025 por dudas sobre el retorno del gasto en IA; rotación de growth a value; 10Y ~4.9%; IPC sep. 3.7% a/a.
-- Calendario: ${CAL.map((c) => c.d + " " + c.e).join("; ")}.
+- Calendario: ${CAL.map((x) => x.d + " " + x.e).join("; ")}.
 
 El usuario te escribe a continuación.`;
+  }
 
   const log = document.getElementById("log");
   const q = document.getElementById("q");
@@ -291,11 +522,7 @@ El usuario te escribe a continuación.`;
   const clearBtn = document.getElementById("clear");
   const chips = document.getElementById("chips");
   const mDef = document.getElementById("m-default"), mCx = document.getElementById("m-complex");
-  let tier = "default";
-  let turns = [];
-  let ctl = null;
-  let sample = null;
-  let disabled = false;
+  let tier = "default", turns = [], ctl = null, sample = null, disabled = false, toolsOn = false;
 
   [mDef, mCx].forEach((b) => b.addEventListener("click", () => {
     tier = b === mCx ? "complex" : "default";
@@ -303,32 +530,32 @@ El usuario te escribe a continuación.`;
     mCx.setAttribute("aria-pressed", String(tier === "complex"));
   }));
 
-  // Minimal, safe markdown -> DOM (no innerHTML)
   function inline(parent, text) {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    parts.forEach((p) => {
-      if (/^\*\*[^*]+\*\*$/.test(p)) parent.append(el("strong", "", p.slice(2, -2)));
-      else if (p) parent.append(document.createTextNode(p.replace(/(^|\s)\*([^*]+)\*(?=\s|$)/g, "$1$2")));
+    text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https:\/\/[^)\s]+\))/g).forEach((p) => {
+      if (!p) return;
+      const b = p.match(/^\*\*([^*]+)\*\*$/);
+      const l = p.match(/^\[([^\]]+)\]\((https:\/\/[^)\s]+)\)$/);
+      if (b) parent.append(el("strong", "", b[1]));
+      else if (l) { const a = el("a", "", l[1]); a.href = l[2]; a.target = "_blank"; a.rel = "noopener"; parent.append(a); }
+      else parent.append(document.createTextNode(p));
     });
   }
   function render(container, md) {
     container.replaceChildren();
-    const lines = md.replace(/\r/g, "").split("\n");
     let ul = null, para = null, tbl = null;
-    const flush = () => { ul = null; para = null; tbl = null; };
-    for (const raw of lines) {
+    for (const raw of md.replace(/\r/g, "").split("\n")) {
       const line = raw.trimEnd();
-      if (!line.trim()) { flush(); continue; }
+      if (!line.trim()) { ul = para = tbl = null; continue; }
       if (/^\s*\|.*\|\s*$/.test(line)) {
         if (/^\s*\|[\s:\-|]+\|\s*$/.test(line)) continue;
-        if (!tbl) { const w = el("div", "tbl"); tbl = el("table"); w.append(tbl); container.append(w); ul = null; para = null; }
+        if (!tbl) { const w = el("div", "tbl"); tbl = el("table"); w.append(tbl); container.append(w); ul = para = null; }
         const tr = el("tr");
         line.trim().slice(1, -1).split("|").forEach((cell) => { const td = el(tbl.rows.length ? "td" : "th"); inline(td, cell.trim()); tr.append(td); });
         tbl.append(tr); continue;
       }
       tbl = null;
       const h = line.match(/^#{1,4}\s+(.*)/);
-      if (h) { flush(); const e = el("h4"); inline(e, h[1]); container.append(e); continue; }
+      if (h) { ul = para = null; const e = el("h4"); inline(e, h[1]); container.append(e); continue; }
       const li = line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
       if (li) { if (!ul) { ul = el("ul"); container.append(ul); para = null; } const e = el("li"); inline(e, li[1]); ul.append(e); continue; }
       ul = null;
@@ -336,30 +563,29 @@ El usuario te escribe a continuación.`;
       inline(para, line.trim());
     }
   }
-
   function addMsg(role, text) {
     const m = el("div", "msg " + (role === "user" ? "me" : "ai"));
     if (role === "user") m.textContent = text; else render(m, text);
     log.append(m); log.scrollTop = log.scrollHeight; return m;
   }
-
   function welcome() {
     log.replaceChildren();
-    const m = addMsg("ai", `Hola. Ya tengo tu cartera cargada (**${usd(total)}**, corte del 5-nov).\n\nLo primero que veo: **${tech.toFixed(1)}%** en tres tecnológicas, NVIDIA cayendo fuerte y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras: qué hacer con ese efectivo, si mantener NVIDIA, cómo rebalancear o qué esperar del dato de empleo.`);
+    const c = compute();
+    const m = addMsg("ai", `Hola. Tengo tu cartera cargada (**${usd(c.total)}**) y busco en Bigdata.com cuando necesito datos recientes.\n\nLo primero que veo: **${c.tech.toFixed(1)}%** en tres tecnológicas, NVIDIA muy por debajo de tu costo y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras.`);
     m.append(el("div", "meta", "Analista senior · Stock Desk"));
   }
 
   const SUGGEST = [
     "¿Qué hago con mis $110 en efectivo?",
-    "NVIDIA cayó 12%: ¿mantengo, compro más o vendo?",
+    "¿Por qué cayó NVIDIA y qué hago?",
     "Analiza mi concentración y propón un rebalanceo",
     "¿Qué pasa con mi cartera si la Fed sube en diciembre?",
-    "Arma un plan de aportes mensuales de $100"
+    "Dame las noticias más importantes de hoy para mis acciones"
   ];
   SUGGEST.forEach((s) => { const b = el("button", "chip", s); b.type = "button"; b.addEventListener("click", () => { q.value = s; ask(); }); chips.append(b); });
 
   const COPY = {
-    not_granted: "No se dio permiso para usar Claude en esta página. Puedes activarlo desde el menú de permisos del artifact.",
+    not_granted: "No se dio permiso para usar Claude en esta página. Puedes activarlo desde el menú de permisos de la página.",
     sampling_disabled: "Claude no está disponible para esta cuenta.",
     rate_limited: "Demasiadas preguntas seguidas o llegaste a tu límite de uso. Espera un momento y vuelve a intentarlo.",
     session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
@@ -369,6 +595,26 @@ El usuario te escribe a continuación.`;
     upstream_error: "Se cortó la conexión. Vuelve a intentarlo."
   };
   const HIDE = new Set(["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"]);
+
+  function makeTools(note) {
+    if (!toolsOn || !mcp) return undefined;
+    const call = async (tool, input) => {
+      try { const r = await mcp.callTool(SERVER, tool, input, { cache: { staleTime: 120000, gcTime: 600000 } }); return r.payload; }
+      catch (e) { throw new Error(explain(e).t); }
+    };
+    return [
+      { name: "buscar_bigdata",
+        description: "Busca en Bigdata.com noticias, research de brokers, transcripts de resultados y filings. Una sola idea por búsqueda, en inglés o español natural (ej. 'Why did Nvidia stock fall this week'). Devuelve hasta 8 documentos con titular, fecha, fuente, texto y URL.",
+        inputSchema: { type: "object", properties: { consulta: { type: "string", description: "Qué buscar, en lenguaje natural" } }, required: ["consulta"] },
+        execute: async (input) => { const qq = String(input.consulta || "").slice(0, 300); note("Buscando en Bigdata.com: " + qq); return trimSearch(await call("bigdata_search", { request: { search_mode: "smart", query: { text: qq, max_chunks: 10 } } }), 8); } },
+      { name: "precios_en_vivo",
+        description: "Precio actual (incluye pre-market/after-hours si es más reciente), cambio % de la sesión, precio objetivo de consenso y sentimiento de noticias de las posiciones del usuario, desde Bigdata.com.",
+        execute: async () => { note("Consultando precios en Bigdata.com"); const p = await call("bigdata_portfolio_tearsheet", QUOTES_INPUT); parseQuotes(p); renderAll(); return compute().rows.map((r) => ({ ticker: r.t, precio: +r.px.toFixed(2), cambio_sesion_pct: r.chg != null ? +r.chg.toFixed(2) : null, peso_pct: +r.w.toFixed(1), objetivo: r.pt, sentimiento: r.sent })); } },
+      { name: "panorama_mercado",
+        description: "Índices (S&P 500, Nasdaq 100, VIX), bono a 10 años, petróleo, oro y bitcoin con su cambio diario, desde Bigdata.com.",
+        execute: async () => { note("Revisando el mercado en Bigdata.com"); const p = await call("bigdata_market_tearsheet", {}); parseMarket(p); renderMarket(); return live.market; } }
+    ];
+  }
 
   function setBusy(b) { sendBtn.disabled = b || disabled; stopBtn.hidden = !b; clearBtn.disabled = b; chips.querySelectorAll("button").forEach((x) => (x.disabled = b || disabled)); }
 
@@ -381,31 +627,33 @@ El usuario te escribe a continuación.`;
     turns.push({ role: "user", content: text });
     while (turns.length > 16) turns.shift();
     if (turns[0].role !== "user") turns.shift();
-    const bubble = el("div", "msg ai"); const th = el("span", "thinking", tier === "complex" ? "Analizando a fondo" : "Analizando"); bubble.append(th); log.append(bubble); log.scrollTop = log.scrollHeight;
+    const bubble = el("div", "msg ai");
+    const noteEl = el("div", "tool-note"); noteEl.hidden = true;
+    const body = el("div"); body.append(el("span", "thinking", tier === "complex" ? "Analizando a fondo" : "Analizando"));
+    bubble.append(noteEl, body); log.append(bubble); log.scrollTop = log.scrollHeight;
+    const note = (t) => { noteEl.hidden = false; noteEl.textContent = t; };
     ctl = new AbortController();
     setBusy(true);
+    const tools = makeTools(note);
+    const opts = { modelTier: tier, signal: ctl.signal, onText: ({ text: t }) => { render(body, t); log.scrollTop = log.scrollHeight; } };
+    if (tools) opts.tools = tools; else opts.cache = false;
     try {
-      const res = await sample([{ role: "user", content: RULES }, ...turns], {
-        cache: false, modelTier: tier, signal: ctl.signal,
-        onText: ({ text: t }) => { render(bubble, t); log.scrollTop = log.scrollHeight; }
-      });
-      render(bubble, res.text);
+      const res = await sample([{ role: "user", content: buildRules() }, ...turns], opts);
+      render(body, res.text); noteEl.hidden = true;
       turns.push({ role: "assistant", content: res.text });
-      const meta = el("div", "meta", "Analista senior · " + (res.modelTierApplied === "complex" ? "análisis profundo" : "respuesta normal") + (res.truncated ? " · respuesta cortada, pide menos a la vez" : ""));
-      bubble.append(meta);
+      bubble.append(el("div", "meta", "Analista senior · " + (res.modelTierApplied === "complex" ? "análisis profundo" : "respuesta normal") + (tools ? " · con Bigdata.com" : "") + (res.truncated ? " · respuesta cortada, pide menos a la vez" : "")));
     } catch (e) {
       const code = e && e.code;
-      if (e && e.text && code !== "refused") render(bubble, e.text); else bubble.replaceChildren();
-      if (e && e.text && code !== "refused" && code !== "cancelled") turns.push({ role: "assistant", content: e.text });
-      if (code === "cancelled") { if (!bubble.childNodes.length) bubble.remove(); else bubble.append(el("div", "meta", "Detenido")); }
+      noteEl.hidden = true;
+      if (e && e.text && code !== "refused") { render(body, e.text); if (code !== "cancelled") turns.push({ role: "assistant", content: e.text }); }
+      else body.replaceChildren();
+      if (code === "cancelled") { if (!body.childNodes.length) bubble.remove(); else bubble.append(el("div", "meta", "Detenido")); }
       else {
-        if (!bubble.childNodes.length) bubble.remove();
+        if (!body.childNodes.length) bubble.remove();
         addMsg("ai", COPY[code] || COPY.upstream_error);
-        if (HIDE.has(code)) { disabled = true; }
+        if (HIDE.has(code)) disabled = true;
       }
-    } finally {
-      ctl = null; setBusy(false); log.scrollTop = log.scrollHeight;
-    }
+    } finally { ctl = null; setBusy(false); log.scrollTop = log.scrollHeight; }
   }
 
   document.getElementById("composer").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
@@ -417,13 +665,10 @@ El usuario te escribe a continuación.`;
   setBusy(false);
 
   if (window.claude && typeof window.claude.use === "function") {
-    window.claude.use("sample").then((s) => {
+    window.claude.use("sample").then(async (s) => {
       sample = s;
-      if (!s) {
-        disabled = true; setBusy(false);
-        const u = el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta. Aquí puedes ver la cartera, pero no hacer preguntas.");
-        log.append(u);
-      }
+      if (!s) { disabled = true; setBusy(false); log.append(el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta.")); return; }
+      try { const lim = await s.limits(); toolsOn = !!(lim && lim.tools); } catch (_) { toolsOn = false; }
     });
   } else {
     disabled = true; setBusy(false);
