@@ -1,8 +1,8 @@
 {
   "owner": "sanlizarza",
-  "broker": "Interactive Brokers (captura del 2026-11-01)",
+  "broker": "Interactive Brokers (captura del 2026-11-05, 17:16)",
   "base_currency": "USD",
-  "cash": 6.27,
+  "cash": 110.93,
   "positions": [
     {
       "ticker": "AAPL",
@@ -43,14 +43,6 @@
       "shares": 0.3,
       "avg_cost": 687.55,
       "rp_id": "384423"
-    },
-    {
-      "ticker": "VXUS",
-      "name": "Vanguard Total Intl Stock ETF",
-      "type": "etf",
-      "shares": 1.3,
-      "avg_cost": 87.55,
-      "rp_id": "4ED3EA"
     }
   ]
 }
