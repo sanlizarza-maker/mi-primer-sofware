@@ -1,0 +1,17 @@
+{
+  "name": "CriaturasCaoticas",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Config": { "$path": "src/ReplicatedStorage/Config.luau" }
+    },
+    "ServerScriptService": {
+      "GameServer": { "$path": "src/ServerScriptService/GameServer.server.luau" }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "GameClient": { "$path": "src/StarterPlayerScripts/GameClient.client.luau" }
+      }
+    }
+  }
+}
