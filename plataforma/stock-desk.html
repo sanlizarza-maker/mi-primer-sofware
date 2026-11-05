@@ -1,0 +1,433 @@
+<title>Stock Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: trading-desk split — book of positions on the left, analyst desk (chat) on the right; stacks on phones with the desk right after the summary. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #0f1b2c; --muted: #5a6a80; --line: #dde3ec;
+  --accent: #1d4f91; --accent-soft: #e6eef9; --up: #13795b; --down: #b42318; --warn: #a15c00;
+  --bubble: #eef2f7;
+  --f-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b121c; --surface: #111b29; --ink: #e6edf6; --muted: #93a3b8; --line: #23324a;
+  --accent: #7fb0ff; --accent-soft: #16263d; --up: #4cc79b; --down: #ff8577; --warn: #f0b45a; --bubble: #172338;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b121c; --surface: #111b29; --ink: #e6edf6; --muted: #93a3b8; --line: #23324a;
+  --accent: #7fb0ff; --accent-soft: #16263d; --up: #4cc79b; --down: #ff8577; --warn: #f0b45a; --bubble: #172338;
+  color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+header.top h1 { font-family: var(--f-display); font-weight: 600; font-size: 30px; margin: 0; letter-spacing: -0.01em; }
+header.top .asof { color: var(--muted); font-size: 13px; }
+.tag { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.kpi .v { font-family: var(--f-display); font-size: 26px; font-variant-numeric: tabular-nums; }
+.kpi .n { font-size: 12px; color: var(--muted); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 460px); gap: 20px; align-items: start; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } .desk { order: -1; } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel h2 { font-family: var(--f-display); font-weight: 600; font-size: 19px; margin: 0; text-wrap: balance; }
+.panel .sub { color: var(--muted); font-size: 13px; margin: -8px 0 0; }
+
+.book { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.r, th.r { text-align: right; }
+td .tk { font-weight: 600; }
+td .nm { color: var(--muted); font-size: 12px; display: block; }
+.wbar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.wbar i { display: block; height: 6px; border-radius: 3px; background: var(--accent); opacity: .85; }
+.wbar i.hot { background: var(--down); }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.pill.ow { border-color: var(--up); color: var(--up); }
+.pill.nt { border-color: var(--muted); color: var(--muted); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.note { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; font-size: 14px; }
+.note.alert { border-left-color: var(--down); }
+.note.watch { border-left-color: var(--warn); }
+.note b { display: block; font-weight: 600; }
+.cal { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.cal div { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; align-items: baseline; }
+.cal .d { font-family: var(--f-mono); color: var(--muted); font-size: 13px; }
+
+/* Analyst desk */
+.desk { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); }
+@media (max-width: 960px) { .desk { position: static; max-height: none; } }
+.desk-head { display: flex; gap: 12px; align-items: center; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--surface); display: grid; place-items: center; font-family: var(--f-display); font-weight: 600; font-size: 17px; flex: none; }
+.desk-head h2 { font-size: 18px; }
+.desk-head p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.log { flex: 1 1 auto; min-height: 240px; max-height: 58vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+@media (max-width: 960px) { .log { max-height: 70vh; } }
+.msg { border-radius: 12px; padding: 10px 12px; font-size: 14.5px; max-width: 100%; overflow-wrap: anywhere; }
+.msg.me { background: var(--accent); color: var(--surface); align-self: flex-end; max-width: 88%; }
+.msg.ai { background: var(--bubble); }
+.msg.ai h4 { font-family: var(--f-display); font-size: 15.5px; margin: 10px 0 4px; }
+.msg.ai h4:first-child { margin-top: 0; }
+.msg.ai p { margin: 0 0 8px; } .msg.ai p:last-child { margin-bottom: 0; }
+.msg.ai ul { margin: 0 0 8px; padding-left: 18px; }
+.msg.ai li { margin: 2px 0; }
+.msg.ai .tbl { overflow-x: auto; margin: 6px 0 8px; }
+.msg.ai table { font-size: 13px; }
+.msg .meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.thinking { color: var(--muted); font-style: italic; }
+@media (prefers-reduced-motion: no-preference) {
+  .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 13px; background: var(--accent-soft); color: var(--accent); border: 1px solid transparent; border-radius: 999px; padding: 5px 11px; cursor: pointer; text-align: left; }
+.chip:hover { border-color: var(--accent); }
+.composer { display: flex; flex-direction: column; gap: 8px; }
+.composer textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; resize: vertical; min-height: 64px; width: 100%; box-sizing: border-box; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { font: inherit; font-size: 12.5px; background: transparent; color: var(--muted); border: 0; padding: 5px 11px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.btn { font: inherit; font-size: 14px; font-weight: 500; border-radius: var(--r); padding: 8px 16px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.small { font-size: 12px; color: var(--muted); }
+.unavail { background: var(--bubble); border-radius: var(--r); padding: 12px; font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="tag">Mesa de análisis personal</div>
+      <h1>Stock Desk</h1>
+    </div>
+    <div class="asof">Cartera según tu captura de IBKR del jue 5-nov-2026, 17:16 · No se actualiza sola</div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <section class="panel">
+        <h2>Tu cartera</h2>
+        <p class="sub">Peso en rojo: pasa del 20% recomendado por posición.</p>
+        <div class="book"><table id="book">
+          <thead><tr><th>Posición</th><th class="r">Precio</th><th class="r">Valor</th><th class="r">Peso</th><th class="r">Ganancia</th><th class="r">Objetivo analistas</th><th>Calificación</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <section class="panel">
+        <h2>Lo que el desk está vigilando</h2>
+        <div class="notes" id="notes"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Próximos catalizadores</h2>
+        <div class="cal" id="cal"></div>
+      </section>
+    </div>
+
+    <aside class="panel desk" aria-label="Analista IA">
+      <div class="desk-head">
+        <div class="avatar" aria-hidden="true">A</div>
+        <div>
+          <h2>Tu analista senior</h2>
+          <p>Piensa como research de banca de inversión. Conoce tu cartera.</p>
+        </div>
+      </div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <div class="chips" id="chips"></div>
+      <form class="composer" id="composer">
+        <label for="q" class="small">Pregúntale lo que quieras sobre tu cartera, una acción o el mercado</label>
+        <textarea id="q" rows="2" placeholder="Ej.: ¿Qué hago con mis $110 en efectivo?"></textarea>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Profundidad">
+            <button type="button" id="m-default" aria-pressed="true">Respuesta normal</button>
+            <button type="button" id="m-complex" aria-pressed="false">Análisis profundo</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn ghost" id="clear">Nueva conversación</button>
+            <button type="button" class="btn ghost" id="stop" hidden>Detener</button>
+            <button type="submit" class="btn" id="send">Preguntar</button>
+          </div>
+        </div>
+        <div class="small">Cada pregunta usa tu cuenta de Claude. El analista no navega internet: trabaja con tu cartera y las notas de esta página. Es análisis informativo, no asesoría regulada.</div>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---- Data: your book as of the IBKR screenshot (Nov 5, 2026, 17:16) ----
+  const BOOK = {
+    asOf: "2026-11-05 17:16 (captura de IBKR)",
+    cash: 110.93,
+    cashNote: "Efectivo de la venta de VXUS; el buying power mostraba $5.21, probablemente aún sin liquidar.",
+    dailyPL: -45, dailyPLpct: -3.91, realizedPL: -9,
+    positions: [
+      { t: "AAPL", n: "Apple", sh: 0.8, cost: 309.84, px: 342.26, pt: 344.46, rating: "Neutral", conv: "Media" },
+      { t: "AMZN", n: "Amazon", sh: 0.8, cost: 266.32, px: 256.60, pt: 328.48, rating: "Overweight", conv: "Media" },
+      { t: "VOO", n: "Vanguard S&P 500 ETF", sh: 0.3, cost: 687.55, px: 671.89, pt: null, rating: "Core", conv: "" },
+      { t: "BRK.B", n: "Berkshire Hathaway B", sh: 0.3, cost: 510.85, px: 570.34, pt: 628.00, rating: "Overweight", conv: "Media" },
+      { t: "NVDA", n: "NVIDIA", sh: 0.8, cost: 211.97, px: 181.95, pt: 339.17, rating: "Overweight", conv: "Baja" }
+    ]
+  };
+  const NOTES = [
+    { k: "alert", h: "NVIDIA −12% en dos días", b: "De $206.69 (3-nov) a $181.95. Causa no confirmada por falta de datos. Reporta el 17-nov." },
+    { k: "alert", h: "Concentración en tecnología", b: "Apple + Amazon + NVIDIA suman más de la mitad de la cartera, y VOO tiene esas mismas empresas arriba." },
+    { k: "watch", h: "Vendiste VXUS", b: "Era tu única diversificación fuera de EE.UU. Pérdida realizada −$9; queda efectivo." },
+    { k: "watch", h: "Apple: márgenes a la baja", b: "Superó estimados en Q4, pero guió margen bruto de 45–46% en diciembre por el costo de la memoria." },
+    { k: "", h: "Macro", b: "Fed en 3.75–4.00% con probabilidad alta de subida en diciembre. Petróleo ~$97–104 por Irán y Ormuz. Congreso demócrata desde enero." },
+    { k: "", h: "Lectura positiva para IA", b: "AMD: data center +97% y guía de +66% para Q4. Amazon: AWS +39% y backlog de $578B." }
+  ];
+  const CAL = [
+    { d: "06 nov", e: "Empleo de EE.UU. (NFP)", r: "Alta" },
+    { d: "10 nov", e: "Inflación de EE.UU. (IPC)", r: "Alta" },
+    { d: "13 nov", e: "Precios al productor (PPI)", r: "Media" },
+    { d: "17 nov", e: "Resultados de NVIDIA", r: "Alta" }
+  ];
+
+  const usd = (x) => "$" + x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sgn = (x, d = 1) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  // ---- Derived figures ----
+  const rows = BOOK.positions.map((p) => ({ ...p, val: p.sh * p.px, cb: p.sh * p.cost }));
+  const invested = rows.reduce((s, r) => s + r.val, 0);
+  const total = invested + BOOK.cash;
+  const costSum = rows.reduce((s, r) => s + r.cb, 0);
+  const unreal = invested - costSum;
+  rows.forEach((r) => { r.w = r.val / total * 100; r.pl = (r.px / r.cost - 1) * 100; r.up = r.pt ? (r.pt / r.px - 1) * 100 : null; });
+  const tech = rows.filter((r) => ["AAPL", "AMZN", "NVDA"].includes(r.t)).reduce((s, r) => s + r.w, 0);
+
+  // ---- KPIs ----
+  const kpis = [
+    { l: "Valor total", v: usd(total), n: "Incluye " + usd(BOOK.cash) + " en efectivo" },
+    { l: "Día", v: sgn(BOOK.dailyPL, 0) + " USD", n: sgn(BOOK.dailyPLpct, 2) + "% hoy", cls: BOOK.dailyPL >= 0 ? "up" : "down" },
+    { l: "Ganancia sobre costo", v: (unreal >= 0 ? "+" : "−") + usd(Math.abs(unreal)), n: sgn(unreal / costSum * 100, 2) + "% en lo invertido", cls: unreal >= 0 ? "up" : "down" },
+    { l: "En 3 tecnológicas", v: tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: tech > 40 ? "warn" : "" },
+    { l: "Efectivo", v: (BOOK.cash / total * 100).toFixed(1) + "%", n: "Pendiente de decidir" }
+  ];
+  const kp = document.getElementById("kpis");
+  kpis.forEach((k) => { const c = el("div", "kpi"); c.append(el("div", "tag", k.l)); c.append(el("div", "v " + (k.cls || ""), k.v)); c.append(el("div", "n", k.n)); kp.append(c); });
+
+  // ---- Book table ----
+  const tb = document.querySelector("#book tbody");
+  const maxW = Math.max(...rows.map((r) => r.w), 25);
+  rows.slice().sort((a, b) => b.w - a.w).forEach((r) => {
+    const tr = el("tr");
+    const c0 = el("td"); c0.append(el("span", "tk", r.t)); c0.append(el("span", "nm", r.n)); tr.append(c0);
+    tr.append(el("td", "r num", usd(r.px)));
+    tr.append(el("td", "r num", usd(r.val)));
+    const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 20 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
+    wb.append(bar, el("span", "num" + (r.w > 20 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
+    tr.append(el("td", "r num " + (r.pl >= 0 ? "up" : "down"), sgn(r.pl) + "%"));
+    tr.append(el("td", "r num", r.pt ? usd(r.pt) + " (" + sgn(r.up, 0) + "%)" : "—"));
+    const cr = el("td"); cr.append(el("span", "pill " + (r.rating === "Overweight" ? "ow" : "nt"), r.rating + (r.conv ? " · " + r.conv : ""))); tr.append(cr);
+    tb.append(tr);
+  });
+  const trc = el("tr"); const cc = el("td"); cc.append(el("span", "tk", "Efectivo")); cc.append(el("span", "nm", "USD")); trc.append(cc);
+  trc.append(el("td", "r", "")); trc.append(el("td", "r num", usd(BOOK.cash))); trc.append(el("td", "r num", (BOOK.cash / total * 100).toFixed(1) + "%"));
+  trc.append(el("td", "", "")); trc.append(el("td", "", "")); trc.append(el("td", "", "")); tb.append(trc);
+
+  // ---- Notes & calendar ----
+  const nt = document.getElementById("notes");
+  NOTES.forEach((n) => { const d = el("div", "note " + n.k); d.append(el("b", "", n.h)); d.append(document.createTextNode(n.b)); nt.append(d); });
+  const cal = document.getElementById("cal");
+  CAL.forEach((c) => { const d = el("div"); d.append(el("span", "d", c.d), el("span", "", c.e), el("span", c.r === "Alta" ? "warn" : "small", c.r)); cal.append(d); });
+
+  // ---- Analyst desk ----
+  const bookText = rows.map((r) => `${r.t} (${r.n}): ${r.sh} acc, costo prom $${r.cost}, precio $${r.px}, valor ${usd(r.val)}, peso ${r.w.toFixed(1)}%, P&L ${sgn(r.pl)}%, objetivo consenso ${r.pt ? "$" + r.pt : "n/d"}, rating del desk ${r.rating}${r.conv ? " (convicción " + r.conv + ")" : ""}`).join("\n");
+  const RULES = `Eres el analista senior de equity research y estrategia de inversión de "Stock Desk", la mesa de análisis personal de un inversionista minorista. Piensas y escribes con el rigor de los equipos de research de los grandes bancos de inversión (estilo J.P. Morgan o UBS Global Wealth Management): tesis clara, drivers de estimados, valuación vs. precio objetivo, riesgos, catalizadores con fecha, escenarios base/alcista/bajista y acciones concretas. No eres empleado de ningún banco ni hablas en su nombre.
+
+ESTILO
+- Español, directo y sincero. Si una idea del usuario es mala, dilo y explica por qué. Sin relleno ni frases de cortesía.
+- Empieza con la conclusión en 1–2 frases (bottom line up front). Luego el razonamiento.
+- Usa encabezados cortos con "## ", viñetas con "- " y **negritas** para cifras clave. Tablas markdown solo si aportan.
+- Cuantifica todo lo que puedas con los datos de abajo (pesos, $, %). Haz las cuentas; muestra el resultado.
+- Ten en cuenta el tamaño real de la cuenta (~$1,100): a esta escala el ahorro mensual pesa más que elegir acciones; dilo cuando sea relevante.
+- Termina con "Qué haría yo" (máximo 3 acciones concretas) cuando la pregunta lo amerite.
+
+LÍMITES (no los rompas)
+- No tienes internet ni datos en tiempo real. Tus datos son los de abajo (corte ${BOOK.asOf}). Si te preguntan por algo posterior o que no está aquí, dilo explícitamente y razona con escenarios; nunca inventes precios, noticias, cifras de resultados ni precios objetivo.
+- Distingue hechos (de estos datos) de tu opinión y de supuestos.
+- Es análisis informativo, no asesoría financiera personalizada ni recomendación regulada; menciónalo en una línea solo cuando des recomendaciones de compra/venta.
+
+CARTERA DEL USUARIO (IBKR, ${BOOK.asOf})
+${bookText}
+Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / total * 100).toFixed(1)}%). ${BOOK.cashNote}
+Valor total: ${usd(total)}. P&L del día: ${BOOK.dailyPL} USD (${BOOK.dailyPLpct}%). P&L no realizado: ${sgn(unreal, 2)} USD. P&L realizado: ${BOOK.realizedPL} USD (venta de VXUS).
+Exposición directa a Apple+Amazon+NVIDIA: ${tech.toFixed(1)}% (límite prudente del desk: 40%; máximo por posición: 20%).
+
+NOTAS DEL DESK (de reportes 1–5 nov 2026, fuente principal Bigdata.com)
+${NOTES.map((n) => "- " + n.h + ": " + n.b).join("\n")}
+- Apple Q4 FY26: ingresos $114.5B (+12%), EPS $2.10 vs $1.99, iPhone $57.6B récord; guía dic.: ingresos +7–10%, margen bruto 45–46% (consenso ~46.9%), Servicios +8–9% (consenso 10.7%). Cotiza ~35x utilidades futuras.
+- Amazon Q3: ingresos $201.9B (+12%), utilidad operativa $28.1B, AWS +39.3%, capex 2026 ~$220B y más en 2027, FCF negativo; varios brokers recortaron PT pero mantienen Compra; UBS subió a $352.
+- Berkshire Q3: utilidad operativa ajustada $13.01B vs $13.50B un año antes (−3.6%); UBS Buy, PT $628.
+- NVIDIA: DOJ revisa la compra de Hugging Face ($12.9B); exige a socios de nube ≥51% de ingresos fuera de China; Melius bajó PT de $420 a $315.
+- Mercado: Nasdaq 100 tuvo en octubre su peor mes desde mar-2025 por dudas sobre el retorno del gasto en IA; rotación de growth a value; 10Y ~4.9%; IPC sep. 3.7% a/a.
+- Calendario: ${CAL.map((c) => c.d + " " + c.e).join("; ")}.
+
+El usuario te escribe a continuación.`;
+
+  const log = document.getElementById("log");
+  const q = document.getElementById("q");
+  const sendBtn = document.getElementById("send");
+  const stopBtn = document.getElementById("stop");
+  const clearBtn = document.getElementById("clear");
+  const chips = document.getElementById("chips");
+  const mDef = document.getElementById("m-default"), mCx = document.getElementById("m-complex");
+  let tier = "default";
+  let turns = [];
+  let ctl = null;
+  let sample = null;
+  let disabled = false;
+
+  [mDef, mCx].forEach((b) => b.addEventListener("click", () => {
+    tier = b === mCx ? "complex" : "default";
+    mDef.setAttribute("aria-pressed", String(tier === "default"));
+    mCx.setAttribute("aria-pressed", String(tier === "complex"));
+  }));
+
+  // Minimal, safe markdown -> DOM (no innerHTML)
+  function inline(parent, text) {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    parts.forEach((p) => {
+      if (/^\*\*[^*]+\*\*$/.test(p)) parent.append(el("strong", "", p.slice(2, -2)));
+      else if (p) parent.append(document.createTextNode(p.replace(/(^|\s)\*([^*]+)\*(?=\s|$)/g, "$1$2")));
+    });
+  }
+  function render(container, md) {
+    container.replaceChildren();
+    const lines = md.replace(/\r/g, "").split("\n");
+    let ul = null, para = null, tbl = null;
+    const flush = () => { ul = null; para = null; tbl = null; };
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      if (!line.trim()) { flush(); continue; }
+      if (/^\s*\|.*\|\s*$/.test(line)) {
+        if (/^\s*\|[\s:\-|]+\|\s*$/.test(line)) continue;
+        if (!tbl) { const w = el("div", "tbl"); tbl = el("table"); w.append(tbl); container.append(w); ul = null; para = null; }
+        const tr = el("tr");
+        line.trim().slice(1, -1).split("|").forEach((cell) => { const td = el(tbl.rows.length ? "td" : "th"); inline(td, cell.trim()); tr.append(td); });
+        tbl.append(tr); continue;
+      }
+      tbl = null;
+      const h = line.match(/^#{1,4}\s+(.*)/);
+      if (h) { flush(); const e = el("h4"); inline(e, h[1]); container.append(e); continue; }
+      const li = line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
+      if (li) { if (!ul) { ul = el("ul"); container.append(ul); para = null; } const e = el("li"); inline(e, li[1]); ul.append(e); continue; }
+      ul = null;
+      if (!para) { para = el("p"); container.append(para); } else para.append(document.createElement("br"));
+      inline(para, line.trim());
+    }
+  }
+
+  function addMsg(role, text) {
+    const m = el("div", "msg " + (role === "user" ? "me" : "ai"));
+    if (role === "user") m.textContent = text; else render(m, text);
+    log.append(m); log.scrollTop = log.scrollHeight; return m;
+  }
+
+  function welcome() {
+    log.replaceChildren();
+    const m = addMsg("ai", `Hola. Ya tengo tu cartera cargada (**${usd(total)}**, corte del 5-nov).\n\nLo primero que veo: **${tech.toFixed(1)}%** en tres tecnológicas, NVIDIA cayendo fuerte y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras: qué hacer con ese efectivo, si mantener NVIDIA, cómo rebalancear o qué esperar del dato de empleo.`);
+    m.append(el("div", "meta", "Analista senior · Stock Desk"));
+  }
+
+  const SUGGEST = [
+    "¿Qué hago con mis $110 en efectivo?",
+    "NVIDIA cayó 12%: ¿mantengo, compro más o vendo?",
+    "Analiza mi concentración y propón un rebalanceo",
+    "¿Qué pasa con mi cartera si la Fed sube en diciembre?",
+    "Arma un plan de aportes mensuales de $100"
+  ];
+  SUGGEST.forEach((s) => { const b = el("button", "chip", s); b.type = "button"; b.addEventListener("click", () => { q.value = s; ask(); }); chips.append(b); });
+
+  const COPY = {
+    not_granted: "No se dio permiso para usar Claude en esta página. Puedes activarlo desde el menú de permisos del artifact.",
+    sampling_disabled: "Claude no está disponible para esta cuenta.",
+    rate_limited: "Demasiadas preguntas seguidas o llegaste a tu límite de uso. Espera un momento y vuelve a intentarlo.",
+    session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
+    refused: "El analista no pudo responder esa pregunta. Prueba a reformularla.",
+    empty_completion: "No llegó respuesta. Prueba con una pregunta más concreta.",
+    prompt_too_large: "La conversación es demasiado larga. Empieza una nueva conversación.",
+    upstream_error: "Se cortó la conexión. Vuelve a intentarlo."
+  };
+  const HIDE = new Set(["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"]);
+
+  function setBusy(b) { sendBtn.disabled = b || disabled; stopBtn.hidden = !b; clearBtn.disabled = b; chips.querySelectorAll("button").forEach((x) => (x.disabled = b || disabled)); }
+
+  async function ask() {
+    const text = q.value.trim();
+    if (!text || disabled) return;
+    if (!sample) { addMsg("ai", "El analista todavía se está conectando. Intenta de nuevo en unos segundos."); return; }
+    q.value = "";
+    addMsg("user", text);
+    turns.push({ role: "user", content: text });
+    while (turns.length > 16) turns.shift();
+    if (turns[0].role !== "user") turns.shift();
+    const bubble = el("div", "msg ai"); const th = el("span", "thinking", tier === "complex" ? "Analizando a fondo" : "Analizando"); bubble.append(th); log.append(bubble); log.scrollTop = log.scrollHeight;
+    ctl = new AbortController();
+    setBusy(true);
+    try {
+      const res = await sample([{ role: "user", content: RULES }, ...turns], {
+        cache: false, modelTier: tier, signal: ctl.signal,
+        onText: ({ text: t }) => { render(bubble, t); log.scrollTop = log.scrollHeight; }
+      });
+      render(bubble, res.text);
+      turns.push({ role: "assistant", content: res.text });
+      const meta = el("div", "meta", "Analista senior · " + (res.modelTierApplied === "complex" ? "análisis profundo" : "respuesta normal") + (res.truncated ? " · respuesta cortada, pide menos a la vez" : ""));
+      bubble.append(meta);
+    } catch (e) {
+      const code = e && e.code;
+      if (e && e.text && code !== "refused") render(bubble, e.text); else bubble.replaceChildren();
+      if (e && e.text && code !== "refused" && code !== "cancelled") turns.push({ role: "assistant", content: e.text });
+      if (code === "cancelled") { if (!bubble.childNodes.length) bubble.remove(); else bubble.append(el("div", "meta", "Detenido")); }
+      else {
+        if (!bubble.childNodes.length) bubble.remove();
+        addMsg("ai", COPY[code] || COPY.upstream_error);
+        if (HIDE.has(code)) { disabled = true; }
+      }
+    } finally {
+      ctl = null; setBusy(false); log.scrollTop = log.scrollHeight;
+    }
+  }
+
+  document.getElementById("composer").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
+  stopBtn.addEventListener("click", () => ctl && ctl.abort());
+  clearBtn.addEventListener("click", () => { turns = []; welcome(); });
+
+  welcome();
+  setBusy(false);
+
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then((s) => {
+      sample = s;
+      if (!s) {
+        disabled = true; setBusy(false);
+        const u = el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta. Aquí puedes ver la cartera, pero no hacer preguntas.");
+        log.append(u);
+      }
+    });
+  } else {
+    disabled = true; setBusy(false);
+    log.append(el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta."));
+  }
+})();
+</script>
