@@ -26,7 +26,7 @@ Si una herramienta falla, dilo en el reporte ("dato no disponible"), nunca lo re
 
 ## Portafolio
 
-Lee `.claude/skills/stock-desk/portfolio.json`. Campos por posición: `ticker`, `shares`, `avg_cost` (puede ser null), `rp_id` (cache), `type` (stock/etf).
+Lee `portfolio.json` (está en la misma carpeta que este SKILL.md). Campos por posición: `ticker`, `shares`, `avg_cost` (puede ser null), `rp_id` (cache), `type` (stock/etf).
 Calcula: valor de mercado, P&L $ y %, peso % del portafolio, contribución al movimiento del día.
 Si `avg_cost` es null, omite P&L de esa posición, no lo inventes.
 
@@ -41,7 +41,7 @@ Si `avg_cost` es null, omite P&L de esa posición, no lo inventes.
    - Si reportó earnings en las últimas 2 semanas: `bigdata_search` "key takeaways and guidance from {Company} latest earnings call".
 5. **Calendario** — `bigdata_events_calendar` para las próximas 2 semanas (earnings, dividendos, eventos).
 6. **Análisis** (ver marco abajo) y redacción del reporte.
-7. **Guardar** el reporte en `reportes/YYYY-MM-DD.md` y mostrarlo al usuario.
+7. **Guardar** el reporte en `reportes/YYYY-MM-DD.md` si estás dentro del repo; si no (por ejemplo en un chat normal de Claude), muéstralo directamente en la conversación.
 
 ## Marco de análisis (cómo piensa un analista de JPM/UBS)
 
@@ -97,4 +97,4 @@ Esto es análisis informativo, no asesoría financiera personalizada ni una reco
 - Cada noticia con fuente y fecha. Cada número con su origen.
 - Fuera del horario de mercado, aclara que el precio es el cierre anterior y usa after-market si existe.
 - Si el usuario pide "analiza TICKER" (no en el portafolio), haz solo el bloque de posición con más profundidad (company tearsheet + earnings + research) y di cómo encajaría en su portafolio.
-- Si el usuario cambia posiciones, actualiza `portfolio.json`.
+- Si el usuario cambia posiciones, actualiza `portfolio.json` (o, si no puedes escribir archivos, usa las posiciones que el usuario te diga en el chat).
