@@ -106,25 +106,25 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
 .small { font-size: 12px; color: var(--muted); }
 .unavail { background: var(--bubble); border-radius: var(--r); padding: 12px; font-size: 14px; }
 .status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; font-size: 13.5px; }
-.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
-.status[data-state="live"] .dot { background: var(--up); }
-.status[data-state="loading"] .dot { background: var(--accent); }
-.status[data-state="error"] .dot { background: var(--down); }
 .status .msg-s { flex: 1 1 260px; min-width: 0; }
-.status a { color: var(--accent); }
-.status button { font: inherit; font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
-.status button:disabled { opacity: .5; cursor: default; }
-.mkt { display: flex; flex-wrap: wrap; gap: 8px; }
-.mkt:empty { display: none; }
-.mkt .q { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; display: inline-flex; gap: 8px; align-items: baseline; }
-.mkt .q .l { color: var(--muted); }
-.live-tag { font-size: 11px; color: var(--up); font-weight: 600; letter-spacing: .04em; }
-.news { display: flex; flex-direction: column; gap: 10px; }
-.news:empty::before { content: "Las noticias de tus acciones aparecerán aquí cuando Bigdata.com responda."; color: var(--muted); font-size: 14px; }
-.news a { color: var(--ink); text-decoration: none; font-weight: 500; }
-.news a:hover { text-decoration: underline; }
-.news .m { font-size: 12px; color: var(--muted); }
-.tool-note { font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 6px; }
+.status .btn { padding: 6px 14px; font-size: 13px; }
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 20px; align-items: start; }
+.field { display: flex; flex-wrap: wrap; gap: 8px; }
+.field input { font: inherit; font-size: 15px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 9px 12px; min-width: 0; }
+.field input#s-q { flex: 2 1 180px; }
+.field input#s-px { flex: 1 1 110px; }
+.field .btn { flex: none; }
+.out { background: var(--bubble); border-radius: var(--r); padding: 14px 16px; font-size: 14.5px; overflow-wrap: anywhere; }
+.out[hidden] { display: none; }
+.out h4 { font-family: var(--f-display); font-size: 16px; margin: 12px 0 4px; }
+.out h4:first-child { margin-top: 0; }
+.out p { margin: 0 0 8px; } .out p:last-child { margin-bottom: 0; }
+.out ul { margin: 0 0 8px; padding-left: 18px; } .out li { margin: 2px 0; }
+.out .tbl { overflow-x: auto; margin: 6px 0 8px; } .out table { font-size: 13px; }
+.out .meta { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+.ceo-card { border-top: 3px solid var(--accent); }
+.err { color: var(--down); font-size: 13.5px; }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 
 <div class="wrap">
@@ -133,19 +133,40 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
       <div class="tag">Mesa de análisis personal</div>
       <h1>Stock Desk</h1>
     </div>
-    <div class="asof">Posiciones de tu captura de IBKR del 5-nov-2026 · Precios, mercado y noticias de Bigdata.com</div>
+    <div class="asof" id="asof">Cartera de tu captura de IBKR</div>
   </header>
 
-  <div class="status" id="status" data-state="loading">
-    <span class="dot" aria-hidden="true"></span>
-    <span class="msg-s" id="status-msg">Conectando con Bigdata.com…</span>
-    <button type="button" id="refresh">Actualizar</button>
+  <div class="status">
+    <span class="msg-s" id="status-msg">Precios de tu última captura de IBKR. Para actualizarlos, sube una nueva captura de pantalla de tu portafolio.</span>
+    <input type="file" id="shot" accept="image/png,image/jpeg,image/webp" hidden>
+    <button type="button" class="btn ghost" id="shot-btn" hidden>Actualizar con captura de IBKR</button>
   </div>
-
-  <div class="mkt" id="mkt" aria-label="Mercado"></div>
 
   <section class="kpis" id="kpis"></section>
 
+  <div class="tools">
+    <section class="panel">
+      <h2>Buscar una acción</h2>
+      <p class="sub">Escribe un ticker o el nombre de una empresa. El analista la evalúa y te dice cómo encajaría en tu cartera.</p>
+      <form class="field" id="s-form">
+        <input id="s-q" type="text" placeholder="Ticker o empresa (ej. MSFT, Costco)" aria-label="Ticker o empresa" autocomplete="off">
+        <input id="s-px" type="text" inputmode="decimal" placeholder="Precio hoy (opcional)" aria-label="Precio actual en dólares (opcional)">
+        <button type="submit" class="btn" id="s-btn">Analizar</button>
+      </form>
+      <p class="small" style="margin:0">Sin precio de hoy, el análisis no puede decir si está cara o barata ahora mismo. Cópialo de tu app de IBKR para mejor resultado.</p>
+      <div class="out" id="s-out" hidden></div>
+    </section>
+
+    <section class="panel ceo-card">
+      <h2>Informe del CEO</h2>
+      <p class="sub">Tu cartera analizada como si fuera una empresa y tú su CEO: dónde está tu capital, qué rinde, qué riesgos corre y qué decisiones tomar.</p>
+      <div class="row">
+        <button type="button" class="btn" id="ceo-btn">Generar informe</button>
+        <span class="small">Tarda 1–2 minutos: es un análisis a fondo.</span>
+      </div>
+      <div class="out" id="ceo-out" hidden></div>
+    </section>
+  </div>
 
   <div class="main">
     <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
@@ -156,12 +177,6 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
           <thead><tr><th>Posición</th><th class="r">Precio</th><th class="r">Valor</th><th class="r">Peso</th><th class="r">Ganancia</th><th class="r">Objetivo analistas</th><th>Calificación</th></tr></thead>
           <tbody></tbody>
         </table></div>
-      </section>
-
-      <section class="panel">
-        <h2>Noticias de tus acciones</h2>
-        <p class="sub">Últimas 36 horas en Bigdata.com.</p>
-        <div class="news" id="news"></div>
       </section>
 
       <section class="panel">
@@ -180,7 +195,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
         <div class="avatar" aria-hidden="true">A</div>
         <div>
           <h2>Tu analista senior</h2>
-          <p>Piensa como research de banca de inversión. Conoce tu cartera y busca en Bigdata.com.</p>
+          <p>Piensa como research de banca de inversión. Conoce tu cartera.</p>
         </div>
       </div>
       <div class="log" id="log" aria-live="polite"></div>
@@ -199,29 +214,36 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
             <button type="submit" class="btn" id="send">Preguntar</button>
           </div>
         </div>
-        <div class="small">Cada pregunta usa tu cuenta de Claude, y sus búsquedas usan tus créditos de Bigdata.com. Es análisis informativo, no asesoría regulada.</div>
+        <div class="small">Cada pregunta usa tu cuenta de Claude. El analista no tiene internet ni precios en vivo: trabaja con tu cartera, las notas de esta página y lo que tú le digas. Es análisis informativo, no asesoría regulada.</div>
       </form>
     </aside>
   </div>
 </div>
 
-
 <script>
 (function () {
-  // ---- Your book: positions from the IBKR screenshot (Nov 5, 2026, 17:16). Prices go live from Bigdata.com. ----
-  const SERVER = "Bigdata.com";
-  const BOOK = {
-    asOf: "5-nov-2026 17:16 (captura de IBKR)",
+  // ---- Book: positions from the IBKR screenshot of Nov 5, 2026 (17:16). A newer screenshot replaces them. ----
+  const DEFAULT_BOOK = {
+    asOf: "5-nov-2026 17:16",
     cash: 110.93,
     cashNote: "Efectivo de la venta de VXUS; el buying power mostraba $5.21, probablemente aún sin liquidar.",
-    snapDailyPL: -45, snapDailyPLpct: -3.91, realizedPL: -9,
+    dailyPL: -45, dailyPLpct: -3.91, realizedPL: -9,
     positions: [
-      { t: "AAPL", n: "Apple", id: "D8442A", sh: 0.8, cost: 309.84, px: 342.26, pt: 344.46, rating: "Neutral", conv: "Media" },
-      { t: "AMZN", n: "Amazon", id: "0157B1", sh: 0.8, cost: 266.32, px: 256.60, pt: 328.48, rating: "Overweight", conv: "Media" },
-      { t: "VOO", n: "Vanguard S&P 500 ETF", id: "384423", sh: 0.3, cost: 687.55, px: 671.89, pt: null, rating: "Core", conv: "" },
-      { t: "BRK.B", n: "Berkshire Hathaway B", id: "168A5D", sh: 0.3, cost: 510.85, px: 570.34, pt: 628.00, rating: "Overweight", conv: "Media" },
-      { t: "NVDA", n: "NVIDIA", id: "E09E2B", sh: 0.8, cost: 211.97, px: 181.95, pt: 339.17, rating: "Overweight", conv: "Baja" }
+      { t: "AAPL", n: "Apple", sh: 0.8, cost: 309.84, px: 342.26 },
+      { t: "AMZN", n: "Amazon", sh: 0.8, cost: 266.32, px: 256.60 },
+      { t: "VOO", n: "Vanguard S&P 500 ETF", sh: 0.3, cost: 687.55, px: 671.89 },
+      { t: "BRK.B", n: "Berkshire Hathaway B", sh: 0.3, cost: 510.85, px: 570.34 },
+      { t: "NVDA", n: "NVIDIA", sh: 0.8, cost: 211.97, px: 181.95 }
     ]
+  };
+  // The desk's view per ticker (consensus target as of Nov 4, 2026, from earlier reports).
+  const VIEWS = {
+    AAPL: { n: "Apple", pt: 344.46, rating: "Neutral", conv: "Media" },
+    AMZN: { n: "Amazon", pt: 328.48, rating: "Overweight", conv: "Media" },
+    VOO: { n: "Vanguard S&P 500 ETF", pt: null, rating: "Core", conv: "" },
+    "BRK.B": { n: "Berkshire Hathaway B", pt: 628.00, rating: "Overweight", conv: "Media" },
+    NVDA: { n: "NVIDIA", pt: 339.17, rating: "Overweight", conv: "Baja" },
+    VXUS: { n: "Vanguard Total Intl Stock ETF", pt: null, rating: "Core", conv: "" }
   };
   const NOTES = [
     { k: "alert", h: "NVIDIA −12% en dos días", b: "De $206.69 (3-nov) a $181.95 (5-nov). Reporta el 17-nov." },
@@ -237,64 +259,51 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
     { d: "13 nov", e: "Precios al productor (PPI)", r: "Media" },
     { d: "17 nov", e: "Resultados de NVIDIA", r: "Alta" }
   ];
+  const STORE_KEY = "stockdesk-book-v1";
 
-  const usd = (x) => "$" + x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usd = (x) => "$" + Number(x).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const sgn = (x, d = 1) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const hhmm = (ms) => new Date(ms).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  // ---- Live state ----
-  const live = { quotes: {}, quotesAt: null, market: [], marketAt: null, news: [] };
-  let mcp = null;
+  // ---- Load a newer book saved from a screenshot in this browser ----
+  let BOOK = DEFAULT_BOOK;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (saved && Array.isArray(saved.positions) && saved.positions.length && typeof saved.cash === "number") BOOK = saved;
+  } catch (_) {}
 
-  // ---- Derived figures (live price when we have it, else the snapshot) ----
   function compute() {
     const rows = BOOK.positions.map((p) => {
-      const q = live.quotes[p.id];
-      const px = q && q.px ? q.px : p.px;
-      const pt = q && q.pt ? q.pt : p.pt;
-      return { ...p, px, pt, chg: q ? q.chg : null, sent: q ? q.sent : null, isLive: !!(q && q.px), val: p.sh * px, cb: p.sh * p.cost };
+      const v = VIEWS[p.t] || {};
+      return { ...p, n: p.n || v.n || p.t, pt: v.pt || null, rating: v.rating || "Sin calificar", conv: v.conv || "", val: p.sh * p.px, cb: p.sh * p.cost };
     });
     const invested = rows.reduce((s, r) => s + r.val, 0);
     const total = invested + BOOK.cash;
     const costSum = rows.reduce((s, r) => s + r.cb, 0);
-    rows.forEach((r) => { r.w = r.val / total * 100; r.pl = (r.px / r.cost - 1) * 100; r.up = r.pt ? (r.pt / r.px - 1) * 100 : null; });
-    const tech = rows.filter((r) => ["AAPL", "AMZN", "NVDA"].includes(r.t)).reduce((s, r) => s + r.w, 0);
-    const anyLive = rows.some((r) => r.isLive);
-    let dayUsd = null;
-    if (anyLive && rows.every((r) => r.chg != null)) dayUsd = rows.reduce((s, r) => s + r.val - r.val / (1 + r.chg / 100), 0);
-    return { rows, invested, total, costSum, unreal: invested - costSum, tech, anyLive, dayUsd };
+    rows.forEach((r) => { r.w = r.val / total * 100; r.pl = r.cost ? (r.px / r.cost - 1) * 100 : 0; r.up = r.pt ? (r.pt / r.px - 1) * 100 : null; });
+    const tech = rows.filter((r) => ["AAPL", "AMZN", "NVDA", "MSFT", "GOOGL", "GOOG", "META", "TSLA", "AVGO", "AMD"].includes(r.t)).reduce((s, r) => s + r.w, 0);
+    return { rows, invested, total, costSum, unreal: invested - costSum, tech };
   }
 
-  function renderKpis(c) {
+  function renderTop() {
+    const c = compute();
+    document.getElementById("asof").textContent = "Cartera de tu captura de IBKR del " + BOOK.asOf;
     const kp = document.getElementById("kpis"); kp.replaceChildren();
-    const day = c.dayUsd != null
-      ? { v: sgn(c.dayUsd, 2) + " USD", n: sgn(c.dayUsd / (c.total - c.dayUsd) * 100, 2) + "% en la última sesión", cls: c.dayUsd >= 0 ? "up" : "down" }
-      : { v: sgn(BOOK.snapDailyPL, 0) + " USD", n: sgn(BOOK.snapDailyPLpct, 2) + "% el 5-nov (captura)", cls: BOOK.snapDailyPL >= 0 ? "up" : "down" };
     const items = [
-      { l: "Valor total", v: usd(c.total), n: "Incluye " + usd(BOOK.cash) + " en efectivo", liveTag: c.anyLive },
-      { l: "Día", v: day.v, n: day.n, cls: day.cls, liveTag: c.dayUsd != null },
-      { l: "Ganancia sobre costo", v: (c.unreal >= 0 ? "+" : "−") + usd(Math.abs(c.unreal)), n: sgn(c.unreal / c.costSum * 100, 2) + "% en lo invertido", cls: c.unreal >= 0 ? "up" : "down", liveTag: c.anyLive },
-      { l: "En 3 tecnológicas", v: c.tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: c.tech > 40 ? "warn" : "" },
+      { l: "Valor total", v: usd(c.total), n: "Incluye " + usd(BOOK.cash) + " en efectivo" },
+      BOOK.dailyPL != null ? { l: "Día de la captura", v: sgn(BOOK.dailyPL, 0) + " USD", n: (BOOK.dailyPLpct != null ? sgn(BOOK.dailyPLpct, 2) + "%" : ""), cls: BOOK.dailyPL >= 0 ? "up" : "down" } : null,
+      { l: "Ganancia sobre costo", v: (c.unreal >= 0 ? "+" : "−") + usd(Math.abs(c.unreal)), n: sgn(c.costSum ? c.unreal / c.costSum * 100 : 0, 2) + "% en lo invertido", cls: c.unreal >= 0 ? "up" : "down" },
+      { l: "En gran tecnología", v: c.tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: c.tech > 40 ? "warn" : "" },
       { l: "Efectivo", v: (BOOK.cash / c.total * 100).toFixed(1) + "%", n: "Pendiente de decidir" }
-    ];
-    items.forEach((k) => {
-      const d = el("div", "kpi"); const t = el("div", "tag", k.l);
-      if (k.liveTag) { t.append(" "); t.append(el("span", "live-tag", "● EN VIVO")); }
-      d.append(t, el("div", "v " + (k.cls || ""), k.v), el("div", "n", k.n)); kp.append(d);
-    });
-  }
+    ].filter(Boolean);
+    items.forEach((k) => { const d = el("div", "kpi"); d.append(el("div", "tag", k.l), el("div", "v " + (k.cls || ""), k.v), el("div", "n", k.n)); kp.append(d); });
 
-  function renderBook(c) {
     const tb = document.querySelector("#book tbody"); tb.replaceChildren();
     const maxW = Math.max(...c.rows.map((r) => r.w), 25);
     c.rows.slice().sort((a, b) => b.w - a.w).forEach((r) => {
       const tr = el("tr");
-      const c0 = el("td"); c0.append(el("span", "tk", r.t)); c0.append(el("span", "nm", r.n)); tr.append(c0);
-      const cp = el("td", "r num", usd(r.px));
-      if (r.chg != null) { cp.append(el("span", "nm " + (r.chg >= 0 ? "up" : "down"), sgn(r.chg, 2) + "% hoy")); }
-      tr.append(cp);
-      tr.append(el("td", "r num", usd(r.val)));
+      const c0 = el("td"); c0.append(el("span", "tk", r.t), el("span", "nm", r.n)); tr.append(c0);
+      tr.append(el("td", "r num", usd(r.px)), el("td", "r num", usd(r.val)));
       const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 20 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
       wb.append(bar, el("span", "num" + (r.w > 20 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
       tr.append(el("td", "r num " + (r.pl >= 0 ? "up" : "down"), sgn(r.pl) + "%"));
@@ -302,242 +311,49 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
       const cr = el("td"); cr.append(el("span", "pill " + (r.rating === "Overweight" ? "ow" : "nt"), r.rating + (r.conv ? " · " + r.conv : ""))); tr.append(cr);
       tb.append(tr);
     });
-    const trc = el("tr"); const cc = el("td"); cc.append(el("span", "tk", "Efectivo")); cc.append(el("span", "nm", "USD")); trc.append(cc);
-    trc.append(el("td", "r", "")); trc.append(el("td", "r num", usd(BOOK.cash))); trc.append(el("td", "r num", (BOOK.cash / c.total * 100).toFixed(1) + "%"));
-    trc.append(el("td"), el("td"), el("td")); tb.append(trc);
+    const trc = el("tr"); const cc = el("td"); cc.append(el("span", "tk", "Efectivo"), el("span", "nm", "USD")); trc.append(cc);
+    trc.append(el("td", "r", ""), el("td", "r num", usd(BOOK.cash)), el("td", "r num", (BOOK.cash / c.total * 100).toFixed(1) + "%"), el("td"), el("td"), el("td"));
+    tb.append(trc);
   }
 
-  function renderMarket() {
-    const m = document.getElementById("mkt"); m.replaceChildren();
-    live.market.forEach((x) => {
-      const q = el("span", "q"); q.append(el("span", "l", x.l), el("span", "num", x.v));
-      if (x.c) q.append(el("span", "num " + (/^-/.test(x.c) ? "down" : "up"), x.c));
-      m.append(q);
-    });
-  }
-
-  function renderNews() {
-    const box = document.getElementById("news"); box.replaceChildren();
-    live.news.slice(0, 8).forEach((n) => {
-      const d = el("div");
-      const a = el("a", "", n.headline); a.href = n.url || "https://bigdata.com"; a.target = "_blank"; a.rel = "noopener";
-      d.append(a, el("div", "m", [n.source, n.when].filter(Boolean).join(" · ")));
-      box.append(d);
-    });
-  }
-
-  function renderAll() { const c = compute(); renderKpis(c); renderBook(c); renderMarket(); renderNews(); }
-
-  // ---- Static panels ----
   const nt = document.getElementById("notes");
-  NOTES.forEach((n) => { const d = el("div", "note " + n.k); d.append(el("b", "", n.h)); d.append(document.createTextNode(n.b)); nt.append(d); });
+  NOTES.forEach((n) => { const d = el("div", "note " + n.k); d.append(el("b", "", n.h), document.createTextNode(n.b)); nt.append(d); });
   const cal = document.getElementById("cal");
-  CAL.forEach((c) => { const d = el("div"); d.append(el("span", "d", c.d), el("span", "", c.e), el("span", c.r === "Alta" ? "warn" : "small", c.r)); cal.append(d); });
+  CAL.forEach((x) => { const d = el("div"); d.append(el("span", "d", x.d), el("span", "", x.e), el("span", x.r === "Alta" ? "warn" : "small", x.r)); cal.append(d); });
 
-  // ---- Status line ----
-  const statusEl = document.getElementById("status");
-  const statusMsg = document.getElementById("status-msg");
-  const refreshBtn = document.getElementById("refresh");
-  function setStatus(state, text, link) {
-    statusEl.dataset.state = state;
-    statusMsg.replaceChildren(document.createTextNode(text));
-    if (link) { statusMsg.append(" "); const a = el("a", "", link.t); a.href = link.h; a.target = "_blank"; a.rel = "noopener"; statusMsg.append(a); }
-  }
-  function explain(err) {
-    const code = err && err.code;
-    const msg = (err && err.message) || "";
-    if (code === "tool_error" && /credit/i.test(msg)) return { t: "Bigdata.com no tiene créditos: se muestra la instantánea del 5-nov.", link: { t: "Recargar créditos", h: "https://app.bigdata.com/" } };
-    if (code === "server_not_connected" || code === "selection_required") return { t: "Conecta Bigdata.com en Configuración → Conectores de Claude para ver datos en vivo." };
-    if (code === "needs_reauth") return { t: "Vuelve a conectar Bigdata.com en Configuración → Conectores de Claude." };
-    if (code === "not_in_manifest" || code === "not_granted" || code === "capability_disabled" || code === "capability_removed") return { t: "Esta página no tiene permiso para usar Bigdata.com. Actívalo desde el menú de permisos de la página." };
-    if (code === "blocked_by_policy" || code === "approval_required") return { t: "Tu organización bloquea Bigdata.com en esta página." };
-    if (code === "server_unavailable" || code === "rate_limited") return { t: "Bigdata.com no responde ahora. Prueba Actualizar en un momento." };
-    if (code === "tool_error") return { t: "Bigdata.com devolvió un error: " + msg.slice(0, 140) };
-    return { t: "No se pudo traer datos de Bigdata.com. Prueba Actualizar." };
-  }
-  let lastError = null;
-  function reportError(err, retract) {
-    lastError = err;
-    const e = explain(err);
-    setStatus("error", e.t, e.link);
-    if (retract && ["needs_reauth", "server_not_connected", "blocked_by_policy", "approval_required", "not_in_manifest"].includes(err && err.code)) { live.quotes = {}; live.market = []; live.news = []; renderAll(); }
-  }
-  function reportLive() {
-    lastError = null;
-    const at = live.quotesAt || live.marketAt;
-    setStatus("live", "En vivo con Bigdata.com" + (at ? " · precios de " + hhmm(at) : "") + ". Se actualiza solo cada 5 minutos.");
-  }
-
-  // ---- Parsers ----
-  function parseQuotes(payload) {
-    const arr = payload && (Array.isArray(payload) ? payload : payload.structured || payload.rows || payload.data);
-    if (!Array.isArray(arr)) return false;
-    let newest = 0;
-    arr.forEach((r) => {
-      if (!r || !r.rp_entity_id) return;
-      const reg = r.price && typeof r.price.value === "number" ? r.price.value : null;
-      const regAt = r.price && r.price.as_of ? Date.parse(r.price.as_of) : 0;
-      const am = r.aftermarket && typeof r.aftermarket.price === "number" ? r.aftermarket.price : null;
-      const amAt = r.aftermarket && r.aftermarket.traded_at ? Date.parse(r.aftermarket.traded_at) : 0;
-      let px = reg, chg = typeof r.change_1d_pct === "number" ? r.change_1d_pct : null, at = regAt;
-      if (am && reg && amAt > regAt) { px = am; chg = (am / reg - 1) * 100; at = amAt; }
-      if (px == null) return;
-      newest = Math.max(newest, at || 0);
-      live.quotes[r.rp_entity_id] = { px, chg, pt: r.price_target && typeof r.price_target.value === "number" ? r.price_target.value : null, sent: r.sentiment ? r.sentiment.value : null };
-    });
-    live.quotesAt = newest || Date.now();
-    return Object.keys(live.quotes).length > 0;
-  }
-  function parseMarket(payload) {
-    const text = typeof payload === "string" ? payload : (payload && typeof payload.text === "string" ? payload.text : "");
-    if (!text) return false;
-    const lines = text.split("\n");
-    const cells = (name) => {
-      const line = lines.find((l) => l.startsWith("| " + name + " |"));
-      return line ? line.split("|").slice(1, -1).map((s) => s.trim()) : null;
-    };
-    const out = [];
-    const add = (label, name, pi, ci, fmt) => { const c = cells(name); if (c && c[pi]) out.push({ l: label, v: fmt ? fmt(c[pi]) : c[pi], c: c[ci] || "" }); };
-    add("S&P 500", "S&P 500", 2, 3);
-    add("Nasdaq 100", "NASDAQ 100", 2, 3);
-    add("VIX", "CBOE Volatility Index", 2, 3);
-    add("Bono 10 años", "10 Year", 1, 2);
-    add("Petróleo WTI", "Crude Oil", 2, 3, (v) => "$" + v);
-    add("Oro", "Gold Futures", 2, 3, (v) => "$" + v);
-    add("Bitcoin", "BTC/USD", 2, 3, (v) => "$" + v);
-    live.market = out; live.marketAt = Date.now();
-    return out.length > 0;
-  }
-  function trimSearch(payload, max) {
-    const res = payload && Array.isArray(payload.results) ? payload.results : [];
-    return res.slice(0, max).map((r) => ({
-      headline: String(r.headline || "").slice(0, 200),
-      when: r.timestamp ? String(r.timestamp).slice(0, 16).replace("T", " ") : "",
-      source: r.source && r.source.name ? String(r.source.name) : "",
-      url: typeof r.url === "string" && /^https:\/\//.test(r.url) ? r.url : "",
-      text: (r.chunks || []).map((c) => c && c.text ? String(c.text) : "").join(" ").slice(0, 600)
-    }));
-  }
-
-  // ---- Live wiring ----
-  const QUOTES_INPUT = { rp_entity_ids: BOOK.positions.map((p) => p.id), metrics: ["PRICE", "PRICE_CHANGE_1D", "AFTERMARKET", "PRICE_TARGET", "SENTIMENT"] };
-  function newsInput() {
-    const start = new Date(Date.now() - 36 * 3600 * 1000); start.setUTCMinutes(0, 0, 0);
-    return { request: { search_mode: "fast", query: { text: "latest news and analyst actions", max_chunks: 12, filters: {
-      entity: { search_in: "ALL", any_of: BOOK.positions.filter((p) => p.t !== "VOO").map((p) => p.id) },
-      document_type: { mode: "INCLUDE", values: [{ type: "NEWS" }] },
-      timestamp: { start: start.toISOString().replace(".000", "") } } } } };
-  }
-  async function loadNews(refresh) {
-    try {
-      const r = await mcp.callTool(SERVER, "bigdata_search", newsInput(), { cache: { staleTime: 300000, gcTime: 1800000, refresh: !!refresh } });
-      live.news = trimSearch(r.payload, 8); renderNews();
-    } catch (e) { if (!lastError) reportError(e, false); }
-  }
-  async function loadMarket(refresh) {
-    try {
-      const r = await mcp.callTool(SERVER, "bigdata_market_tearsheet", {}, { cache: { staleTime: 300000, gcTime: 1800000, refresh: !!refresh } });
-      if (parseMarket(r.payload)) { renderMarket(); if (!lastError) reportLive(); }
-    } catch (e) { if (!lastError) reportError(e, false); }
-  }
-
-  refreshBtn.addEventListener("click", async () => {
-    if (!mcp) return;
-    refreshBtn.disabled = true; setStatus("loading", "Actualizando desde Bigdata.com…");
-    lastError = null;
-    try { await mcp.invalidate(SERVER, "bigdata_portfolio_tearsheet"); } catch (_) {}
-    await Promise.all([loadMarket(true), loadNews(true)]);
-    if (!lastError && Object.keys(live.quotes).length) reportLive();
-    refreshBtn.disabled = false;
-  });
-
-  renderAll();
-  setStatus("loading", "Conectando con Bigdata.com…");
-
-  if (window.claude && typeof window.claude.use === "function") {
-    window.claude.use("mcp").then((m) => {
-      mcp = m;
-      if (!m) { refreshBtn.disabled = true; setStatus("error", "Los datos en vivo solo funcionan al abrir esta página dentro de Claude. Se muestra la instantánea del 5-nov."); return; }
-      m.watchTool(SERVER, "bigdata_portfolio_tearsheet", QUOTES_INPUT, (ev) => {
-        if (ev.type === "data") {
-          if (parseQuotes(ev.result.payload)) { renderAll(); reportLive(); }
-          else setStatus("error", "Bigdata.com respondió en un formato inesperado. Se muestra la instantánea del 5-nov.");
-        } else reportError(ev.error, true);
-      }, { cache: { staleTime: 60000, gcTime: 1800000 }, refetchInterval: 300000 });
-      loadMarket(false);
-      loadNews(false);
-    });
-  } else {
-    refreshBtn.disabled = true;
-    setStatus("error", "Los datos en vivo solo funcionan al abrir esta página dentro de Claude. Se muestra la instantánea del 5-nov.");
-  }
-
-  // ---- Analyst desk ----
-  function buildRules() {
+  // ---- Shared context for every AI call ----
+  function context() {
     const c = compute();
-    const bookText = c.rows.map((r) => `${r.t} (${r.n}): ${r.sh} acc, costo prom $${r.cost}, precio ${r.isLive ? "EN VIVO" : "de la captura"} $${r.px.toFixed(2)}${r.chg != null ? " (" + sgn(r.chg, 2) + "% en la sesión)" : ""}, valor ${usd(r.val)}, peso ${r.w.toFixed(1)}%, P&L ${sgn(r.pl)}%, objetivo consenso ${r.pt ? "$" + r.pt.toFixed(2) : "n/d"}, rating del desk ${r.rating}${r.conv ? " (convicción " + r.conv + ")" : ""}`).join("\n");
-    const mkt = live.market.length ? live.market.map((x) => `${x.l} ${x.v} (${x.c})`).join("; ") : "sin datos de mercado en vivo";
-    const news = live.news.length ? live.news.slice(0, 6).map((n) => `- [${n.when}] ${n.headline} (${n.source})`).join("\n") : "- (sin titulares en vivo)";
-    return `Eres el analista senior de equity research y estrategia de inversión de "Stock Desk", la mesa de análisis personal de un inversionista minorista. Piensas y escribes con el rigor de los equipos de research de los grandes bancos de inversión (estilo J.P. Morgan o UBS Global Wealth Management): tesis clara, drivers de estimados, valuación vs. precio objetivo, riesgos, catalizadores con fecha, escenarios base/alcista/bajista y acciones concretas. No eres empleado de ningún banco ni hablas en su nombre.
+    const lines = c.rows.map((r) => `${r.t} (${r.n}): ${r.sh} acc, costo prom $${r.cost}, precio $${r.px}, valor ${usd(r.val)}, peso ${r.w.toFixed(1)}%, P&L ${sgn(r.pl)}%, objetivo consenso (4-nov) ${r.pt ? "$" + r.pt : "n/d"}, rating del desk ${r.rating}${r.conv ? " (convicción " + r.conv + ")" : ""}`).join("\n");
+    return `CARTERA DEL USUARIO (Interactive Brokers, captura del ${BOOK.asOf})
+${lines}
+Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / c.total * 100).toFixed(1)}%). ${BOOK.cashNote || ""}
+Valor total: ${usd(c.total)}. Costo de lo invertido: ${usd(c.costSum)}. P&L no realizado: ${sgn(c.unreal, 2)} USD (${sgn(c.costSum ? c.unreal / c.costSum * 100 : 0, 2)}%).${BOOK.realizedPL != null ? " P&L realizado: " + BOOK.realizedPL + " USD." : ""}${BOOK.dailyPL != null ? " P&L del día de la captura: " + BOOK.dailyPL + " USD." : ""}
+Exposición a gran tecnología (Apple, Amazon, NVIDIA y similares): ${c.tech.toFixed(1)}% (límite del desk 40%; máximo por posición 20%).
 
-ESTILO
-- Español, directo y sincero. Si una idea del usuario es mala, dilo y explica por qué. Sin relleno.
-- Empieza con la conclusión en 1–2 frases. Luego el razonamiento.
-- Usa "## " para encabezados, "- " para viñetas y **negritas** para cifras clave. Tablas markdown solo si aportan.
-- Cuantifica con los datos (pesos, $, %). Haz las cuentas.
-- Ten presente el tamaño de la cuenta (~$1,100): a esta escala el ahorro mensual pesa más que elegir acciones.
-- Termina con "Qué haría yo" (máximo 3 acciones concretas) cuando aplique.
-
-DATOS Y HERRAMIENTAS
-- Fecha y hora del usuario ahora: ${new Date().toString()}.
-${toolsOn ? "- Tienes herramientas conectadas a Bigdata.com (https://bigdata.com): úsalas para noticias, resultados, research de brokers o cualquier dato reciente antes de opinar sobre eventos. Haz pocas búsquedas y enfocadas (una por tema). Cita la fuente y la fecha de cada noticia (\"según X vía Bigdata.com, fecha\"). Si una herramienta falla o no hay créditos, dilo y sigue con lo que tienes." : "- No tienes herramientas de búsqueda en esta vista: trabaja solo con los datos de abajo."}
-- Nunca inventes precios, noticias, cifras de resultados ni precios objetivo. Distingue hechos, opinión y supuestos.
-- Es análisis informativo, no asesoría financiera personalizada ni recomendación regulada; dilo en una línea solo cuando recomiendes comprar o vender.
-
-CARTERA DEL USUARIO (posiciones de ${BOOK.asOf}; precios ${c.anyLive ? "en vivo de Bigdata.com a las " + (live.quotesAt ? hhmm(live.quotesAt) : "ahora") : "de la captura"})
-${bookText}
-Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / c.total * 100).toFixed(1)}%). ${BOOK.cashNote}
-Valor total: ${usd(c.total)}. P&L no realizado: ${sgn(c.unreal, 2)} USD. P&L realizado: ${BOOK.realizedPL} USD (venta de VXUS).
-Exposición directa a Apple+Amazon+NVIDIA: ${c.tech.toFixed(1)}% (límite del desk: 40%; máximo por posición: 20%).
-
-MERCADO (Bigdata.com): ${mkt}
-TITULARES RECIENTES DE SUS ACCIONES (Bigdata.com):
-${news}
-
-NOTAS DEL DESK (reportes 1–5 nov 2026)
+NOTAS DEL DESK (reportes del 1 al 5 de noviembre de 2026)
 ${NOTES.map((n) => "- " + n.h + ": " + n.b).join("\n")}
 - Apple Q4 FY26: ingresos $114.5B (+12%), EPS $2.10 vs $1.99, iPhone $57.6B récord; guía dic.: ingresos +7–10%, margen bruto 45–46% (consenso ~46.9%), Servicios +8–9% (consenso 10.7%). ~35x utilidades futuras.
 - Amazon Q3: ingresos $201.9B (+12%), utilidad operativa $28.1B, AWS +39.3%, capex 2026 ~$220B y más en 2027, FCF negativo.
 - Berkshire Q3: utilidad operativa ajustada $13.01B vs $13.50B un año antes (−3.6%); UBS Buy, PT $628.
 - NVIDIA: DOJ revisa la compra de Hugging Face ($12.9B); exige a socios de nube ≥51% de ingresos fuera de China; Melius bajó PT de $420 a $315.
-- Calendario: ${CAL.map((x) => x.d + " " + x.e).join("; ")}.
-
-El usuario te escribe a continuación.`;
+- Mercado al 4-nov: Nasdaq 100 con su peor mes desde mar-2025 en octubre, rotación de growth a value, 10Y ~4.9%, IPC sep. 3.7% a/a, Fed 3.75–4.00%.
+- Calendario: ${CAL.map((x) => x.d + " " + x.e).join("; ")}.`;
   }
+  const PERSONA = `Eres el analista senior de equity research y estrategia de inversión de "Stock Desk", la mesa de análisis personal de un inversionista minorista. Piensas y escribes con el rigor de los equipos de research de los grandes bancos de inversión (estilo J.P. Morgan o UBS Global Wealth Management): tesis clara, drivers de estimados, valuación, riesgos, catalizadores, escenarios y acciones concretas. No eres empleado de ningún banco ni hablas en su nombre.
 
-  const log = document.getElementById("log");
-  const q = document.getElementById("q");
-  const sendBtn = document.getElementById("send");
-  const stopBtn = document.getElementById("stop");
-  const clearBtn = document.getElementById("clear");
-  const chips = document.getElementById("chips");
-  const mDef = document.getElementById("m-default"), mCx = document.getElementById("m-complex");
-  let tier = "default", turns = [], ctl = null, sample = null, disabled = false, toolsOn = false;
+ESTILO: español, directo y sincero; si una idea es mala, dilo. Empieza con la conclusión. Usa "## " para encabezados, "- " para viñetas y **negritas** para cifras clave. Cuantifica con los datos (pesos, $, %) y haz las cuentas. Ten presente que la cuenta es pequeña (~$1,100): a esta escala el ahorro mensual pesa más que elegir acciones.
 
-  [mDef, mCx].forEach((b) => b.addEventListener("click", () => {
-    tier = b === mCx ? "complex" : "default";
-    mDef.setAttribute("aria-pressed", String(tier === "default"));
-    mCx.setAttribute("aria-pressed", String(tier === "complex"));
-  }));
+LÍMITES: no tienes internet ni precios en vivo. Tus datos son los de abajo y tu conocimiento general, que puede estar desactualizado: dilo cuando importe. Nunca inventes precios actuales, noticias, resultados ni precios objetivo; si no sabes una cifra, di que no la tienes y qué debería revisar el usuario. Distingue hechos, opinión y supuestos. Es análisis informativo, no asesoría financiera personalizada ni recomendación regulada; dilo en una línea cuando recomiendes comprar o vender.
 
+Fecha del usuario: ${new Date().toLocaleDateString("es", { year: "numeric", month: "long", day: "numeric" })}.`;
+
+  // ---- Markdown renderer (safe, no innerHTML) ----
   function inline(parent, text) {
-    text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https:\/\/[^)\s]+\))/g).forEach((p) => {
+    text.split(/(\*\*[^*]+\*\*)/g).forEach((p) => {
       if (!p) return;
       const b = p.match(/^\*\*([^*]+)\*\*$/);
-      const l = p.match(/^\[([^\]]+)\]\((https:\/\/[^)\s]+)\)$/);
-      if (b) parent.append(el("strong", "", b[1]));
-      else if (l) { const a = el("a", "", l[1]); a.href = l[2]; a.target = "_blank"; a.rel = "noopener"; parent.append(a); }
-      else parent.append(document.createTextNode(p));
+      parent.append(b ? el("strong", "", b[1]) : document.createTextNode(p));
     });
   }
   function render(container, md) {
@@ -563,6 +379,136 @@ El usuario te escribe a continuación.`;
       inline(para, line.trim());
     }
   }
+
+  // ---- Claude access ----
+  let sample = null, aiOff = false;
+  const COPY = {
+    not_granted: "No se dio permiso para usar Claude en esta página. Puedes activarlo desde el menú de permisos de la página.",
+    sampling_disabled: "Claude no está disponible para esta cuenta.",
+    rate_limited: "Demasiadas solicitudes seguidas o llegaste a tu límite de uso. Espera un momento y vuelve a intentarlo.",
+    session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
+    refused: "El analista no pudo responder eso. Prueba a reformularlo.",
+    empty_completion: "No llegó respuesta. Prueba de nuevo con una petición más concreta.",
+    prompt_too_large: "La solicitud es demasiado larga. Empieza una nueva conversación.",
+    invalid_json: "No pude leer la captura. Prueba con una imagen más nítida de la pestaña Positions.",
+    image_rejected: "Esa imagen no sirve. Usa una captura PNG o JPG de tu app de IBKR.",
+    images_unavailable: "Esta vista no puede enviar imágenes.",
+    upstream_error: "Se cortó la conexión. Vuelve a intentarlo."
+  };
+  const OFF = new Set(["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"]);
+  const errText = (e) => COPY[e && e.code] || COPY.upstream_error;
+  function noteOff(e) { if (OFF.has(e && e.code)) { aiOff = true; syncButtons(); } }
+
+  // Streams a one-shot report into a box.
+  async function report(box, btn, prompt, tier, label) {
+    if (!sample || aiOff) { box.hidden = false; box.replaceChildren(el("p", "err", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta.")); return; }
+    box.hidden = false; box.replaceChildren(el("span", "thinking", "Analizando"));
+    btn.disabled = true;
+    try {
+      const res = await sample(prompt, { modelTier: tier, cache: false, onText: ({ text }) => render(box, text) });
+      render(box, res.text);
+      box.append(el("div", "meta", label + (res.truncated ? " · respuesta cortada" : "")));
+    } catch (e) {
+      if (e && e.text && e.code !== "refused") render(box, e.text); else box.replaceChildren();
+      box.append(el("p", "err", errText(e))); noteOff(e);
+    } finally { btn.disabled = aiOff; }
+  }
+
+  // ---- Stock search ----
+  const sForm = document.getElementById("s-form"), sQ = document.getElementById("s-q"), sPx = document.getElementById("s-px"), sBtn = document.getElementById("s-btn"), sOut = document.getElementById("s-out");
+  sForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = sQ.value.trim().slice(0, 80);
+    if (!name) { sQ.focus(); return; }
+    const pxRaw = sPx.value.replace(/[$,\s]/g, "");
+    const px = pxRaw && isFinite(Number(pxRaw)) && Number(pxRaw) > 0 ? Number(pxRaw) : null;
+    const prompt = `${PERSONA}
+
+${context()}
+
+TAREA: el usuario busca "${name}". Identifica la acción o ETF (ticker y nombre). Si es ambiguo, elige la interpretación más probable y dilo; si no existe o no la reconoces, dilo y para.
+Precio actual que da el usuario: ${px ? "$" + px : "no lo dio (no adivines el precio actual; trabaja con rangos y di qué precio cambiaría la conclusión)"}.
+
+Escribe un análisis de research con estas secciones:
+## Veredicto
+Una línea: Comprar / Mantener en vigilancia / Evitar para ESTA cartera, con convicción (alta/media/baja), y la razón principal.
+## Qué es y cómo gana dinero
+## Tesis de inversión
+3 drivers concretos.
+## Valuación
+Con el precio dado, si lo hay: múltiplos aproximados según tu conocimiento (márcalos como aproximados), y qué precio sería atractivo.
+## Riesgos principales
+## Cómo encajaría en tu cartera
+Calcula con los números: cuánto comprar con el efectivo disponible, en qué peso quedaría, si aumenta o reduce la concentración en tecnología, solapamiento con lo que ya tiene (incluido VOO).
+## Qué revisar antes de comprar
+3 datos que el usuario debe confirmar hoy (precio, última guía, fecha de resultados).`;
+    report(sOut, sBtn, prompt, "default", "Analista senior · búsqueda de " + name);
+  });
+
+  // ---- CEO report ----
+  const ceoBtn = document.getElementById("ceo-btn"), ceoOut = document.getElementById("ceo-out");
+  ceoBtn.addEventListener("click", () => {
+    const prompt = `${PERSONA}
+
+${context()}
+
+TAREA: escribe el "Informe del CEO" de esta cartera. Trata la cartera como si fuera una empresa y el usuario su CEO: el capital es su balance, cada posición es una unidad de negocio, el efectivo es caja disponible para asignar. Tono de memo ejecutivo para un CEO: preciso, cuantificado, sin rodeos, decisiones claras.
+
+Estructura:
+## Resumen ejecutivo
+3 viñetas: estado de la "empresa", el problema número uno y la decisión más importante.
+## Estado financiero
+Valor, rendimiento sobre el capital invertido, P&L no realizado y realizado, liquidez. Una tabla corta.
+## Unidades de negocio
+Una tabla: posición | peso | rendimiento | rol en la cartera (motor de crecimiento, defensa, núcleo) | veredicto (invertir más / mantener / reducir / salir). Luego 1 línea por posición con el porqué.
+## Asignación de capital
+Qué hacer con el efectivo de ${usd(BOOK.cash)}, con montos en dólares. Rebalanceo propuesto con pesos objetivo antes y después (tabla).
+## Mapa de riesgos
+Los 4 riesgos principales con probabilidad (baja/media/alta), impacto estimado en $ sobre la cartera y cómo cubrirlo.
+## Escenarios a 6 meses
+Base / alcista / bajista con el driver principal y el valor estimado de la cartera en cada uno (marca que son estimaciones).
+## KPIs para el próximo trimestre
+4–5 indicadores medibles que el CEO debe seguir, con su meta (ej. peso máximo en tecnología, aporte mensual, efectivo mínimo).
+## Decisiones para el directorio
+3 decisiones concretas, ordenadas por prioridad, con fecha límite.`;
+    report(ceoOut, ceoBtn, prompt, "complex", "Informe del CEO · análisis profundo");
+  });
+
+  // ---- Update the book from an IBKR screenshot ----
+  const shot = document.getElementById("shot"), shotBtn = document.getElementById("shot-btn"), statusMsg = document.getElementById("status-msg");
+  shotBtn.addEventListener("click", () => shot.click());
+  shot.addEventListener("change", async () => {
+    const f = shot.files && shot.files[0];
+    shot.value = "";
+    if (!f || !sample) return;
+    shotBtn.disabled = true; statusMsg.textContent = "Leyendo tu captura…";
+    try {
+      const data = await sample.json(`Esta imagen es una captura de la pestaña Positions de la app de Interactive Brokers. Extrae los datos exactamente como aparecen, sin inventar nada.
+Responde solo con un objeto JSON con esta forma:
+{"asOf": "fecha y hora visibles en la captura, texto corto, o null", "cash": número (USD Cash / Total Cash), "dailyPL": número o null (Daily P&L), "dailyPLpct": número o null, "realizedPL": número o null, "positions": [{"ticker": "AAPL", "shares": número (columna Position), "avgCost": número (Avg Price), "price": número (Last Price)}]}
+Usa "BRK.B" para "BRK B". Si no es una captura de posiciones de un broker, responde {"error": "no es una captura de posiciones"}.`, { images: f, modelTier: "default" });
+      if (!data || data.error || !Array.isArray(data.positions) || !data.positions.length) throw { code: "invalid_json" };
+      const pos = data.positions.map((p) => ({ t: String(p.ticker || "").toUpperCase().replace(/\s+/g, ".").slice(0, 12), sh: Number(p.shares), cost: Number(p.avgCost), px: Number(p.price) }))
+        .filter((p) => p.t && isFinite(p.sh) && p.sh > 0 && isFinite(p.cost) && isFinite(p.px) && p.px > 0);
+      if (!pos.length || !isFinite(Number(data.cash))) throw { code: "invalid_json" };
+      const num = (x) => (x == null || !isFinite(Number(x)) ? null : Number(x));
+      BOOK = { asOf: data.asOf ? String(data.asOf).slice(0, 40) : new Date().toLocaleString("es"), cash: Number(data.cash), cashNote: "", dailyPL: num(data.dailyPL), dailyPLpct: num(data.dailyPLpct), realizedPL: num(data.realizedPL), positions: pos };
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(BOOK)); } catch (_) {}
+      renderTop();
+      statusMsg.textContent = "Cartera actualizada con tu captura (" + pos.length + " posiciones). Revisa que los números coincidan con tu app.";
+    } catch (e) {
+      statusMsg.textContent = errText(e); noteOff(e);
+    } finally { shotBtn.disabled = aiOff; }
+  });
+
+  // ---- Chat ----
+  const log = document.getElementById("log"), q = document.getElementById("q"), sendBtn = document.getElementById("send"), stopBtn = document.getElementById("stop"), clearBtn = document.getElementById("clear"), chips = document.getElementById("chips");
+  const mDef = document.getElementById("m-default"), mCx = document.getElementById("m-complex");
+  let tier = "default", turns = [], ctl = null;
+  [mDef, mCx].forEach((b) => b.addEventListener("click", () => {
+    tier = b === mCx ? "complex" : "default";
+    mDef.setAttribute("aria-pressed", String(tier === "default")); mCx.setAttribute("aria-pressed", String(tier === "complex"));
+  }));
   function addMsg(role, text) {
     const m = el("div", "msg " + (role === "user" ? "me" : "ai"));
     if (role === "user") m.textContent = text; else render(m, text);
@@ -571,107 +517,56 @@ El usuario te escribe a continuación.`;
   function welcome() {
     log.replaceChildren();
     const c = compute();
-    const m = addMsg("ai", `Hola. Tengo tu cartera cargada (**${usd(c.total)}**) y busco en Bigdata.com cuando necesito datos recientes.\n\nLo primero que veo: **${c.tech.toFixed(1)}%** en tres tecnológicas, NVIDIA muy por debajo de tu costo y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras.`);
+    const m = addMsg("ai", `Hola. Tengo tu cartera cargada (**${usd(c.total)}**, captura del ${BOOK.asOf}).\n\nLo primero que veo: **${c.tech.toFixed(1)}%** en gran tecnología y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras. Si me das precios de hoy, mi análisis es mejor.`);
     m.append(el("div", "meta", "Analista senior · Stock Desk"));
   }
+  ["¿Qué hago con mis $110 en efectivo?", "NVIDIA cayó mucho: ¿mantengo, compro o vendo?", "Analiza mi concentración y propón un rebalanceo", "¿Qué pasa con mi cartera si la Fed sube en diciembre?", "Arma un plan de aportes mensuales de $100"]
+    .forEach((s) => { const b = el("button", "chip", s); b.type = "button"; b.addEventListener("click", () => { q.value = s; ask(); }); chips.append(b); });
 
-  const SUGGEST = [
-    "¿Qué hago con mis $110 en efectivo?",
-    "¿Por qué cayó NVIDIA y qué hago?",
-    "Analiza mi concentración y propón un rebalanceo",
-    "¿Qué pasa con mi cartera si la Fed sube en diciembre?",
-    "Dame las noticias más importantes de hoy para mis acciones"
-  ];
-  SUGGEST.forEach((s) => { const b = el("button", "chip", s); b.type = "button"; b.addEventListener("click", () => { q.value = s; ask(); }); chips.append(b); });
-
-  const COPY = {
-    not_granted: "No se dio permiso para usar Claude en esta página. Puedes activarlo desde el menú de permisos de la página.",
-    sampling_disabled: "Claude no está disponible para esta cuenta.",
-    rate_limited: "Demasiadas preguntas seguidas o llegaste a tu límite de uso. Espera un momento y vuelve a intentarlo.",
-    session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
-    refused: "El analista no pudo responder esa pregunta. Prueba a reformularla.",
-    empty_completion: "No llegó respuesta. Prueba con una pregunta más concreta.",
-    prompt_too_large: "La conversación es demasiado larga. Empieza una nueva conversación.",
-    upstream_error: "Se cortó la conexión. Vuelve a intentarlo."
-  };
-  const HIDE = new Set(["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"]);
-
-  function makeTools(note) {
-    if (!toolsOn || !mcp) return undefined;
-    const call = async (tool, input) => {
-      try { const r = await mcp.callTool(SERVER, tool, input, { cache: { staleTime: 120000, gcTime: 600000 } }); return r.payload; }
-      catch (e) { throw new Error(explain(e).t); }
-    };
-    return [
-      { name: "buscar_bigdata",
-        description: "Busca en Bigdata.com noticias, research de brokers, transcripts de resultados y filings. Una sola idea por búsqueda, en inglés o español natural (ej. 'Why did Nvidia stock fall this week'). Devuelve hasta 8 documentos con titular, fecha, fuente, texto y URL.",
-        inputSchema: { type: "object", properties: { consulta: { type: "string", description: "Qué buscar, en lenguaje natural" } }, required: ["consulta"] },
-        execute: async (input) => { const qq = String(input.consulta || "").slice(0, 300); note("Buscando en Bigdata.com: " + qq); return trimSearch(await call("bigdata_search", { request: { search_mode: "smart", query: { text: qq, max_chunks: 10 } } }), 8); } },
-      { name: "precios_en_vivo",
-        description: "Precio actual (incluye pre-market/after-hours si es más reciente), cambio % de la sesión, precio objetivo de consenso y sentimiento de noticias de las posiciones del usuario, desde Bigdata.com.",
-        execute: async () => { note("Consultando precios en Bigdata.com"); const p = await call("bigdata_portfolio_tearsheet", QUOTES_INPUT); parseQuotes(p); renderAll(); return compute().rows.map((r) => ({ ticker: r.t, precio: +r.px.toFixed(2), cambio_sesion_pct: r.chg != null ? +r.chg.toFixed(2) : null, peso_pct: +r.w.toFixed(1), objetivo: r.pt, sentimiento: r.sent })); } },
-      { name: "panorama_mercado",
-        description: "Índices (S&P 500, Nasdaq 100, VIX), bono a 10 años, petróleo, oro y bitcoin con su cambio diario, desde Bigdata.com.",
-        execute: async () => { note("Revisando el mercado en Bigdata.com"); const p = await call("bigdata_market_tearsheet", {}); parseMarket(p); renderMarket(); return live.market; } }
-    ];
+  function syncButtons(busy) {
+    const off = aiOff || !sample;
+    sendBtn.disabled = !!busy || off; stopBtn.hidden = !busy; clearBtn.disabled = !!busy;
+    chips.querySelectorAll("button").forEach((x) => (x.disabled = !!busy || off));
+    sBtn.disabled = off; ceoBtn.disabled = off; shotBtn.disabled = off;
   }
-
-  function setBusy(b) { sendBtn.disabled = b || disabled; stopBtn.hidden = !b; clearBtn.disabled = b; chips.querySelectorAll("button").forEach((x) => (x.disabled = b || disabled)); }
-
   async function ask() {
     const text = q.value.trim();
-    if (!text || disabled) return;
-    if (!sample) { addMsg("ai", "El analista todavía se está conectando. Intenta de nuevo en unos segundos."); return; }
-    q.value = "";
-    addMsg("user", text);
+    if (!text || aiOff) return;
+    if (!sample) { addMsg("ai", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta."); return; }
+    q.value = ""; addMsg("user", text);
     turns.push({ role: "user", content: text });
     while (turns.length > 16) turns.shift();
     if (turns[0].role !== "user") turns.shift();
-    const bubble = el("div", "msg ai");
-    const noteEl = el("div", "tool-note"); noteEl.hidden = true;
-    const body = el("div"); body.append(el("span", "thinking", tier === "complex" ? "Analizando a fondo" : "Analizando"));
-    bubble.append(noteEl, body); log.append(bubble); log.scrollTop = log.scrollHeight;
-    const note = (t) => { noteEl.hidden = false; noteEl.textContent = t; };
-    ctl = new AbortController();
-    setBusy(true);
-    const tools = makeTools(note);
-    const opts = { modelTier: tier, signal: ctl.signal, onText: ({ text: t }) => { render(body, t); log.scrollTop = log.scrollHeight; } };
-    if (tools) opts.tools = tools; else opts.cache = false;
+    const bubble = el("div", "msg ai"); bubble.append(el("span", "thinking", tier === "complex" ? "Analizando a fondo" : "Analizando")); log.append(bubble); log.scrollTop = log.scrollHeight;
+    ctl = new AbortController(); syncButtons(true);
     try {
-      const res = await sample([{ role: "user", content: buildRules() }, ...turns], opts);
-      render(body, res.text); noteEl.hidden = true;
-      turns.push({ role: "assistant", content: res.text });
-      bubble.append(el("div", "meta", "Analista senior · " + (res.modelTierApplied === "complex" ? "análisis profundo" : "respuesta normal") + (tools ? " · con Bigdata.com" : "") + (res.truncated ? " · respuesta cortada, pide menos a la vez" : "")));
+      const res = await sample([{ role: "user", content: PERSONA + "\n\n" + context() + "\n\nTermina con \"Qué haría yo\" (máximo 3 acciones) cuando aplique. El usuario te escribe a continuación." }, ...turns], {
+        cache: false, modelTier: tier, signal: ctl.signal, onText: ({ text: t }) => { render(bubble, t); log.scrollTop = log.scrollHeight; }
+      });
+      render(bubble, res.text); turns.push({ role: "assistant", content: res.text });
+      bubble.append(el("div", "meta", "Analista senior · " + (res.modelTierApplied === "complex" ? "análisis profundo" : "respuesta normal") + (res.truncated ? " · respuesta cortada" : "")));
     } catch (e) {
       const code = e && e.code;
-      noteEl.hidden = true;
-      if (e && e.text && code !== "refused") { render(body, e.text); if (code !== "cancelled") turns.push({ role: "assistant", content: e.text }); }
-      else body.replaceChildren();
-      if (code === "cancelled") { if (!body.childNodes.length) bubble.remove(); else bubble.append(el("div", "meta", "Detenido")); }
-      else {
-        if (!body.childNodes.length) bubble.remove();
-        addMsg("ai", COPY[code] || COPY.upstream_error);
-        if (HIDE.has(code)) disabled = true;
-      }
-    } finally { ctl = null; setBusy(false); log.scrollTop = log.scrollHeight; }
+      if (e && e.text && code !== "refused") { render(bubble, e.text); if (code !== "cancelled") turns.push({ role: "assistant", content: e.text }); } else bubble.replaceChildren();
+      if (code === "cancelled") { if (!bubble.childNodes.length) bubble.remove(); else bubble.append(el("div", "meta", "Detenido")); }
+      else { if (!bubble.childNodes.length) bubble.remove(); addMsg("ai", errText(e)); noteOff(e); }
+    } finally { ctl = null; syncButtons(false); log.scrollTop = log.scrollHeight; }
   }
-
   document.getElementById("composer").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
   q.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
   stopBtn.addEventListener("click", () => ctl && ctl.abort());
   clearBtn.addEventListener("click", () => { turns = []; welcome(); });
 
-  welcome();
-  setBusy(false);
+  renderTop(); welcome(); syncButtons(false);
 
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then(async (s) => {
       sample = s;
-      if (!s) { disabled = true; setBusy(false); log.append(el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta.")); return; }
-      try { const lim = await s.limits(); toolsOn = !!(lim && lim.tools); } catch (_) { toolsOn = false; }
+      if (!s) { log.append(el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta.")); syncButtons(false); return; }
+      syncButtons(false);
+      try { const lim = await s.limits(); if (lim && lim.images) { shotBtn.hidden = false; shot.accept = lim.images.mediaTypes.join(","); } } catch (_) {}
     });
   } else {
-    disabled = true; setBusy(false);
     log.append(el("div", "unavail", "El analista solo funciona al abrir esta página dentro de Claude con tu cuenta."));
   }
 })();
