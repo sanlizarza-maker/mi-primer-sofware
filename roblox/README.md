@@ -65,5 +65,4 @@ El código es la parte fácil. Lo que de verdad decide si un juego de Roblox des
    de dispositivos de Studio.
 
 Lo que todavía no tiene y conviene añadir después: modelos 3D más bonitos (ahora son esferas
-y cubos con ojos), sonidos, música, gamepasses (x2 monedas, más espacios), códigos de recompensa,
-recompensa diaria, y tabla de clasificación global.
+y cubos con ojos), sonidos, música, packs de monedas de compra única y una tabla de clasificación global.
