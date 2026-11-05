@@ -62,6 +62,30 @@ Config.DailyBaseCoins = 250
 Config.DailyIncomeSeconds = 60
 Config.DailyBonusRarity = "Épico"
 
+---------------------------------------------------------------------
+-- SONIDOS
+-- Vienen con sonidos que trae Roblox ("rbxasset://..."). No pude comprobar desde aquí que
+-- todos existan: si alguno no suena, cámbialo por uno del Creator Store
+-- (create.roblox.com → Creator Store → Audio) usando "rbxassetid://NUMERO".
+---------------------------------------------------------------------
+Config.Sounds = {
+	buy     = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.6, speed = 1.2 },
+	coin    = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.5, speed = 1.5 },
+	success = { id = "rbxasset://sounds/victory.wav",             volume = 0.5, speed = 1 },
+	reward  = { id = "rbxasset://sounds/victory.wav",             volume = 0.6, speed = 1.1 },
+	rebirth = { id = "rbxasset://sounds/victory.wav",             volume = 0.6, speed = 0.8 },
+	rare    = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.8, speed = 0.6 },
+	steal   = { id = "rbxasset://sounds/swoosh.wav",              volume = 0.6, speed = 1 },
+	alarm   = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 1,   speed = 2, repeats = 3 },
+	fail    = { id = "rbxasset://sounds/uuhhh.mp3",               volume = 0.6, speed = 1 },
+	error   = { id = "rbxasset://sounds/button.wav",              volume = 0.4, speed = 0.8 },
+	click   = { id = "rbxasset://sounds/button.wav",              volume = 0.4, speed = 1 },
+}
+-- Música de fondo: busca una canción en el Creator Store y pon aquí "rbxassetid://NUMERO".
+-- Vacío = sin música.
+Config.Music = ""
+Config.MusicVolume = 0.25
+
 -- Rarezas (de más común a más rara)
 Config.Rarities = {
 	{ name = "Común",      weight = 55,   color = Color3.fromRGB(200, 200, 200), size = 3 },
@@ -75,21 +99,21 @@ Config.Rarities = {
 
 -- Criaturas originales. price = coste, income = monedas por segundo
 Config.Creatures = {
-	{ id = "papa",      name = "Papa Sentada",        rarity = "Común",      price = 25,      income = 1,     color = Color3.fromRGB(181, 140, 85),  shape = "Ball" },
-	{ id = "tostadora", name = "Tostadora Feliz",     rarity = "Común",      price = 60,      income = 2,     color = Color3.fromRGB(170, 170, 180), shape = "Block" },
-	{ id = "calcetin",  name = "Calcetín Perdido",    rarity = "Común",      price = 120,     income = 4,     color = Color3.fromRGB(230, 90, 90),   shape = "Block" },
-	{ id = "pinguino",  name = "Pingüino Taxista",    rarity = "Poco común", price = 300,     income = 9,     color = Color3.fromRGB(40, 40, 60),    shape = "Ball" },
-	{ id = "sandia",    name = "Sandía Bailarina",    rarity = "Poco común", price = 550,     income = 15,    color = Color3.fromRGB(60, 170, 70),   shape = "Ball" },
-	{ id = "gato",      name = "Gato Burócrata",      rarity = "Poco común", price = 900,     income = 24,    color = Color3.fromRGB(240, 160, 60),  shape = "Block" },
-	{ id = "tiburon",   name = "Tiburón con Bigote",  rarity = "Raro",       price = 2000,    income = 50,    color = Color3.fromRGB(110, 140, 170), shape = "Ball" },
-	{ id = "aguacate",  name = "Aguacate Ninja",      rarity = "Raro",       price = 3500,    income = 80,    color = Color3.fromRGB(100, 140, 40),  shape = "Ball" },
-	{ id = "llama",     name = "Llama Gamer",         rarity = "Raro",       price = 6000,    income = 130,   color = Color3.fromRGB(245, 235, 210), shape = "Block" },
-	{ id = "pollo",     name = "Pollo Astronauta",    rarity = "Épico",      price = 15000,   income = 300,   color = Color3.fromRGB(255, 255, 255), shape = "Ball" },
-	{ id = "taco",      name = "Taco Volador",        rarity = "Épico",      price = 28000,   income = 520,   color = Color3.fromRGB(240, 200, 80),  shape = "Block" },
-	{ id = "dragon",    name = "Dragón de Gelatina",  rarity = "Legendario", price = 80000,   income = 1400,  color = Color3.fromRGB(255, 80, 160),  shape = "Ball" },
-	{ id = "pepinillo", name = "Rey Pepinillo",       rarity = "Legendario", price = 150000,  income = 2500,  color = Color3.fromRGB(80, 160, 50),   shape = "Block" },
-	{ id = "capibara",  name = "Cosmo Capibara",      rarity = "Mítico",     price = 600000,  income = 9000,  color = Color3.fromRGB(150, 100, 60),  shape = "Ball" },
-	{ id = "bigoton",   name = "El Bigotón Supremo",  rarity = "Secreto",    price = 3000000, income = 40000, color = Color3.fromRGB(30, 30, 30),    shape = "Ball" },
+	{ id = "papa",      name = "Papa Sentada",        rarity = "Común",      price = 25,      income = 1,     color = Color3.fromRGB(181, 140, 85),  shape = "Ball", extras = { "boca", "patas" } },
+	{ id = "tostadora", name = "Tostadora Feliz",     rarity = "Común",      price = 60,      income = 2,     color = Color3.fromRGB(170, 170, 180), shape = "Block", extras = { "tostadas", "boca", "patas" } },
+	{ id = "calcetin",  name = "Calcetín Perdido",    rarity = "Común",      price = 120,     income = 4,     color = Color3.fromRGB(230, 90, 90),   shape = "Block", extras = { "gorra", "boca" } },
+	{ id = "pinguino",  name = "Pingüino Taxista",    rarity = "Poco común", price = 300,     income = 9,     color = Color3.fromRGB(40, 40, 60),    shape = "Ball", extras = { "pico", "gorra", "patas" } },
+	{ id = "sandia",    name = "Sandía Bailarina",    rarity = "Poco común", price = 550,     income = 15,    color = Color3.fromRGB(60, 170, 70),   shape = "Ball", extras = { "falda", "boca", "patas" } },
+	{ id = "gato",      name = "Gato Burócrata",      rarity = "Poco común", price = 900,     income = 24,    color = Color3.fromRGB(240, 160, 60),  shape = "Block", extras = { "orejas", "bigote", "corbata" } },
+	{ id = "tiburon",   name = "Tiburón con Bigote",  rarity = "Raro",       price = 2000,    income = 50,    color = Color3.fromRGB(110, 140, 170), shape = "Ball", extras = { "aleta", "bigote", "boca" } },
+	{ id = "aguacate",  name = "Aguacate Ninja",      rarity = "Raro",       price = 3500,    income = 80,    color = Color3.fromRGB(100, 140, 40),  shape = "Ball", extras = { "banda", "boca", "patas" } },
+	{ id = "llama",     name = "Llama Gamer",         rarity = "Raro",       price = 6000,    income = 130,   color = Color3.fromRGB(245, 235, 210), shape = "Block", extras = { "orejas", "auriculares", "boca" } },
+	{ id = "pollo",     name = "Pollo Astronauta",    rarity = "Épico",      price = 15000,   income = 300,   color = Color3.fromRGB(255, 255, 255), shape = "Ball", extras = { "pico", "casco", "patas" } },
+	{ id = "taco",      name = "Taco Volador",        rarity = "Épico",      price = 28000,   income = 520,   color = Color3.fromRGB(240, 200, 80),  shape = "Block", extras = { "alas", "boca" } },
+	{ id = "dragon",    name = "Dragón de Gelatina",  rarity = "Legendario", price = 80000,   income = 1400,  color = Color3.fromRGB(255, 80, 160),  shape = "Ball", extras = { "alas", "cuernos", "boca" } },
+	{ id = "pepinillo", name = "Rey Pepinillo",       rarity = "Legendario", price = 150000,  income = 2500,  color = Color3.fromRGB(80, 160, 50),   shape = "Block", extras = { "capa", "bigote", "patas" } },
+	{ id = "capibara",  name = "Cosmo Capibara",      rarity = "Mítico",     price = 600000,  income = 9000,  color = Color3.fromRGB(150, 100, 60),  shape = "Ball", extras = { "anillo", "boca", "patas" } },
+	{ id = "bigoton",   name = "El Bigotón Supremo",  rarity = "Secreto",    price = 3000000, income = 40000, color = Color3.fromRGB(30, 30, 30),    shape = "Ball", extras = { "sombrero", "bigote", "capa" } },
 }
 
 -- Mutaciones (de la más rara a la más común). No suben el precio de compra: son pura suerte.

@@ -10,6 +10,46 @@ local CollectionService = game:GetService("CollectionService")
 local Config = require(ReplicatedStorage:WaitForChild("Config"))
 local remote = ReplicatedStorage:WaitForChild("GameRemote")
 local player = Players.LocalPlayer
+local SoundService = game:GetService("SoundService")
+
+---------------------------------------------------------------------
+-- Sonidos y música
+---------------------------------------------------------------------
+
+local soundCache = {}
+local function playSound(name)
+	local info = name and Config.Sounds[name]
+	if not info or info.id == "" then
+		return
+	end
+	local sound = soundCache[name]
+	if not sound then
+		sound = Instance.new("Sound")
+		sound.SoundId = info.id
+		sound.Volume = info.volume or 0.5
+		sound.PlaybackSpeed = info.speed or 1
+		sound.Parent = SoundService
+		soundCache[name] = sound
+	end
+	local times = info.repeats or 1
+	task.spawn(function()
+		for _ = 1, times do
+			sound.TimePosition = 0
+			sound:Play()
+			task.wait(0.25)
+		end
+	end)
+end
+
+if Config.Music ~= "" then
+	local music = Instance.new("Sound")
+	music.Name = "Musica"
+	music.SoundId = Config.Music
+	music.Volume = Config.MusicVolume
+	music.Looped = true
+	music.Parent = SoundService
+	music:Play()
+end
 
 ---------------------------------------------------------------------
 -- Interfaz
@@ -77,6 +117,7 @@ corner(rebirthButton, 16)
 stroke(rebirthButton)
 
 rebirthButton.Activated:Connect(function()
+	playSound("click")
 	remote:FireServer("Rebirth")
 end)
 
@@ -108,6 +149,9 @@ local function sideButton(text, color, order)
 	b.Text = text
 	b.LayoutOrder = order
 	b.Parent = sideBar
+	b.Activated:Connect(function()
+		playSound("click")
+	end)
 	corner(b, 14)
 	stroke(b)
 	return b
@@ -357,8 +401,17 @@ end
 local leaderstats = player:WaitForChild("leaderstats")
 local coins = leaderstats:WaitForChild("Monedas")
 
+local coinScale = Instance.new("UIScale")
+coinScale.Parent = coinPanel
+local lastCoins = coins.Value
+
 local function updateCoins()
 	coinLabel.Text = "💰 " .. Config.FormatNumber(coins.Value)
+	if coins.Value > lastCoins then
+		coinScale.Scale = 1.08
+		TweenService:Create(coinScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+	lastCoins = coins.Value
 end
 coins.Changed:Connect(updateCoins)
 updateCoins()
@@ -368,6 +421,7 @@ local eventEndsAt = 0
 remote.OnClientEvent:Connect(function(kind, a, b, c)
 	if kind == "Notify" then
 		toast(a, b)
+		playSound(c)
 	elseif kind == "Stats" then
 		incomeLabel.Text = "+" .. Config.FormatNumber(a) .. "/s  ·  x" .. tostring(b)
 		rebirthButton.Text = "🔁 Renacer ($" .. Config.FormatNumber(c) .. ")"
@@ -424,8 +478,47 @@ workspace.DescendantAdded:Connect(watch)
 -- Efectos visuales
 ---------------------------------------------------------------------
 
-RunService.RenderStepped:Connect(function()
+local idleBase = {}
+local function onIdleAdded(part)
+	idleBase[part] = part.CFrame
+end
+for _, part in ipairs(CollectionService:GetTagged("Idle")) do
+	onIdleAdded(part)
+end
+CollectionService:GetInstanceAddedSignal("Idle"):Connect(onIdleAdded)
+CollectionService:GetInstanceRemovedSignal("Idle"):Connect(function(part)
+	idleBase[part] = nil
+end)
+
+RunService.RenderStepped:Connect(function(dt)
 	local t = os.clock()
+
+	-- Criaturas en los pedestales: rebotan y se balancean
+	for part, base in pairs(idleBase) do
+		if part.Parent and part.Anchored then
+			local phase = base.Position.X * 0.3 + base.Position.Z * 0.2
+			local bob = math.abs(math.sin(t * 3 + phase)) * 0.35
+			local sway = math.sin(t * 1.5 + phase) * 0.12
+			part.CFrame = base * CFrame.new(0, bob, 0) * CFrame.Angles(0, sway, 0)
+		elseif not part.Parent then
+			idleBase[part] = nil
+		end
+	end
+
+	-- Franjas de la cinta
+	local stripes = CollectionService:GetTagged("BeltStripe")
+	local span = #stripes * 12
+	for _, stripe in ipairs(stripes) do
+		local minX = stripe:GetAttribute("MinX") or -118
+		local speed = stripe:GetAttribute("Speed") or 8
+		local pos = stripe.Position
+		local x = pos.X + speed * dt
+		if x > minX + span then
+			x -= span
+		end
+		stripe.Position = Vector3.new(x, pos.Y, pos.Z)
+	end
+
 	for i, part in ipairs(CollectionService:GetTagged("Rainbow")) do
 		part.Color = Color3.fromHSV((t * 0.35 + i * 0.13) % 1, 1, 1)
 	end

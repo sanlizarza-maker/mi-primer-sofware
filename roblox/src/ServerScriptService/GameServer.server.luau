@@ -61,12 +61,12 @@ local function makeLabel(parent, text, size, color, position)
 	return label
 end
 
-local function notify(player, text, color)
-	remote:FireClient(player, "Notify", text, color)
+local function notify(player, text, color, sound)
+	remote:FireClient(player, "Notify", text, color, sound)
 end
 
-local function notifyAll(text, color)
-	remote:FireAllClients("Notify", text, color)
+local function notifyAll(text, color, sound)
+	remote:FireAllClients("Notify", text, color, sound)
 end
 
 local function displayName(def, mutName)
@@ -252,6 +252,114 @@ local function isInPlot(position, plot)
 end
 
 ---------------------------------------------------------------------
+-- Decoración e iluminación
+---------------------------------------------------------------------
+
+do
+	local Lighting = game:GetService("Lighting")
+	Lighting.ClockTime = 14.5
+	Lighting.Brightness = 2.5
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 170)
+	Lighting.EnvironmentDiffuseScale = 0.5
+	Lighting.EnvironmentSpecularScale = 0.5
+	local function effect(className, props)
+		local e = Lighting:FindFirstChildOfClass(className) or Instance.new(className)
+		for k, v in pairs(props) do
+			e[k] = v
+		end
+		e.Parent = Lighting
+	end
+	effect("Atmosphere", { Density = 0.28, Haze = 1.2, Color = Color3.fromRGB(200, 220, 255), Decay = Color3.fromRGB(120, 160, 220) })
+	effect("BloomEffect", { Intensity = 0.6, Size = 24, Threshold = 1.5 })
+	effect("ColorCorrectionEffect", { Saturation = 0.2, Contrast = 0.05 })
+
+	local deco = Instance.new("Folder")
+	deco.Name = "Decoracion"
+	deco.Parent = map
+
+	-- Franjas de la cinta (el cliente las mueve para que parezca que avanza)
+	for x = CONVEYOR_START_X, CONVEYOR_END_X, 12 do
+		local stripe = makePart({
+			Name = "Franja",
+			Size = Vector3.new(1.2, 0.1, 10),
+			Position = Vector3.new(x, 1.05, 0),
+			Color = Color3.fromRGB(90, 90, 110),
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+			CanQuery = false,
+			Parent = deco,
+		})
+		stripe:SetAttribute("MinX", CONVEYOR_START_X)
+		stripe:SetAttribute("MaxX", CONVEYOR_END_X)
+		stripe:SetAttribute("Speed", (CONVEYOR_END_X - CONVEYOR_START_X) / Config.ConveyorTravelTime)
+		CollectionService:AddTag(stripe, "BeltStripe")
+	end
+
+	-- Farolas a lo largo de la cinta
+	for x = -110, 110, 44 do
+		for _, z in ipairs({ -11, 11 }) do
+			makePart({ Name = "Poste", Size = Vector3.new(0.6, 12, 0.6), Position = Vector3.new(x, 6, z), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.Metal, Parent = deco })
+			local bulb = makePart({ Name = "Luz", Shape = Enum.PartType.Ball, Size = Vector3.new(2, 2, 2), Position = Vector3.new(x, 12.5, z), Color = Color3.fromRGB(255, 220, 150), Material = Enum.Material.Neon, CanCollide = false, Parent = deco })
+			local light = Instance.new("PointLight")
+			light.Range = 22
+			light.Brightness = 1.2
+			light.Color = Color3.fromRGB(255, 220, 150)
+			light.Parent = bulb
+		end
+	end
+
+	-- Árboles alrededor del mapa
+	local treeRng = Random.new(42)
+	local function tree(pos)
+		local h = treeRng:NextNumber(8, 14)
+		makePart({ Name = "Tronco", Size = Vector3.new(2, h, 2), Position = pos + Vector3.new(0, h / 2, 0), Color = Color3.fromRGB(110, 70, 40), Material = Enum.Material.Wood, Parent = deco })
+		for i = 1, 3 do
+			local r = treeRng:NextNumber(5, 8)
+			makePart({
+				Name = "Hojas",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(r, r, r),
+				Position = pos + Vector3.new(treeRng:NextNumber(-2, 2), h + treeRng:NextNumber(-1, 2), treeRng:NextNumber(-2, 2)),
+				Color = Color3.fromHSV(treeRng:NextNumber(0.25, 0.38), 0.6, treeRng:NextNumber(0.5, 0.75)),
+				Material = Enum.Material.Grass,
+				Parent = deco,
+			})
+		end
+	end
+	for x = -190, 190, 22 do
+		tree(Vector3.new(x + treeRng:NextNumber(-5, 5), 0, -135 + treeRng:NextNumber(-8, 8)))
+		tree(Vector3.new(x + treeRng:NextNumber(-5, 5), 0, 135 + treeRng:NextNumber(-8, 8)))
+	end
+	for z = -110, 110, 24 do
+		tree(Vector3.new(195 + treeRng:NextNumber(-4, 4), 0, z))
+		if math.abs(z) > 20 then
+			tree(Vector3.new(-195 + treeRng:NextNumber(-4, 4), 0, z))
+		end
+	end
+
+	-- Cartel de bienvenida junto al punto de aparición
+	local archPos = Vector3.new(-140, 0, 0)
+	for _, z in ipairs({ -9, 9 }) do
+		makePart({ Name = "Columna", Size = Vector3.new(2, 16, 2), Position = archPos + Vector3.new(0, 8, z), Color = Color3.fromRGB(255, 120, 60), Material = Enum.Material.SmoothPlastic, Parent = deco })
+	end
+	local banner = makePart({
+		Name = "Titulo",
+		Size = Vector3.new(1, 5, 22),
+		Position = archPos + Vector3.new(0, 17, 0),
+		Color = Color3.fromRGB(40, 30, 60),
+		Parent = deco,
+	})
+	for _, face in ipairs({ Enum.NormalId.Left, Enum.NormalId.Right }) do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 25
+		sg.Parent = banner
+		makeLabel(sg, "CRIATURAS CAÓTICAS", UDim2.fromScale(1, 1), Color3.fromRGB(255, 220, 60))
+	end
+end
+
+---------------------------------------------------------------------
 -- Criaturas (modelo visual)
 ---------------------------------------------------------------------
 
@@ -321,6 +429,141 @@ local function buildCreature(def, mutName, priceText)
 		crown.CFrame = CFrame.new(0, s * 0.62, 0)
 		crown.Parent = model
 		weld(body, crown)
+	end
+
+	-- Accesorios propios de cada criatura (ver "extras" en Config)
+	local function piece(className, size, color, cf, material, shape)
+		local p = Instance.new(className)
+		if shape then
+			p.Shape = shape
+		end
+		p.Size = size
+		p.Color = color
+		p.Material = material or Enum.Material.SmoothPlastic
+		p.CanCollide = false
+		p.CanQuery = false
+		p.Massless = true
+		p.Anchored = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.CFrame = cf
+		p.Parent = model
+		weld(body, p)
+		return p
+	end
+	local CYL = Enum.PartType.Cylinder
+	local BALL = Enum.PartType.Ball
+	local up = CFrame.Angles(0, 0, math.pi / 2) -- cilindro en vertical
+	local dark = body.Color.R + body.Color.G + body.Color.B < 0.6
+	local hairColor = dark and Color3.fromRGB(240, 240, 240) or Color3.fromRGB(30, 20, 15)
+	local front = def.shape == "Block" and -s * 0.5 or -s * 0.47
+
+	local builders = {
+		boca = function()
+			piece("Part", Vector3.new(s * 0.28, s * 0.07, s * 0.06), Color3.fromRGB(120, 20, 30), CFrame.new(0, -s * 0.18, front - s * 0.01))
+		end,
+		patas = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.3, s * 0.3, s * 0.3), Color3.fromRGB(50, 40, 40), CFrame.new(side * s * 0.22, -s * 0.48, -s * 0.05), nil, BALL)
+			end
+		end,
+		bigote = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.32, s * 0.09, s * 0.08), hairColor,
+					CFrame.new(side * s * 0.16, -s * 0.05, front - s * 0.03) * CFrame.Angles(0, 0, side * 0.25))
+			end
+		end,
+		sombrero = function()
+			piece("Part", Vector3.new(s * 0.05, s * 0.95, s * 0.95), Color3.fromRGB(20, 20, 20), CFrame.new(0, s * 0.48, 0) * up, nil, CYL)
+			piece("Part", Vector3.new(s * 0.6, s * 0.55, s * 0.55), Color3.fromRGB(20, 20, 20), CFrame.new(0, s * 0.78, 0) * up, nil, CYL)
+			piece("Part", Vector3.new(s * 0.1, s * 0.57, s * 0.57), Color3.fromRGB(200, 30, 40), CFrame.new(0, s * 0.55, 0) * up, nil, CYL)
+		end,
+		gorra = function()
+			piece("Part", Vector3.new(s * 0.22, s * 0.72, s * 0.72), Color3.fromRGB(255, 200, 0), CFrame.new(0, s * 0.45, 0) * up, nil, CYL)
+			piece("Part", Vector3.new(s * 0.45, s * 0.05, s * 0.32), Color3.fromRGB(30, 30, 30), CFrame.new(0, s * 0.38, -s * 0.42))
+		end,
+		orejas = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("WedgePart", Vector3.new(s * 0.12, s * 0.32, s * 0.25), body.Color, CFrame.new(side * s * 0.3, s * 0.6, 0))
+			end
+		end,
+		aleta = function()
+			piece("WedgePart", Vector3.new(s * 0.1, s * 0.5, s * 0.45), body.Color, CFrame.new(0, s * 0.62, s * 0.1))
+		end,
+		casco = function()
+			local glass = piece("Part", Vector3.new(s * 1.4, s * 1.4, s * 1.4), Color3.fromRGB(200, 230, 255), CFrame.new(0, s * 0.05, 0), Enum.Material.Glass, BALL)
+			glass.Transparency = 0.6
+		end,
+		banda = function()
+			piece("Part", Vector3.new(s * 0.14, s * 0.88, s * 0.88), Color3.fromRGB(210, 20, 30), CFrame.new(0, s * 0.27, 0) * up, nil, CYL)
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.08, s * 0.08, s * 0.4), Color3.fromRGB(210, 20, 30),
+					CFrame.new(side * s * 0.08, s * 0.2, s * 0.55) * CFrame.Angles(0.5, side * 0.3, 0))
+			end
+		end,
+		auriculares = function()
+			piece("Part", Vector3.new(s * 1.1, s * 0.08, s * 0.14), Color3.fromRGB(30, 30, 30), CFrame.new(0, s * 0.56, 0))
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.14, s * 0.38, s * 0.38), Color3.fromRGB(0, 230, 120), CFrame.new(side * s * 0.56, s * 0.12, 0), Enum.Material.Neon, CYL)
+			end
+		end,
+		alas = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.7, s * 0.06, s * 0.4), Color3.fromRGB(255, 255, 255),
+					CFrame.new(side * s * 0.75, s * 0.15, s * 0.1) * CFrame.Angles(0, 0, side * 0.45))
+			end
+		end,
+		pico = function()
+			piece("Part", Vector3.new(s * 0.26, s * 0.26, s * 0.26), Color3.fromRGB(255, 150, 20), CFrame.new(0, -s * 0.03, front - s * 0.05), nil, BALL)
+		end,
+		corbata = function()
+			piece("Part", Vector3.new(s * 0.13, s * 0.38, s * 0.05), Color3.fromRGB(200, 30, 40), CFrame.new(0, -s * 0.3, front - s * 0.03))
+		end,
+		falda = function()
+			piece("Part", Vector3.new(s * 0.16, s * 1.2, s * 1.2), Color3.fromRGB(255, 130, 200), CFrame.new(0, -s * 0.2, 0) * up, nil, CYL)
+		end,
+		cuernos = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.13, s * 0.38, s * 0.13), Color3.fromRGB(255, 245, 220),
+					CFrame.new(side * s * 0.22, s * 0.58, 0) * CFrame.Angles(0, 0, -side * 0.35))
+			end
+		end,
+		capa = function()
+			piece("Part", Vector3.new(s * 0.95, s * 0.95, s * 0.06), Color3.fromRGB(170, 20, 40), CFrame.new(0, -s * 0.05, s * 0.53), Enum.Material.Fabric)
+		end,
+		anillo = function()
+			piece("Part", Vector3.new(s * 0.05, s * 1.8, s * 1.8), Color3.fromRGB(120, 200, 255), CFrame.new(0, 0, 0) * CFrame.Angles(0.35, 0, 0) * up, Enum.Material.Neon, CYL)
+		end,
+		tostadas = function()
+			for _, side in ipairs({ -1, 1 }) do
+				piece("Part", Vector3.new(s * 0.32, s * 0.38, s * 0.1), Color3.fromRGB(220, 160, 80), CFrame.new(0, s * 0.62, side * s * 0.12))
+			end
+		end,
+	}
+	for _, name in ipairs(def.extras or {}) do
+		local build = builders[name]
+		if build then
+			build()
+		end
+	end
+
+	-- Brillos para mutaciones y rarezas altas
+	if mut or Config.GetRarityIndex(def.rarity) >= 5 then
+		local fx = Instance.new("ParticleEmitter")
+		fx.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		fx.Color = ColorSequence.new(mut and mut.color or rarity.color)
+		fx.LightEmission = 1
+		fx.Rate = mut and 8 or 5
+		fx.Lifetime = NumberRange.new(0.8, 1.4)
+		fx.Speed = NumberRange.new(1, 3)
+		fx.SpreadAngle = Vector2.new(180, 180)
+		fx.Size = NumberSequence.new(s * 0.12, 0)
+		fx.Parent = body
+		local glow = Instance.new("PointLight")
+		glow.Color = mut and mut.color or rarity.color
+		glow.Range = s * 2.5
+		glow.Brightness = 1.5
+		glow.Parent = body
 	end
 
 	local gui = Instance.new("BillboardGui")
@@ -434,9 +677,9 @@ local function returnToOwner(thiefState, reason)
 			local mut = Config.GetMutation(c.mut)
 			ownerState.coins.Value += math.floor(def.price * (mut and mut.mult or 1) * Config.SellRefund)
 		end
-		notify(c.owner, "✅ Recuperaste tu criatura. " .. (reason or ""), Color3.fromRGB(120, 255, 120))
+		notify(c.owner, "✅ Recuperaste tu criatura. " .. (reason or ""), Color3.fromRGB(120, 255, 120), "success")
 	end
-	notify(thiefState.player, "❌ Perdiste la criatura robada. " .. (reason or ""), Color3.fromRGB(255, 120, 120))
+	notify(thiefState.player, "❌ Perdiste la criatura robada. " .. (reason or ""), Color3.fromRGB(255, 120, 120), "fail")
 end
 
 local function startSteal(thief, owner, slotIndex, slotData)
@@ -448,15 +691,15 @@ local function startSteal(thief, owner, slotIndex, slotData)
 		return
 	end
 	if ts.carrying then
-		notify(thief, "Ya llevas una criatura. ¡Llévala a tu base!")
+		notify(thief, "Ya llevas una criatura. ¡Llévala a tu base!", nil, "error")
 		return
 	end
 	if ownerState.lockedUntil > os.clock() then
-		notify(thief, "🛡️ Esa base tiene el escudo activo.")
+		notify(thief, "🛡️ Esa base tiene el escudo activo.", nil, "error")
 		return
 	end
 	if not freeSlot(ts) then
-		notify(thief, "Tu base está llena. Vende una criatura primero.")
+		notify(thief, "Tu base está llena. Vende una criatura primero.", nil, "error")
 		return
 	end
 	local char = thief.Character
@@ -469,6 +712,7 @@ local function startSteal(thief, owner, slotIndex, slotData)
 	ownerState.slots[slotIndex] = nil
 	local model = slotData.model
 	local body = model.PrimaryPart
+	CollectionService:RemoveTag(body, "Idle")
 	model:PivotTo(head.CFrame * CFrame.new(0, body.Size.Y / 2 + 1.5, 0))
 	model.Parent = char
 	weld(hrp, body)
@@ -487,8 +731,8 @@ local function startSteal(thief, owner, slotIndex, slotData)
 
 	local def = Config.GetCreature(slotData.id)
 	local name = displayName(def, slotData.mut)
-	notify(owner, "🚨 ¡" .. thief.DisplayName .. " te está robando " .. name .. "! ¡Tócalo para recuperarla!", Color3.fromRGB(255, 90, 90))
-	notify(thief, "😈 ¡Llévala a tu base! Si su dueño te toca, la pierdes.", Color3.fromRGB(255, 200, 80))
+	notify(owner, "🚨 ¡" .. thief.DisplayName .. " te está robando " .. name .. "! ¡Tócalo para recuperarla!", Color3.fromRGB(255, 90, 90), "alarm")
+	notify(thief, "😈 ¡Llévala a tu base! Si su dueño te toca, la pierdes.", Color3.fromRGB(255, 200, 80), "steal")
 end
 
 placeInSlot = function(st, slotIndex, id, mutName)
@@ -501,6 +745,7 @@ placeInSlot = function(st, slotIndex, id, mutName)
 	local top = ped.Position + Vector3.new(0, ped.Size.Y / 2 + body.Size.Y / 2, 0)
 	model:PivotTo(CFrame.lookAt(top, top + Vector3.new(0, 0, st.plot.dir)))
 	model.Parent = st.plot.folder
+	CollectionService:AddTag(body, "Idle")
 
 	local slotData = { id = id, mut = mutName, model = model }
 	st.slots[slotIndex] = slotData
@@ -517,7 +762,7 @@ placeInSlot = function(st, slotIndex, id, mutName)
 		st.slots[slotIndex] = nil
 		model:Destroy()
 		st.coins.Value += sellValue
-		notify(player, "💸 Vendiste " .. displayName(def, mutName) .. " por $" .. Config.FormatNumber(sellValue))
+		notify(player, "💸 Vendiste " .. displayName(def, mutName) .. " por $" .. Config.FormatNumber(sellValue), nil, "coin")
 	end)
 
 	local steal = addPrompt(body, "Robar", displayName(def, mutName), Config.StealHoldTime, "Steal", owner.UserId)
@@ -595,28 +840,28 @@ local function spawnOnConveyor()
 			return
 		end
 		if st.coins.Value < def.price then
-			notify(player, "No tienes suficientes monedas 😢")
+			notify(player, "No tienes suficientes monedas 😢", nil, "error")
 			return
 		end
 		local slot = freeSlot(st)
 		if not slot then
-			notify(player, "Tu base está llena. Vende una criatura (tecla F).")
+			notify(player, "Tu base está llena. Vende una criatura (tecla F).", nil, "error")
 			return
 		end
 		item.sold = true
 		st.coins.Value -= def.price
 		model:Destroy()
 		placeInSlot(st, slot, def.id, mutName)
-		notify(player, "🎉 ¡Compraste " .. displayName(def, mutName) .. "!", Color3.fromRGB(120, 255, 120))
+		notify(player, "🎉 ¡Compraste " .. displayName(def, mutName) .. "!", Color3.fromRGB(120, 255, 120), "buy")
 		if Config.GetRarityIndex(def.rarity) >= 5 or mutName == "Arcoíris" then
-			notifyAll("🌟 " .. player.DisplayName .. " consiguió " .. displayName(def, mutName) .. " (" .. def.rarity .. ")!", Config.GetRarity(def.rarity).color)
+			notifyAll("🌟 " .. player.DisplayName .. " consiguió " .. displayName(def, mutName) .. " (" .. def.rarity .. ")!", Config.GetRarity(def.rarity).color, "rare")
 		end
 	end)
 
 	table.insert(conveyorItems, item)
 
 	if Config.GetRarityIndex(def.rarity) >= 6 then
-		notifyAll("⚠️ ¡Apareció " .. displayName(def, mutName) .. " (" .. def.rarity .. ") en la cinta!", Config.GetRarity(def.rarity).color)
+		notifyAll("⚠️ ¡Apareció " .. displayName(def, mutName) .. " (" .. def.rarity .. ") en la cinta!", Config.GetRarity(def.rarity).color, "rare")
 	end
 end
 
@@ -906,14 +1151,14 @@ for _, plot in ipairs(plots) do
 		end
 		local now = os.clock()
 		if now < st.lockCooldownUntil then
-			notify(player, "El escudo se está recargando: " .. math.ceil(st.lockCooldownUntil - now) .. "s")
+			notify(player, "El escudo se está recargando: " .. math.ceil(st.lockCooldownUntil - now) .. "s", nil, "error")
 			return
 		end
 		local duration = Config.LockDuration * (hasPass(st, "VipShield") and 2 or 1)
 		st.lockedUntil = now + duration
 		st.lockCooldownUntil = now + duration + Config.LockCooldown
 		plot.shield.Transparency = 0.2
-		notify(player, "🛡️ ¡Escudo activado por " .. duration .. " segundos!", Color3.fromRGB(120, 200, 255))
+		notify(player, "🛡️ ¡Escudo activado por " .. duration .. " segundos!", Color3.fromRGB(120, 200, 255), "success")
 	end)
 end
 
@@ -969,9 +1214,9 @@ task.spawn(function()
 					local def = Config.GetCreature(c.id)
 					if slot then
 						placeInSlot(st, slot, c.id, c.mut)
-						notify(player, "🏆 ¡Robo exitoso! " .. displayName(def, c.mut) .. " ahora es tuya.", Color3.fromRGB(120, 255, 120))
+						notify(player, "🏆 ¡Robo exitoso! " .. displayName(def, c.mut) .. " ahora es tuya.", Color3.fromRGB(120, 255, 120), "success")
 						if c.owner.Parent then
-							notify(c.owner, "💀 " .. player.DisplayName .. " te robó " .. displayName(def, c.mut) .. ".", Color3.fromRGB(255, 120, 120))
+							notify(c.owner, "💀 " .. player.DisplayName .. " te robó " .. displayName(def, c.mut) .. ".", Color3.fromRGB(255, 120, 120), "fail")
 						end
 					else
 						st.carrying = c
@@ -1005,7 +1250,7 @@ local function doRebirth(player)
 	st.lastRebirth = now
 	local cost = Config.RebirthCost(st.rebirths.Value)
 	if st.coins.Value < cost then
-		notify(player, "Necesitas $" .. Config.FormatNumber(cost) .. " para renacer.")
+		notify(player, "Necesitas $" .. Config.FormatNumber(cost) .. " para renacer.", nil, "error")
 		return
 	end
 	if st.carrying then
@@ -1020,7 +1265,7 @@ local function doRebirth(player)
 	end
 	st.rebirths.Value += 1
 	st.coins.Value = Config.StartingCoins
-	notifyAll("🔁 " .. player.DisplayName .. " renació (nivel " .. st.rebirths.Value .. ")! Ahora gana x" .. multiplier(st), Color3.fromRGB(200, 150, 255))
+	notifyAll("🔁 " .. player.DisplayName .. " renació (nivel " .. st.rebirths.Value .. ")! Ahora gana x" .. multiplier(st), Color3.fromRGB(200, 150, 255), "rebirth")
 	task.spawn(save, player, st)
 end
 
@@ -1045,24 +1290,24 @@ local function redeemCode(player, text)
 	local code = string.upper((text:gsub("%s+", "")))
 	local reward = Config.Codes[code]
 	if not reward then
-		notify(player, "❌ Ese código no existe.")
+		notify(player, "❌ Ese código no existe.", nil, "error")
 		return
 	end
 	if st.codes[code] then
-		notify(player, "Ya usaste ese código.")
+		notify(player, "Ya usaste ese código.", nil, "error")
 		return
 	end
 	if reward.creature then
 		local def = Config.GetCreature(reward.creature)
 		if not def or not giveCreature(st, reward.creature) then
-			notify(player, "Necesitas un espacio libre en tu base para este código.")
+			notify(player, "Necesitas un espacio libre en tu base para este código.", nil, "error")
 			return
 		end
-		notify(player, "🎁 ¡Código canjeado! Recibiste " .. def.name .. ".", Color3.fromRGB(120, 255, 120))
+		notify(player, "🎁 ¡Código canjeado! Recibiste " .. def.name .. ".", Color3.fromRGB(120, 255, 120), "reward")
 	end
 	if reward.coins then
 		st.coins.Value += reward.coins
-		notify(player, "🎁 ¡Código canjeado! +$" .. Config.FormatNumber(reward.coins), Color3.fromRGB(120, 255, 120))
+		notify(player, "🎁 ¡Código canjeado! +$" .. Config.FormatNumber(reward.coins), Color3.fromRGB(120, 255, 120), "reward")
 	end
 	st.codes[code] = true
 	task.spawn(save, player, st)
@@ -1080,7 +1325,7 @@ local function claimDaily(player)
 	local now = os.time()
 	if now - st.lastDaily < Config.DailyCooldown then
 		sendDaily(player, st)
-		notify(player, "Aún no puedes reclamar la recompensa diaria.")
+		notify(player, "Aún no puedes reclamar la recompensa diaria.", nil, "error")
 		return
 	end
 	if now - st.lastDaily > Config.DailyStreakReset then
@@ -1091,14 +1336,14 @@ local function claimDaily(player)
 
 	local amount = st.streak * math.max(Config.DailyBaseCoins, incomeOf(st) * Config.DailyIncomeSeconds)
 	st.coins.Value += amount
-	notify(player, "📅 Día " .. st.streak .. ": +$" .. Config.FormatNumber(amount), Color3.fromRGB(255, 220, 90))
+	notify(player, "📅 Día " .. st.streak .. ": +$" .. Config.FormatNumber(amount), Color3.fromRGB(255, 220, 90), "reward")
 
 	if st.streak == Config.DailyMaxStreak then
 		local list = creaturesByRarity[Config.DailyBonusRarity]
 		if list and #list > 0 then
 			local def = list[rng:NextInteger(1, #list)]
 			if giveCreature(st, def.id) then
-				notify(player, "🌟 ¡Premio del día 7: " .. def.name .. "!", Color3.fromRGB(200, 120, 255))
+				notify(player, "🌟 ¡Premio del día 7: " .. def.name .. "!", Color3.fromRGB(200, 120, 255), "reward")
 			else
 				st.coins.Value += def.price
 				notify(player, "🌟 Tu base estaba llena: te damos $" .. Config.FormatNumber(def.price) .. " en su lugar.")
@@ -1145,7 +1390,7 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passI
 	for _, pass in ipairs(Config.Gamepasses) do
 		if pass.id == passId and pass.id ~= 0 then
 			st.passes[pass.key] = true
-			notify(player, "💎 ¡Gracias por comprar " .. pass.name .. "! Ya está activo.", Color3.fromRGB(120, 220, 255))
+			notify(player, "💎 ¡Gracias por comprar " .. pass.name .. "! Ya está activo.", Color3.fromRGB(120, 220, 255), "reward")
 			remote:FireClient(player, "Passes", st.passes)
 		end
 	end

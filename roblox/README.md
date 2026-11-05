@@ -64,5 +64,12 @@ El código es la parte fácil. Lo que de verdad decide si un juego de Roblox des
 6. **Que se pueda jugar en el móvil.** La mayoría juega desde el móvil; prueba con el emulador
    de dispositivos de Studio.
 
-Lo que todavía no tiene y conviene añadir después: modelos 3D más bonitos (ahora son esferas
-y cubos con ojos), sonidos, música, packs de monedas de compra única y una tabla de clasificación global.
+## Sonidos y música
+- Los sonidos usan archivos que trae Roblox. Si alguno no suena, cámbialo en `Config.Sounds`
+  por uno del **Creator Store** (create.roblox.com → Creator Store → Audio): copia su número y
+  ponlo como `"rbxassetid://NUMERO"`.
+- Música: elige una canción del Creator Store y pon su id en `Config.Music`. Usa solo audio que
+  tengas permiso de usar (las canciones famosas con copyright no se pueden subir a Roblox).
+
+Lo que todavía no tiene y conviene añadir después: modelos 3D hechos a mano en Blender o Studio
+(ahora están hechos con piezas simples), packs de monedas de compra única y una tabla de clasificación global.
