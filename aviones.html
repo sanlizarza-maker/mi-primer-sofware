@@ -304,6 +304,7 @@ function stripAt(x,z,m){for(const s of STRIPS)if(inStrip(s,x,z,m))return s;retur
 function nearestStrip(x,z,list){let b=null,bd=1e18;for(const s of list||STRIPS){const d=(s.x-x)*(s.x-x)+(s.z-z)*(s.z-z);if(d<bd){bd=d;b=s;}}b.d2=bd;return b;}
 function inAirport(x,z,m){for(const A of AP)if(Math.hypot(x-A.x,z-A.z)<A.r+m)return true;return false;}
 function segD(x,z,x0,z0,x1,z1){const vx=x1-x0,vz=z1-z0,t=clamp(((x-x0)*vx+(z-z0)*vz)/(vx*vx+vz*vz),0,1);return Math.hypot(x-x0-vx*t,z-z0-vz*t);}
+function inCorridor(x,z,m){for(const s of STRIPS){const dx=x-s.x,dz=z-s.z,a=Math.abs(dx*s.ux+dz*s.uz),l=Math.abs(-dx*s.uz+dz*s.ux);if(a<s.hl+1500&&l<s.hw+m)return true;}return false;}
 const PARK={x0:-230,x1:230,z0:-1900,z1:-720};
 // distancia con signo a la costa (positivo = tierra)
 function landD(x,z){
@@ -383,7 +384,7 @@ for(let i=-5;i<=4;i++)for(let j=-45;j<=44;j++){const cx=i*110+55,cz=j*70+35;   /
   cellB(i,j,h,h>150?4+Math.floor(hash(i,j*3)*3):Math.floor(hash(j,i*7)*4));}
 for(let i=-34;i<=37;i++)for(let j=-66;j<=90;j++){const cx=i*110+55,cz=j*70+35;   // los otros distritos y Nueva Jersey
   if(Math.abs(cx)<620&&Math.abs(cz)<3200)continue;
-  if(landD(cx,cz)<75||inAirport(cx,cz,40)||hills(cx,cz)>5)continue;
+  if(landD(cx,cz)<75||inAirport(cx,cz,40)||hills(cx,cz)>5||inCorridor(cx,cz,150))continue;
   const jc=cx>-1580&&cx<-1290&&cz>1900&&cz<2800,dbk=cx>900&&cx<1500&&cz>2650&&cz<3350,lic=cx>880&&cx<1350&&cz>-420&&cz<380,r=hash(i*2.1,j*.9);
   if(jc||dbk||lic){const h=55+Math.pow(hash(i,j+.5),1.4)*(jc?210:160);cellB(i,j,h,h>120?4+Math.floor(r*3):Math.floor(r*4));continue;}
   if(isPatch(cx,cz)||r>.4)continue;
@@ -766,9 +767,9 @@ function updateFlight(dt,ctrl){
     P.roll+=(-ix*1.08-P.roll)*Math.min(1,dt*3.4*S.turn*sm);
     P.yaw+=P.roll*.82*S.turn*slow*sm*dt;
     P.pitch+=(iy*.72-P.pitch)*Math.min(1,dt*2.6*sm);
-    if(as&&ctrl){const agl=P.pos.y-terrainH(P.pos.x,P.pos.z)-gh,zs=agl<24?stripAt(P.pos.x,P.pos.z,70):null;   // ayuda de aterrizaje: nivela las alas y suaviza el toque
-      if(zs){const u=clamp(agl/24,0,1),dp=-Math.asin(Math.min(lerp(1,5.5,u)/Math.max(P.speed,20),.6));
-        if(P.pitch<dp&&iy<.4)P.pitch+=(dp-P.pitch)*Math.min(1,dt*(2+6*(1-u)));P.roll-=P.roll*Math.min(1,dt*3.5*(1-u));}}
+    if(as&&ctrl){const agl=P.pos.y-terrainH(P.pos.x,P.pos.z)-gh,zs=agl<30?stripAt(P.pos.x,P.pos.z,70):null;   // ayuda de aterrizaje: nivela las alas y suaviza el toque
+      if(zs){const u=clamp(agl/30,0,1),dp=-Math.asin(Math.min(lerp(1,6,u)/Math.max(P.speed,20),.6));
+        if(P.pitch<dp&&iy<.4)P.pitch+=(dp-P.pitch)*Math.min(1,dt*(6+10*(1-u)));P.roll-=P.roll*Math.min(1,dt*3.5*(1-u));}}
     let tgt=boost?S.max:brake?S.min:S.cruise;tgt-=Math.sin(P.pitch)*18;
     P.speed+=clamp(tgt-P.speed,-S.acc*1.6*dt,S.acc*dt);
     P.boost+=((boost?1:0)-P.boost)*Math.min(1,dt*4);
@@ -820,10 +821,11 @@ const MAPW=7700,mapImg=(()=>{const n=220,cv=document.createElement('canvas');cv.
 let hudT=0;
 function landGuide(){
   const el=$('hLand');let html='';
-  if(!P.ground&&state==='fly'){
-    const s=nearestStrip(P.pos.x,P.pos.z,mission?dest().strips:undefined),dist=Math.sqrt(s.d2);
+  if(!P.ground&&state==='fly'&&P.pitch<.06){
+    const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);let s=null,best=1e9,dist=0;   // la pista que mejor encaja con tu rumbo
+    for(const c of(mission?dest().strips:STRIPS)){const d=Math.hypot(c.x-P.pos.x,c.z-P.pos.z),an=Math.acos(clamp(Math.abs(fx*c.ux+fz*c.uz),0,1))*180/PI,sc=d+an*9;if(sc<best){best=sc;s=c;dist=d;}}
     if(dist<(mission?1500:900)){
-      const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=-fz,rz=fx,sg=(fx*s.ux+fz*s.uz)>=0?1:-1,ax=s.ux*sg,az=s.uz*sg;
+      const rx=-fz,rz=fx,sg=(fx*s.ux+fz*s.uz)>=0?1:-1,ax=s.ux*sg,az=s.uz*sg;
       const px=P.pos.x-s.x,pz=P.pos.z-s.z,pa=(px*s.ux+pz*s.uz)*sg,pl=-px*s.uz+pz*s.ux,rr=-pl*(-s.uz*rx+s.ux*rz);
       const ang=Math.acos(clamp(fx*ax+fz*az,-1,1))*180/PI,dotR=ax*rx+az*rz,dThr=-s.hl-pa,agl=P.pos.y-s.y-gearH();
       const sp=(c,t)=>'<span class="'+c+'">'+t+'</span>';
