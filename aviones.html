@@ -1000,7 +1000,7 @@ function genMission(type,stars){
   const mt=MT[type],s=stars-1,from=AP[Math.floor(Math.random()*AP.length)],stops=[],intl=!!mt.intl,n=mt.n==='m'?(stars>=3?3:2):mt.n==='k'?(stars>=3?4:3):mt.n==='g'?(stars>=3?7:6):mt.n==='w'?(stars>=2?4:3):mt.n;let prev=from,len=0,cnt=intl?1:n;
   if(mt.world){const oth=shuf(Object.keys(CITIES).filter(k=>k!==CITY.id));for(let i=0;i<n-1;i++){const C=CITIES[oth[i]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);}stops.push(from);len=n*5000;}
   else if(intl){const ids=Object.keys(CITIES).filter(k=>k!==CITY.id),C=CITIES[ids[Math.floor(Math.random()*ids.length)]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=7000;}
-  else for(let i=0;i<n;i++){let A;do{A=AP[Math.floor(Math.random()*AP.length)];}while(A===prev);stops.push(A);len+=Math.hypot(A.x-prev.x,A.z-prev.z);prev=A;}
+  else for(let i=0;i<n;i++){let A,tr=0;do{A=AP[Math.floor(Math.random()*AP.length)];tr++;}while((A===prev||(tr<25&&stops.slice(-2).includes(A)))&&tr<60);stops.push(A);len+=Math.hypot(A.x-prev.x,A.z-prev.z);prev=A;}
   const ref=planeSpec.cruise*[.86,.9,.95][s],time=Math.ceil((len/ref*mt.slack+cnt*(mt.fast?25:50))/5)*5,dest=stops[stops.length-1],dn=dest.n+(intl?' ('+CITIES[dest.city].name+')':''),ids=[from].concat(stops).map(a=>a.id).join(' → ');
   const reward=Math.round(PAY[s]*mt.mul*(.7+Math.min(len,4500)/9000)*(mt.long?Math.pow(cnt,.85):1)*rnd(.93,1.08)/10)*10;
   const D={pax:['Pasajeros a '+dn,'Lleva a los pasajeros de '+from.n+' a '+dest.n+'.'],
@@ -1079,7 +1079,7 @@ function updObjective(){
   const n=$('oName'),t=$('oText');
   if(!mission){n.textContent='Vuelo libre';t.textContent='Estrella dorada: $50 · Primera vez que aterrizas en un aeropuerto: $150';return;}
   const d=dest(),tot=mission.def.stops.length;n.textContent=mission.def.name;
-  const pre=tot>1?(mission.def.world?'Tramo ':'Escala ')+(mission.leg+1)+' de '+tot+' · ':'';
+  const pre=tot>1?(mission.def.type==='world'?'Tramo ':'Escala ')+(mission.leg+1)+' de '+tot+' · ':'';
   t.textContent=pre+(d.city!==CITY.id?'Sube a 600 m rumbo a '+CITIES[d.city].name:'Aterriza en '+d.n);
 }
 const navT={p:null};
