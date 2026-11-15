@@ -150,6 +150,25 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 #hLand{bottom:calc(84px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 #hLand span{background:rgba(7,24,42,.66);padding:1px 10px;border-radius:3px}
 #hLand .ok{color:#7dffb0}#hLand .warn{color:#ffd24a}#hLand .bad{color:#ff8080}
+/* ---------- Controles táctiles nuevos: flechas + palanca de potencia ---------- */
+#dpad,#lever{display:none;pointer-events:auto;position:absolute;touch-action:none}
+.touch #dpad{display:block;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:184px;height:184px}
+#dpad i{position:absolute;width:64px;height:64px;display:grid;place-items:center;font-style:normal;font-size:27px;border-radius:15px;border:2px solid rgba(255,255,255,.65);background:rgba(7,24,42,.62);color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+#dpad .du{left:60px;top:0}#dpad .dd{left:60px;bottom:0}#dpad .dl{left:0;top:60px}#dpad .dr{right:0;top:60px}
+#dpad i.on{background:var(--signal);border-color:#fff;transform:scale(.93)}
+.touch #lever{display:flex;flex-direction:column;align-items:center;gap:4px;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:80px;font-family:var(--display);font-weight:700;letter-spacing:.08em;font-size:13px;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+#levTrack{position:relative;width:58px;height:168px;border-radius:13px;border:2px solid rgba(255,255,255,.65);background:rgba(7,24,42,.62);overflow:hidden}
+#levFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,#2fbf71,#ffc83d 65%,#ff6a2b)}
+#levKnob{position:absolute;left:0;right:0;height:24px;bottom:0;border-radius:9px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+#levKnob::after{content:"";position:absolute;left:12px;right:12px;top:10px;height:4px;border-radius:2px;background:#07182a}
+#levP{font-size:19px;line-height:1}
+#bBrake{right:max(110px,calc(96px + env(safe-area-inset-right,0px)));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:86px;height:86px;font-size:14px;background:rgba(200,40,50,.72);border-color:#ffd0d0;color:#fff}
+.touch #stick,.touch #zoneL{display:none}
+.touch.joy #stick,.touch.joy #zoneL{display:block}
+.touch.joy #dpad{display:none}
+#hGauge{gap:20px}
+@media (max-width:560px){.touch #hGauge{bottom:calc(214px + env(safe-area-inset-bottom,0px))}.touch #hLand{bottom:calc(276px + env(safe-area-inset-bottom,0px));font-size:16px}#hMsg{white-space:normal;width:92vw;font-size:22px}}
+@media (max-width:760px){#hGauge div b{font-size:25px}#hGauge div span{font-size:10px}}
 </style>
 
 <canvas id="c" aria-label="Vista 3D del juego"></canvas>
@@ -167,12 +186,14 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
   <div class="h num" id="hGauge">
     <div><b id="gSpd">0</b><span>KM/H</span></div>
     <div><b id="gAlt">0</b><span>ALTITUD M</span></div>
+    <div><b id="gThr">0</b><span>POTENCIA %</span></div>
   </div>
-  <div class="h" id="keys"><kbd>←</kbd><kbd>→</kbd> girar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> subir y bajar<br><kbd>Espacio</kbd> acelerar / turbo &nbsp; <kbd>X</kbd> freno &nbsp; <kbd>P</kbd> pausa</div>
+  <div class="h" id="keys"><kbd>←</kbd><kbd>→</kbd> girar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> subir y bajar<br><kbd>Espacio</kbd> más potencia &nbsp; <kbd>X</kbd> menos potencia y freno &nbsp; <kbd>P</kbd> pausa</div>
   <div id="zoneL"></div>
   <div class="h" id="hLand" hidden></div>
   <div id="stick"><div id="knob"></div></div>
-  <button class="rb" id="bBoost" type="button"><b>▲</b><span id="bBoostT">Acelerar</span></button>
+  <div id="dpad"><i class="du">▲</i><i class="dl">◀</i><i class="dr">▶</i><i class="dd">▼</i></div>
+  <div id="lever"><span>POTENCIA</span><div id="levTrack"><div id="levFill"></div><div id="levKnob"></div></div><b id="levP" class="num">0%</b></div>
   <button class="rb" id="bBrake" type="button"><b>■</b>Freno</button>
 </div>
 
@@ -182,6 +203,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
     <button class="go" id="pGo" type="button">Continuar</button>
     <button class="go alt" id="pAs" type="button"></button>
     <button class="go alt" id="pSens" type="button"></button>
+    <button class="go alt" id="pPad" type="button"></button>
     <button class="go alt" id="pRe" type="button">Reiniciar vuelo</button>
     <button class="go alt" id="pOut" type="button">Volver al hangar</button>
   </div>
@@ -198,11 +220,12 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
   </nav>
   <div id="list"></div>
   <footer class="m-foot">
-    <div class="keys"><kbd>←</kbd><kbd>→</kbd> girar · <kbd>↑</kbd><kbd>↓</kbd> subir y bajar · <kbd>Espacio</kbd> acelerar · <kbd>X</kbd> freno · <kbd>C</kbd> cámara · <kbd>P</kbd> pausa · Mando: stick, A acelerar, B freno, Y cámara, Start pausa</div>
+    <div class="keys"><kbd>←</kbd><kbd>→</kbd> girar · <kbd>↑</kbd><kbd>↓</kbd> subir y bajar · <kbd>Espacio</kbd> más potencia · <kbd>X</kbd> menos potencia y freno · <kbd>C</kbd> cámara · <kbd>P</kbd> pausa · Mando: stick, A más potencia, B menos, Y cámara, Start pausa</div>
     <div class="opts">
       <button type="button" id="oInv"></button>
       <button type="button" id="oAs"></button>
       <button type="button" id="oSens"></button>
+      <button type="button" id="oPad"></button>
       <button type="button" id="oSnd"></button>
       <button type="button" id="oGfx"></button>
       <button type="button" id="oReset">Borrar partida</button>
@@ -673,14 +696,14 @@ function refill(){const have=offers.map(o=>o.stars),st=!have.includes(1)?1:!have
   offers.push(genMission(types[Math.floor(Math.random()*4)],st));offers.sort((a,b)=>a.stars-b.stars);}
 
 /* ================= Estado de vuelo ================= */
-const P={pos:new T.Vector3(),yaw:0,pitch:0,roll:0,speed:0,boost:0,ground:true,touch:false,hint:false,q:1};
+const P={pos:new T.Vector3(),yaw:0,pitch:0,roll:0,speed:0,boost:0,ground:true,touch:false,hint:false,q:1,thr:0};
 const HOME=AP[0].strip;
 let state='menu',mission=null,result=null,tab='mis',previewId=save.sel,endT=0,time=0,msgT=0,edge=false,trailT=0;
-const keys={},stick={x:0,y:0},tb={boost:false,brake:false,auto:false},ci={x:0,y:0},padPrev={p:false,c:false};
+const keys={},stick={x:0,y:0},tb={boost:false,brake:false,auto:false},ci={x:0,y:0},dp={l:0,r:0,u:0,d:0},padPrev={p:false,c:false};
 const fwd=new T.Vector3(),tmp=new T.Vector3(),camT=new T.Vector3();
 function getFwd(o){const cp=Math.cos(P.pitch);return o.set(-Math.sin(P.yaw)*cp,Math.sin(P.pitch),-Math.cos(P.yaw)*cp);}
 const gearH=()=>planeSpec.b.rad+(planeSpec.b.floats?2.2:1.5);
-function park(s,sign){P.pos.set(s.x-s.ux*sign*(s.hl-26),s.y+gearH(),s.z-s.uz*sign*(s.hl-26));P.yaw=yawTo(s.ux*sign,s.uz*sign);P.pitch=P.roll=P.speed=P.boost=0;P.ground=true;P.touch=P.hint=false;}
+function park(s,sign){P.pos.set(s.x-s.ux*sign*(s.hl-26),s.y+gearH(),s.z-s.uz*sign*(s.hl-26));P.yaw=yawTo(s.ux*sign,s.uz*sign);P.pitch=P.roll=P.speed=P.boost=P.thr=0;P.ground=true;P.touch=P.hint=false;}
 function msg(text,sec){const e=$('hMsg');e.textContent=text;e.style.opacity=1;msgT=sec||2;}
 const isTouch=()=>document.body.classList.contains('touch');
 const dest=()=>mission?mission.def.stops[mission.leg]:null;
@@ -692,7 +715,7 @@ function startFlight(m){
   else{mission=null;park(HOME,1);}
   edge=false;updateCam(0,true);
   state='fly';$('menu').hidden=true;$('pause').hidden=true;$('hud').hidden=false;$('hTime').hidden=!m;
-  tb.auto=false;ci.x=ci.y=0;msg(save.assist===false?(isTouch()?'Toca ACELERAR y luego sube':'Mantén ESPACIO y luego sube'):(isTouch()?'Toca ACELERAR: despega solo':'Mantén ESPACIO: despega solo'),4);updObjective();
+  tb.auto=false;ci.x=ci.y=0;msg(isTouch()?'Sube la palanca de POTENCIA para despegar':'Mantén ESPACIO para dar potencia y despegar',4.5);updObjective();
 }
 function finish(ok,reason){
   const m=mission.def;let res;
@@ -737,26 +760,27 @@ function readPad(){try{const l=navigator.getGamepads?navigator.getGamepads():[];
 function updateFlight(dt,ctrl){
   const S=planeSpec,gh=gearH(),as=save.assist!==false,sm=[.75,1,1.3][save.sens===undefined?1:save.sens];let ix=0,iy=0,boost=false,brake=false;
   if(ctrl){
-    const kx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),ky=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0);
+    const kx=(keys.ArrowRight||keys.KeyD||dp.r?1:0)-(keys.ArrowLeft||keys.KeyA||dp.l?1:0),ky=(keys.ArrowUp||keys.KeyW||dp.u?1:0)-(keys.ArrowDown||keys.KeyS||dp.d?1:0);
     const stx=(kx?5:9)*dt,sty=(ky?5:9)*dt;ci.x+=clamp(kx-ci.x,-stx,stx);ci.y+=clamp(ky-ci.y,-sty,sty);
     ix=ci.x+stick.x;iy=ci.y-stick.y;
     const g=readPad();let gb=false,gk=false;
     if(g){const dz=v=>Math.abs(v)<.15?0:v;ix+=dz(g.axes[0]||0);iy-=dz(g.axes[1]||0);
       gb=!!((g.buttons[0]&&g.buttons[0].pressed)||(g.buttons[7]&&g.buttons[7].pressed));gk=!!((g.buttons[1]&&g.buttons[1].pressed)||(g.buttons[6]&&g.buttons[6].pressed));}
     if(save.inv)iy=-iy;ix=clamp(ix,-1,1);iy=clamp(iy,-1,1);
-    boost=!!(keys.Space||keys.ShiftLeft||keys.ShiftRight||tb.boost||tb.auto||gb);brake=!!(keys.KeyX||tb.brake||gk);
-    if(P.ground&&(keys.ArrowDown||keys.KeyS)&&!boost)brake=true;
-  }else{ci.x=ci.y=0;}
-  if(brake)tb.auto=false;
+    const up=keys.Space||keys.ShiftLeft||keys.ShiftRight||gb,dn=keys.KeyX||gk;
+    if(up)P.thr=Math.min(1,P.thr+dt*.9);if(dn)P.thr=Math.max(0,P.thr-dt*1.4);
+    brake=!!(tb.brake||(dn&&P.thr<=0));if(tb.brake)P.thr=Math.max(0,P.thr-dt*3);
+    boost=P.thr>.04&&!brake;
+  }else{ci.x=ci.y=0;P.thr=0;}
   if(P.ground){
     const Vr=S.min*.85,st=stripAt(P.pos.x,P.pos.z,6),k=Math.min(1,dt*8);
     P.roll-=P.roll*k;P.pitch-=P.pitch*k;P.boost-=P.boost*Math.min(1,dt*4);P.yaw-=ix*.8*(1-.5*clamp(P.speed/S.cruise,0,1))*sm*dt;
     if(as&&ctrl&&ix===0&&st&&P.speed>3){let d=Math.atan2(-st.ux,-st.uz)-P.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));if(Math.abs(d)>PI/2)d=Math.atan2(Math.sin(d+PI),Math.cos(d+PI));if(Math.abs(d)<.5)P.yaw+=d*Math.min(1,dt*1.8);}
-    if(boost&&!brake)P.speed=Math.min(S.cruise,P.speed+S.acc*1.2*dt);else P.speed=Math.max(0,P.speed-(brake||!ctrl?75:P.touch?26:10)*dt);
+    if(boost&&P.speed<S.cruise*(.3+.7*P.thr))P.speed=Math.min(S.cruise*(.3+.7*P.thr),P.speed+S.acc*1.2*(.4+.6*P.thr)*dt);else P.speed=Math.max(0,P.speed-(brake||!ctrl?75:P.touch?26:10)*dt);
     if(!st){if(P.speed>=Vr)liftoff();else if(P.speed>24){crash('Te saliste de la pista.',true);return;}else P.speed=Math.min(P.speed,9);}
     P.pos.x-=Math.sin(P.yaw)*P.speed*dt;P.pos.z-=Math.cos(P.yaw)*P.speed*dt;
     if(P.ground){const th=terrainH(P.pos.x,P.pos.z);if(th<.5){crash('Te caíste al agua.');return;}P.pos.y=th+gh;
-      if(P.speed>=Vr){if(iy>.2||(as&&ctrl&&boost&&!brake&&P.speed>=Vr*1.08))liftoff();else if(!as&&!P.hint&&!P.touch){P.hint=true;msg('¡Ya puedes subir!',1.6);}}
+      if(P.speed>=Vr){if(iy>.2||(as&&ctrl&&boost&&P.thr>.5&&P.speed>=Vr*1.08))liftoff();else if(!as&&!P.hint&&!P.touch){P.hint=true;msg('¡Ya puedes subir!',1.6);}}
       if(P.touch&&P.speed<3&&st){P.touch=false;landed(st);}}
     getFwd(fwd);
   }else{
@@ -770,9 +794,9 @@ function updateFlight(dt,ctrl){
     if(as&&ctrl){const agl=P.pos.y-terrainH(P.pos.x,P.pos.z)-gh,zs=agl<30?stripAt(P.pos.x,P.pos.z,70):null;   // ayuda de aterrizaje: nivela las alas y suaviza el toque
       if(zs){const u=clamp(agl/30,0,1),dp=-Math.asin(Math.min(lerp(1,6,u)/Math.max(P.speed,20),.6));
         if(P.pitch<dp&&iy<.4)P.pitch+=(dp-P.pitch)*Math.min(1,dt*(6+10*(1-u)));P.roll-=P.roll*Math.min(1,dt*3.5*(1-u));}}
-    let tgt=boost?S.max:brake?S.min:S.cruise;tgt-=Math.sin(P.pitch)*18;
+    let tgt=brake?S.min:lerp(S.min,S.max,P.thr);tgt-=Math.sin(P.pitch)*18;
     P.speed+=clamp(tgt-P.speed,-S.acc*1.6*dt,S.acc*dt);
-    P.boost+=((boost?1:0)-P.boost)*Math.min(1,dt*4);
+    P.boost+=(clamp((P.thr-.75)/.25,0,1)*(brake?0:1)-P.boost)*Math.min(1,dt*4);
     getFwd(fwd);P.pos.addScaledVector(fwd,P.speed*dt);
     if(P.pos.y<1.6){if(S.floats){P.pos.y=1.6;if(P.pitch<.04)P.pitch=.04;if(Math.random()<.5)spawnP(P.pos.x,.5,P.pos.z,rnd(-6,6),rnd(4,10),rnd(-6,6),0xffffff,2,.5,5,false);}else if(terrainH(P.pos.x,P.pos.z)<0){crash();return;}}
     if(P.pos.y<buildingTop(P.pos.x,P.pos.z)+1||hitSolid(P.pos)){crash('Chocaste con una construcción. Sobre la ciudad vuela más alto.',true);return;}
@@ -785,7 +809,7 @@ function updateFlight(dt,ctrl){
       if(P.speed>S.cruise*1.25){crash('Demasiado rápido para aterrizar. Usa el freno.',true);return;}
       if(al<.7){crash('Hay que entrar alineado con la pista.',true);return;}
       P.q=sink<3.5&&Math.abs(P.roll)<.2?0:sink<9?1:2;
-      P.ground=true;P.touch=true;P.hint=false;P.pos.y=th+gh;beep(140,90,.15,.12,'square');
+      P.ground=true;P.touch=true;P.hint=false;if(as)P.thr=0;P.pos.y=th+gh;beep(140,90,.15,.12,'square');
       for(let i=0;i<6;i++)spawnP(P.pos.x,th+.5,P.pos.z,rnd(-4,4),rnd(1,3),rnd(-4,4),0xdddddd,.6,.45,1.6,false);}
   }
   trailT-=dt;if(P.boost>.5&&!P.ground&&trailT<=0){trailT=.03;const L=planeObj.userData.len/2;spawnP(P.pos.x-fwd.x*L,P.pos.y-fwd.y*L,P.pos.z-fwd.z*L,0,0,0,0xffffff,1.2,.7,3,false);}
@@ -828,12 +852,13 @@ function landGuide(){
       const rx=-fz,rz=fx,sg=(fx*s.ux+fz*s.uz)>=0?1:-1,ax=s.ux*sg,az=s.uz*sg;
       const px=P.pos.x-s.x,pz=P.pos.z-s.z,pa=(px*s.ux+pz*s.uz)*sg,pl=-px*s.uz+pz*s.ux,rr=-pl*(-s.uz*rx+s.ux*rz);
       const ang=Math.acos(clamp(fx*ax+fz*az,-1,1))*180/PI,dotR=ax*rx+az*rz,dThr=-s.hl-pa,agl=P.pos.y-s.y-gearH();
+      if(dThr<=0&&P.thr>.6)return void(el.hidden=true);   // estás despegando, no aterrizando
       const sp=(c,t)=>'<span class="'+c+'">'+t+'</span>';
       html+=sp('ok',s.ap.id+' · '+Math.round(dist)+' m');
       if(ang>7)html+=sp(ang>25?'bad':'warn','Gira a la '+(dotR>0?'derecha':'izquierda')+' '+Math.round(ang)+'°');
       else if(Math.abs(rr)>14)html+=sp('warn','Pista a tu '+(rr>0?'derecha':'izquierda')+' · '+Math.round(Math.abs(rr))+' m');
       else html+=sp('ok','Alineado ✓');
-      if(P.speed>planeSpec.cruise*1.2)html+=sp('bad','Frena (X)');
+      if(P.speed>planeSpec.cruise*1.2)html+=sp('bad','Baja la potencia');
       else if(dThr>0){const ideal=10+dThr*.075;html+=agl>ideal*1.6+12?sp('warn','Baja ↓ '+Math.round(agl)+' m'):agl<ideal*.55?sp('warn','Sube ↑ '+Math.round(agl)+' m'):sp('ok','Buena pendiente · '+Math.round(agl)+' m');}
       else html+=sp('ok','Sobre la pista · '+Math.round(agl)+' m');
     }
@@ -849,11 +874,11 @@ function drawHud(dt){
     ptr.firstElementChild.style.transform=off?'rotate('+Math.atan2(x,y).toFixed(3)+'rad)':'';
     ptr.lastElementChild.textContent=dest().id+' · '+Math.round(cur.p.distanceTo(P.pos))+' m';
   }else ptr.hidden=true;
-  $('bBoost').classList.toggle('on',!!(tb.boost||tb.auto));$('bBrake').classList.toggle('on',!!tb.brake);
+  $('bBrake').classList.toggle('on',!!tb.brake);$('levKnob').style.bottom=(P.thr*144).toFixed(1)+'px';$('levFill').style.height=(P.thr*100).toFixed(1)+'%';
   hudT-=dt;if(hudT>0)return;hudT=.1;
   landGuide();
   $('gSpd').textContent=Math.round(P.speed*3.6);$('gAlt').textContent=P.ground?'PISTA':Math.max(0,Math.round(P.pos.y));$('hMoney').textContent=fmt(save.money);
-  $('bBoostT').textContent=P.ground?(tb.auto?'Acelerando':'Acelerar'):'Turbo';
+  $('gThr').textContent=$('levP').textContent=Math.round(P.thr*100);$('levP').textContent+='%';
   if(mission){const s=Math.max(0,Math.ceil(mission.tLeft)),e=$('hTime');e.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');e.className='h num'+(s<=15?' low':'');}
   // minimapa (arriba = hacia donde vuelas)
   const W=248,c=W/2,sc=c/3600,cy=Math.cos(P.yaw),sy=Math.sin(P.yaw);
@@ -872,7 +897,7 @@ const starsH=n=>'<span class="stars" aria-label="Dificultad '+n+' de 3">'+'★'.
 const tfmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 function renderMenu(){
   $('money').textContent=fmt(save.money);$('tabM').setAttribute('aria-selected',tab==='mis');$('tabH').setAttribute('aria-selected',tab==='han');
-  $('oInv').textContent='Vertical: '+(save.inv?'estilo piloto (↑ baja)':'arcade (↑ sube)');$('oSnd').textContent='Sonido: '+(save.snd?'sí':'no');$('oGfx').textContent='Gráficos: '+(save.gfx?'altos':'rápidos');$('oAs').textContent='Ayuda de vuelo: '+(save.assist===false?'no':'sí');$('oSens').textContent='Sensibilidad: '+['suave','normal','ágil'][save.sens===undefined?1:save.sens];
+  $('oInv').textContent='Vertical: '+(save.inv?'estilo piloto (↑ baja)':'arcade (↑ sube)');$('oSnd').textContent='Sonido: '+(save.snd?'sí':'no');$('oGfx').textContent='Gráficos: '+(save.gfx?'altos':'rápidos');$('oPad').textContent='Dirección táctil: '+(save.pad==='joy'?'joystick':'flechas');$('oAs').textContent='Ayuda de vuelo: '+(save.assist===false?'no':'sí');$('oSens').textContent='Sensibilidad: '+['suave','normal','ágil'][save.sens===undefined?1:save.sens];
   let h='';
   if(tab==='mis'){
     if(result){const r=result;
@@ -908,14 +933,16 @@ $('oSnd').onclick=()=>{save.snd=!save.snd;persist();renderMenu();};
 $('oGfx').onclick=()=>{save.gfx=!save.gfx;persist();applyGfx();renderMenu();};
 const toggleAssist=()=>{save.assist=save.assist===false;persist();renderMenu();pauseTxt();};
 const nextSens=()=>{save.sens=((save.sens===undefined?1:save.sens)+1)%3;persist();renderMenu();pauseTxt();};
-function pauseTxt(){$('pAs').textContent='Ayuda de vuelo: '+(save.assist===false?'no':'sí');$('pSens').textContent='Sensibilidad: '+['suave','normal','ágil'][save.sens===undefined?1:save.sens];}
-$('oAs').onclick=toggleAssist;$('oSens').onclick=nextSens;$('pAs').onclick=toggleAssist;$('pSens').onclick=nextSens;
+const applyPad=()=>document.body.classList.toggle('joy',save.pad==='joy');
+const nextPad=()=>{save.pad=save.pad==='joy'?'btn':'joy';persist();applyPad();renderMenu();pauseTxt();};
+function pauseTxt(){$('pPad').textContent='Dirección táctil: '+(save.pad==='joy'?'joystick':'flechas');$('pAs').textContent='Ayuda de vuelo: '+(save.assist===false?'no':'sí');$('pSens').textContent='Sensibilidad: '+['suave','normal','ágil'][save.sens===undefined?1:save.sens];}
+$('oPad').onclick=nextPad;$('pPad').onclick=nextPad;$('oAs').onclick=toggleAssist;$('oSens').onclick=nextSens;$('pAs').onclick=toggleAssist;$('pSens').onclick=nextSens;
 let resetArm=0;
 $('oReset').onclick=function(){if(Date.now()-resetArm<4000){save={money:0,owned:['gorrion'],sel:'gorrion',done:0,visited:[],inv:save.inv,snd:save.snd,gfx:save.gfx,cam:0,assist:save.assist,sens:save.sens};persist();previewId='gorrion';setPlane('gorrion');result=null;newOffers();this.textContent='Borrar partida';resetArm=0;renderMenu();}
   else{resetArm=Date.now();this.textContent='¿Seguro? Toca otra vez para borrar';setTimeout(()=>{if(resetArm){this.textContent='Borrar partida';resetArm=0;}},4000);}};
 
 /* ================= Botones de juego: pausa y cámara ================= */
-function pause(on){if(on&&state==='fly'){state='pause';pauseTxt();tb.boost=tb.brake=false;$('pause').hidden=false;engSet(false,0,false);$('pGo').focus();}else if(!on&&state==='pause'){state='fly';$('pause').hidden=true;}}
+function pause(on){if(on&&state==='fly'){state='pause';pauseTxt();tb.brake=false;dp.l=dp.r=dp.u=dp.d=0;$('pause').hidden=false;engSet(false,0,false);$('pGo').focus();}else if(!on&&state==='pause'){state='fly';$('pause').hidden=true;}}
 function nextCam(){save.cam=((save.cam||0)+1)%3;persist();msg(CAMN[save.cam],1.2);if(state==='fly'||state==='pause')updateCam(0,true);}
 $('bPause').onclick=()=>pause(true);$('pGo').onclick=()=>pause(false);
 $('pRe').onclick=()=>{const m=mission&&mission.def;state='fly';startFlight(m||null);};
@@ -936,10 +963,22 @@ if(matchMedia('(pointer:coarse)').matches||'ontouchstart'in window)document.body
   const up=e=>{if(e.pointerId!==id)return;id=null;stick.x=stick.y=0;kn.style.transform='';rest();};
   zone.addEventListener('pointerdown',e=>{if(id!==null)return;id=e.pointerId;try{zone.setPointerCapture(id);}catch(_){}place(e.clientX,e.clientY);mv(e);e.preventDefault();});
   zone.addEventListener('pointermove',e=>{if(e.pointerId===id)mv(e);});zone.addEventListener('pointerup',up);zone.addEventListener('pointercancel',up);
-  const bo=$('bBoost'),br=$('bBrake');
-  bo.addEventListener('pointerdown',e=>{if(state==='fly'&&P.ground)tb.auto=!tb.auto;else tb.boost=true;try{bo.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
+  const br=$('bBrake');
   br.addEventListener('pointerdown',e=>{tb.brake=true;try{br.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
-  for(const ev of['pointerup','pointercancel','lostpointercapture']){bo.addEventListener(ev,()=>{tb.boost=false;});br.addEventListener(ev,()=>{tb.brake=false;});}
+  for(const ev of['pointerup','pointercancel','lostpointercapture'])br.addEventListener(ev,()=>{tb.brake=false;});
+  // palanca de potencia: se queda donde la dejas
+  const lev=$('lever'),trk=$('levTrack');let lid=null;
+  const lset=e=>{const r=trk.getBoundingClientRect();P.thr=clamp(1-(e.clientY-r.top-12)/(r.height-24),0,1);if(P.thr<.04)P.thr=0;};
+  lev.addEventListener('pointerdown',e=>{lid=e.pointerId;try{lev.setPointerCapture(lid);}catch(_){}lset(e);e.preventDefault();});
+  lev.addEventListener('pointermove',e=>{if(e.pointerId===lid)lset(e);});
+  for(const ev of['pointerup','pointercancel'])lev.addEventListener(ev,e=>{if(e.pointerId===lid)lid=null;});
+  // flechas: puedes deslizar el dedo de una a otra y usar diagonales
+  const pad=$('dpad'),bt={u:pad.querySelector('.du'),d:pad.querySelector('.dd'),l:pad.querySelector('.dl'),r:pad.querySelector('.dr')};let pid=null;
+  const pset=e=>{const r=pad.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,d=Math.hypot(x,y),on=d>14;
+    dp.l=on&&x<-d*.4?1:0;dp.r=on&&x>d*.4?1:0;dp.u=on&&y<-d*.4?1:0;dp.d=on&&y>d*.4?1:0;for(const k in bt)bt[k].classList.toggle('on',!!dp[k]);};
+  const pup=e=>{if(e.pointerId!==pid)return;pid=null;dp.l=dp.r=dp.u=dp.d=0;for(const k in bt)bt[k].classList.remove('on');};
+  pad.addEventListener('pointerdown',e=>{pid=e.pointerId;try{pad.setPointerCapture(pid);}catch(_){}pset(e);e.preventDefault();});
+  pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)pset(e);});pad.addEventListener('pointerup',pup);pad.addEventListener('pointercancel',pup);
   document.addEventListener('contextmenu',e=>{if(state==='fly')e.preventDefault();});
 })();
 
@@ -977,7 +1016,7 @@ function frame(now){
   water.material.uniforms.t.value=time;water.material.uniforms.camPos.value.copy(cam.position);
   renderer.render(scene,cam);
 }
-applyGfx();setPlane(save.sel);park(HOME,1);newOffers();resize();renderMenu();requestAnimationFrame(frame);
-window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,terrainH,AP,keys,tb,nb:BLD.length};
+applyGfx();applyPad();setPlane(save.sel);park(HOME,1);newOffers();resize();renderMenu();requestAnimationFrame(frame);
+window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,terrainH,AP,keys,tb,dp,nb:BLD.length};
 })();
 </script>
