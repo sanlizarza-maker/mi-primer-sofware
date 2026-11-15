@@ -91,9 +91,9 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 #hGauge div span{font-size:12px;letter-spacing:.16em;color:var(--fg);opacity:.8}
 #hMsg{top:24%;left:50%;transform:translateX(-50%);font-size:34px;font-weight:700;font-style:italic;text-transform:uppercase;text-align:center;white-space:nowrap;transition:opacity .3s}
 #ptr{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
-#ptr i{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border:3px solid var(--gold);border-radius:50%;box-sizing:border-box}
-#ptr.off i{border:0;border-radius:0;left:-12px;top:-14px;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:26px solid var(--gold)}
-#ptr span{position:absolute;top:18px;left:-40px;width:80px;text-align:center;font-size:15px;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+#ptr i{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border:4px solid var(--gold);border-radius:50%;box-sizing:border-box;box-shadow:0 0 14px rgba(255,200,61,.8);animation:pulse 1.2s ease-in-out infinite}
+#ptr.off i{border:0;border-radius:0;box-shadow:none;animation:none;left:-20px;top:-24px;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-bottom:42px solid var(--gold);filter:drop-shadow(0 2px 4px rgba(0,0,0,.7))}
+#ptr span{position:absolute;top:28px;left:-60px;width:120px;text-align:center;font-size:19px;font-weight:700;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.9)}
 /* controles táctiles */
 #stick,.tbtn{display:none;pointer-events:auto;position:absolute}
 .touch #stick{display:block;left:max(22px,env(safe-area-inset-left,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:128px;height:128px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(7,24,42,.35)}
@@ -173,6 +173,16 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 .cities button{background:var(--panel-2);border:1px solid var(--line);border-radius:18px;padding:6px 13px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
 .cities button.on{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
 #trip{position:fixed;inset:0;display:grid;place-items:center;background:rgba(4,14,26,.82);font-family:var(--display);font-style:italic;font-weight:700;font-size:34px;text-transform:uppercase;text-align:center;padding:20px;z-index:5}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+#guide{top:calc(62px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(7,24,42,.72);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:6px 16px 6px 10px;white-space:nowrap}
+#gArrow{width:54px;height:54px;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+#gArrow path{fill:#ffc83d;stroke:#07182a;stroke-width:2.5;stroke-linejoin:round;transition:fill .2s}
+#guide.ahead #gArrow path{fill:#7dffb0}
+#guide b{display:block;font-size:21px;line-height:1.05;text-transform:uppercase;letter-spacing:.03em}
+#guide span{display:block;font-family:var(--body);font-size:13.5px;font-weight:500;color:#ffd978}
+#guide.ahead span{color:#9dffc4}
+@media (max-width:560px){#guide{top:calc(150px + env(safe-area-inset-top,0px));padding:4px 12px 4px 8px}#gArrow{width:44px;height:44px}#guide b{font-size:18px}}
+@media (prefers-reduced-motion:reduce){#ptr i{animation:none}}
 </style>
 
 <canvas id="c" aria-label="Vista 3D del juego"></canvas>
@@ -187,6 +197,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
   </div>
   <div class="h" id="hMsg"></div>
   <div id="ptr"><i></i><span class="num"></span></div>
+  <div class="h" id="guide" hidden><svg id="gArrow" viewBox="-20 -20 40 40"><path d="M0-17 L13 12 L0 6 L-13 12Z"/></svg><div><b id="gName"></b><span id="gDist" class="num"></span></div></div>
   <div class="h num" id="hGauge">
     <div><b id="gSpd">0</b><span>KM/H</span></div>
     <div><b id="gAlt">0</b><span>ALTITUD M</span></div>
@@ -738,6 +749,12 @@ function buildPlane(spec){
   g.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.material.isMeshBasicMaterial)o.castShadow=true;});
   return g;
 }
+const guideArrow=(()=>{const g=new T.Group(),sh=new T.Shape();   // flecha plana y gruesa que apunta hacia -Z
+  [[0,4.2],[2.7,.6],[1.05,.6],[1.05,-3.2],[-1.05,-3.2],[-1.05,.6],[-2.7,.6]].forEach((q,i)=>i?sh.lineTo(q[0],q[1]):sh.moveTo(q[0],q[1]));
+  const geo=new T.ExtrudeGeometry(sh,{depth:1.2,bevelEnabled:false}).rotateX(-PI/2);
+  const mk=(color,sc,y,ord)=>{const m=new T.Mesh(geo,new T.MeshBasicMaterial({color,transparent:true,opacity:.96,depthTest:false,depthWrite:false}));m.scale.set(sc,1,sc);m.position.y=y;m.renderOrder=ord;return m;};
+  g.add(mk(0x07182a,1.2,-.12,9),mk(0xffc83d,1,0,10));g.visible=false;return g;})();
+scene.add(guideArrow);
 let planeObj=null,planeSpec=null;
 function setPlane(id){const s=planeById(id);if(planeSpec===s)return;if(planeObj){scene.remove(planeObj);planeObj.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map&&o.material.map!==discTex)o.material.map.dispose();o.material.dispose();}});}
   planeSpec=s;planeObj=buildPlane(s);scene.add(planeObj);}
@@ -965,12 +982,37 @@ function landGuide(){
   }
   el.hidden=!html;if(html&&el._h!==html){el.innerHTML=html;el._h=html;}
 }
+const ANGPREV={a:0};
+function guideUpdate(dt,cur){
+  const el=$('guide');
+  if(!mission||state!=='fly'){el.hidden=true;guideArrow.visible=false;return;}
+  const d=dest(),far=d.city!==CITY.id;let ang=0,line1,line2,pitch=0,yawT=P.yaw;
+  if(far){line1='Hacia '+CITIES[d.city].name;const need=600-P.pos.y;
+    line2=P.ground?'Despega y sube a 600 m':need>0?'Sube a 600 m · faltan '+Math.round(need)+' m':'Altura lista…';pitch=P.ground?0:.9;}
+  else{const dx=cur.p.x-P.pos.x,dz=cur.p.z-P.pos.z,dist=Math.hypot(dx,dz),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
+    ang=Math.atan2(dx*fz*-1+dz*fx,dx*fx+dz*fz);          // + = a tu derecha
+    yawT=Math.atan2(-dx,-dz);const eta=dist/Math.max(P.speed,35);
+    line1=d.n+(mission.def.stops.length>1?' ('+(mission.leg+1)+'/'+mission.def.stops.length+')':'');
+    const dtxt=dist>=1000?(dist/1000).toFixed(1)+' km':Math.round(dist)+' m';
+    const turn=Math.abs(ang)<.16?'¡Sigue recto!':Math.abs(ang)>2.4?'Da la vuelta':ang>0?'Gira a la derecha':'Gira a la izquierda';
+    line2=dtxt+' · '+Math.floor(eta/60)+':'+String(Math.floor(eta%60)).padStart(2,'0')+' · '+turn;}
+  // la flecha de pantalla gira con suavidad hacia el destino
+  let da=ang-ANGPREV.a;da=Math.atan2(Math.sin(da),Math.cos(da));ANGPREV.a+=da*Math.min(1,dt*9);
+  $('gArrow').style.transform='rotate('+(far?0:ANGPREV.a).toFixed(3)+'rad)';
+  el.hidden=false;el.classList.toggle('ahead',!far&&Math.abs(ang)<.16);
+  if(el._a!==line1+'|'+line2){$('gName').textContent=line1;$('gDist').textContent=line2;el._a=line1+'|'+line2;}
+  // la flecha 3D flota sobre el avión y señala hacia el destino
+  const b=planeSpec.b,sc=Math.max(1.5,b.len/9);
+  guideArrow.visible=!P.ground&&planeObj.visible;guideArrow.scale.setScalar(sc);
+  guideArrow.position.set(P.pos.x,P.pos.y+b.rad*4.2+3+sc*1.6+Math.sin(time*3)*.4,P.pos.z);guideArrow.rotation.set(far?pitch:-.32,yawT,0,'YXZ');
+}
 function drawHud(dt){
   const cur=currentTarget();
+  guideUpdate(dt,cur);
   if(cur&&save.cam!==undefined){v3.copy(cur.p).project(cam);const behind=v3.z>1;let x=v3.x,y=v3.y;if(behind){x=-x;y=-y;}
     const off=behind||Math.abs(x)>.9||Math.abs(y)>.82;
     if(off){const m=Math.max(Math.abs(x)/.88,Math.abs(y)/.78,.0001);x/=m;y/=m;}
-    ptr.hidden=false;ptr.className=off?'off':'';ptr.style.transform='translate('+((x*.5+.5)*innerWidth).toFixed(1)+'px,'+((-y*.5+.5)*innerHeight).toFixed(1)+'px)';
+    ptr.hidden=false;ptr.className=off?'off':'';ptr.style.transform='translate('+clamp((x*.5+.5)*innerWidth,70,innerWidth-70).toFixed(1)+'px,'+clamp((-y*.5+.5)*innerHeight,100,innerHeight-110).toFixed(1)+'px)';
     ptr.firstElementChild.style.transform=off?'rotate('+Math.atan2(x,y).toFixed(3)+'rad)':'';
     ptr.lastElementChild.textContent=dest().id+' · '+Math.round(cur.p.distanceTo(P.pos))+' m';
   }else ptr.hidden=true;
