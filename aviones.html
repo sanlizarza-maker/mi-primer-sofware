@@ -196,6 +196,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 @media (max-width:560px){#cockpit{top:calc(150px + env(safe-area-inset-top,0px));gap:5px}#cockpit .hb.sm{min-height:42px;padding:4px 4px;font-size:13px}#cockpit .hb kbd{display:none}#guide{left:10px;transform:none;max-width:calc(100vw - 172px)}#hObj{max-width:34vw}}
 @media (max-height:480px) and (min-width:561px){#cockpit{top:calc(146px + env(safe-area-inset-top,0px));right:max(112px,calc(100px + env(safe-area-inset-right,0px)))}#cockpit .hb.sm{min-height:38px}}
 .touch #cockpit .hb kbd{display:none}
+.sect{margin:6px 0 -2px;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
 .roles{margin:0;font-size:12.5px;color:var(--sea);line-height:1.35}
 </style>
 
@@ -987,19 +988,21 @@ const PAY=[500,1400,3600],BONUS=[5,12,26];
 const MT={pax:{kind:'Pasajeros',mul:1,slack:1.4,n:1},cargo:{kind:'Carga urgente',mul:1.25,slack:1.12,n:1},multi:{kind:'Vuelo con escalas',mul:1.15,slack:1.4,n:'m'},
   vip:{kind:'Taxi aéreo VIP',mul:1.2,slack:1.6,n:1,soft:1},medevac:{kind:'Traslado médico',mul:1.55,slack:1.0,n:1,soft:1},milk:{kind:'Ruta de reparto',mul:1.25,slack:1.45,n:'k'},
   intl:{kind:'Vuelo internacional',mul:1.35,slack:1.4,n:1,intl:1},longhaul:{kind:'Largo recorrido',mul:1.7,slack:1.4,n:1,intl:1},freight:{kind:'Flete pesado',mul:1.6,slack:1.5,n:2},
-  relief:{kind:'Ayuda humanitaria',mul:1.9,slack:1.5,n:1,intl:1},strategic:{kind:'Misión estratégica',mul:2.4,slack:1.1,n:1,intl:1,fast:1},recon:{kind:'Reconocimiento rápido',mul:1.9,slack:.85,n:3,fast:1},scramble:{kind:'Alerta de intercepción',mul:1.9,slack:.8,n:1,fast:1},patrol:{kind:'Patrulla aérea',mul:1.5,slack:.92,n:4,fast:1}};
+  relief:{kind:'Ayuda humanitaria',mul:1.9,slack:1.5,n:1,intl:1},strategic:{kind:'Misión estratégica',mul:2.4,slack:1.1,n:1,intl:1,fast:1},recon:{kind:'Reconocimiento rápido',mul:1.9,slack:.85,n:3,fast:1},grand:{kind:'Gran ruta',mul:2.2,slack:1.3,n:'g',long:1},world:{kind:'Vuelta al mundo',mul:2.4,slack:1.35,n:'w',long:1,world:1},scramble:{kind:'Alerta de intercepción',mul:1.9,slack:.8,n:1,fast:1},patrol:{kind:'Patrulla aérea',mul:1.5,slack:.92,n:4,fast:1}};
 const ROLES={reg:{n:'Regional',t:['pax','milk','medevac']},jet:{n:'Jet regional',t:['pax','medevac','cargo','intl']},biz:{n:'Jet ejecutivo',t:['vip','medevac','cargo','intl']},
   air:{n:'Avión de línea',t:['pax','multi','intl','cargo']},heavy:{n:'Largo alcance',t:['longhaul','pax','intl','multi']},cargo:{n:'Carguero',t:['freight','relief','cargo','multi']},
   super:{n:'Supersónico',t:['vip','intl','pax','cargo']},fgt:{n:'Caza',t:['scramble','patrol']},recon:{n:'Reconocimiento',t:['recon','strategic','scramble']},stealth:{n:'Bombardero furtivo',t:['strategic','patrol']},hyper:{n:'Hipersónico',t:['recon','strategic','scramble','patrol']}};
+const LONGT=r=>r==='reg'||r==='fgt'?['grand']:['grand','world'];
 const roleOf=id=>ROLES[ROLE[id]||'air'];
 const roleLine=id=>{const r=roleOf(id);return r.n+' · Misiones: '+r.t.map(t=>MT[t].kind).join(', ');};
 const yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
 function genMission(type,stars){
-  const mt=MT[type],s=stars-1,from=AP[Math.floor(Math.random()*AP.length)],stops=[],intl=!!mt.intl,n=mt.n==='m'?(stars>=3?3:2):mt.n==='k'?(stars>=3?4:3):mt.n;let prev=from,len=0,cnt=intl?1:n;
-  if(intl){const ids=Object.keys(CITIES).filter(k=>k!==CITY.id),C=CITIES[ids[Math.floor(Math.random()*ids.length)]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=7000;}
+  const mt=MT[type],s=stars-1,from=AP[Math.floor(Math.random()*AP.length)],stops=[],intl=!!mt.intl,n=mt.n==='m'?(stars>=3?3:2):mt.n==='k'?(stars>=3?4:3):mt.n==='g'?(stars>=3?7:6):mt.n==='w'?(stars>=2?4:3):mt.n;let prev=from,len=0,cnt=intl?1:n;
+  if(mt.world){const oth=shuf(Object.keys(CITIES).filter(k=>k!==CITY.id));for(let i=0;i<n-1;i++){const C=CITIES[oth[i]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);}stops.push(from);len=n*5000;}
+  else if(intl){const ids=Object.keys(CITIES).filter(k=>k!==CITY.id),C=CITIES[ids[Math.floor(Math.random()*ids.length)]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=7000;}
   else for(let i=0;i<n;i++){let A;do{A=AP[Math.floor(Math.random()*AP.length)];}while(A===prev);stops.push(A);len+=Math.hypot(A.x-prev.x,A.z-prev.z);prev=A;}
   const ref=planeSpec.cruise*[.86,.9,.95][s],time=Math.ceil((len/ref*mt.slack+cnt*(mt.fast?25:50))/5)*5,dest=stops[stops.length-1],dn=dest.n+(intl?' ('+CITIES[dest.city].name+')':''),ids=[from].concat(stops).map(a=>a.id).join(' → ');
-  const reward=Math.round(PAY[s]*mt.mul*(.7+Math.min(len,4500)/9000)*rnd(.93,1.08)/10)*10;
+  const reward=Math.round(PAY[s]*mt.mul*(.7+Math.min(len,4500)/9000)*(mt.long?Math.pow(cnt,.85):1)*rnd(.93,1.08)/10)*10;
   const D={pax:['Pasajeros a '+dn,'Lleva a los pasajeros de '+from.n+' a '+dest.n+'.'],
     cargo:['Paquetes urgentes a '+dn,'Carga con poco margen de tiempo desde '+from.n+'. Paga más.'],
     vip:['Cliente VIP a '+dn,'Sale de '+from.n+'. Sin prisa, pero un aterrizaje suave paga 50 % extra y uno brusco te quita 40 %.'],
@@ -1013,16 +1016,22 @@ function genMission(type,stars){
     scramble:['Intercepción en '+dn,'Un avión sospechoso se acerca a '+dest.n+'. Llega a tiempo: solo un caza es lo bastante rápido.'],
     strategic:['Misión estratégica a '+dn,'Vuelo de largo alcance y máxima prioridad hacia '+dest.n+'. La misión mejor pagada del juego.'],
     recon:['Reconocimiento '+ids,'Recorre '+stops.length+' aeropuertos a toda velocidad: aterriza en cada uno antes de que se agote el tiempo.'],
+    grand:['Gran ruta '+ids,'Un recorrido larguísimo: '+stops.length+' aterrizajes seguidos por '+CITY.name+'. Cobras una parte en cada aterrizaje y el resto al final.'],
+    world:['Vuelta al mundo','Sales de '+from.n+' ('+CITY.name+'), visitas '+stops.slice(0,-1).map(a=>CITIES[a.city].name).join(', ')+' y regresas. Cobras una parte en cada aterrizaje y el resto al volver.'],
     patrol:['Patrulla '+ids,'Patrulla '+stops.length+' bases en poco tiempo, aterrizando en cada una para repostar.']}[type];
   let desc=D[1];if(intl)desc+=' Despega, sube a 600 m y el avión toma la ruta a '+CITIES[dest.city].name+'.';
-  return{type,kind:mt.kind,stars,name:D[0],desc,from,stops,time,reward,intl};
+  return{type,kind:mt.kind,stars,name:D[0],desc,from,stops,time,reward,intl,long:!!mt.long};
 }
 let offers=[];
 const shuf=a=>a.slice().sort(()=>Math.random()-.5);
-function newOffers(){const types=roleOf(save.sel).t,order=[];while(order.length<5)order.push(...shuf(types));
-  offers=[1,1,2,2,3].map((st,i)=>genMission(order[i],st));offers.sort((a,b)=>a.stars-b.stars);}
-function refill(){const have=offers.map(o=>o.stars),st=!have.includes(1)?1:!have.includes(2)?2:!have.includes(3)?3:1+Math.floor(Math.random()*3),types=roleOf(save.sel).t;
-  offers.push(genMission(types[Math.floor(Math.random()*types.length)],st));offers.sort((a,b)=>a.stars-b.stars);}
+function sortOffers(){offers.sort((a,b)=>(a.long?1:0)-(b.long?1:0)||a.stars-b.stars);}
+function newOffers(){const types=roleOf(save.sel).t,lt=LONGT(ROLE[save.sel]||'air'),order=[];while(order.length<5)order.push(...shuf(types));
+  offers=[1,1,2,2,3].map((st,i)=>genMission(order[i],st));const lo=shuf(lt);offers.push(genMission(lo[0],2),genMission(lo[lo.length>1?1:0],3));sortOffers();}
+function refill(long){const sh=offers.filter(o=>!o.long);
+  if(long){const lt=LONGT(ROLE[save.sel]||'air');offers.push(genMission(lt[Math.floor(Math.random()*lt.length)],2+Math.floor(Math.random()*2)));}
+  else{const have=sh.map(o=>o.stars),st=!have.includes(1)?1:!have.includes(2)?2:!have.includes(3)?3:1+Math.floor(Math.random()*3),types=roleOf(save.sel).t;
+    offers.push(genMission(types[Math.floor(Math.random()*types.length)],st));}
+  sortOffers();}
 
 /* ================= Estado de vuelo ================= */
 const P={pos:new T.Vector3(),yaw:0,pitch:0,roll:0,speed:0,boost:0,ground:true,touch:false,hint:false,q:1,thr:0};
@@ -1040,7 +1049,7 @@ function startFlight(m){
   audioInit();if(AC&&AC.state==='suspended')AC.resume();
   setPlane(save.sel);previewId=save.sel;result=null;planeObj.visible=true;
   if(m&&m.from.city!==CITY.id)buildWorld(m.from.city);
-  if(m){mission={def:m,leg:0,tLeft:m.time,q:1};const s=m.from.strip,d=m.stops[0];park(s,(d.x-s.x)*s.ux+(d.z-s.z)*s.uz>=0?1:-1);}
+  if(m){mission={def:m,leg:0,tLeft:m.time,q:1,paid:0};const s=m.from.strip,d=m.stops[0];park(s,(d.x-s.x)*s.ux+(d.z-s.z)*s.uz>=0?1:-1);}
   else{mission=null;park(HOME,1);}
   edge=false;updateCam(0,true);
   state='fly';$('menu').hidden=true;$('pause').hidden=true;$('hud').hidden=false;$('hTime').hidden=!m;
@@ -1049,10 +1058,10 @@ function startFlight(m){
 function finish(ok,reason){
   const m=mission.def;let res;
   if(ok){const tb_=Math.round(mission.tLeft*BONUS[m.stars-1]/10)*10,q=mission.q,vip=!!MT[m.type].soft;
-    const lb=Math.round(m.reward*(q===0?(vip?.5:.15):q===2?(vip?-.4:0):0)/10)*10,bon=(planeSpec.bonus||0)+(vip?(planeSpec.vip||0):0),cg=bon?Math.round((m.reward+tb_+lb)*bon/10)*10:0,tot=m.reward+tb_+lb+cg;
-    save.money+=tot;save.done++;res={ok:true,name:m.name,base:m.reward,time:tb_,land:lb,q,cargo:cg,total:tot};offers=offers.filter(o=>o!==m);while(offers.length<5)refill();
+    const lb=Math.round(m.reward*(q===0?(vip?.5:.15):q===2?(vip?-.4:0):0)/10)*10,bon=(planeSpec.bonus||0)+(vip?(planeSpec.vip||0):0),cg=bon?Math.round((m.reward+tb_+lb)*bon/10)*10:0,paid=mission.paid||0,tot=m.reward-paid+tb_+lb+cg;
+    save.money+=tot;save.done++;res={ok:true,name:m.name,base:m.reward-paid,paid,time:tb_,land:lb,q,cargo:cg,total:tot};offers=offers.filter(o=>o!==m);refill(m.long);
     beep(660,1320,.5,.14);state='win';endT=2.4;msg('¡Vuelo completado!  +'+fmt(tot),2.4);}
-  else{const fee=reason==='crash'?Math.min(save.money,100*m.stars):0;save.money-=fee;res={ok:false,name:m.name,reason,fee};
+  else{const fee=reason==='crash'?Math.min(save.money,100*m.stars):0;save.money-=fee;res={ok:false,name:m.name,reason,fee,paid:mission.paid||0};
     if(reason==='crash'){state='crash';endT=1.7;}else{state='win';endT=1.6;msg('Se acabó el tiempo',1.6);beep(300,120,.6,.12,'sawtooth');}}
   result=res;persist();
 }
@@ -1070,7 +1079,8 @@ function updObjective(){
   const n=$('oName'),t=$('oText');
   if(!mission){n.textContent='Vuelo libre';t.textContent='Estrella dorada: $50 · Primera vez que aterrizas en un aeropuerto: $150';return;}
   const d=dest(),tot=mission.def.stops.length;n.textContent=mission.def.name;
-  t.textContent=d.city!==CITY.id?'Sube a 600 m rumbo a '+CITIES[d.city].name:(tot>1?'Escala '+(mission.leg+1)+' de '+tot+' · ':'')+'Aterriza en '+d.n;
+  const pre=tot>1?(mission.def.world?'Tramo ':'Escala ')+(mission.leg+1)+' de '+tot+' · ':'';
+  t.textContent=pre+(d.city!==CITY.id?'Sube a 600 m rumbo a '+CITIES[d.city].name:'Aterriza en '+d.n);
 }
 const navT={p:null};
 function currentTarget(){if(!mission||state==='crash'||dest().city!==CITY.id)return null;navT.p=nearestStrip(P.pos.x,P.pos.z,dest().strips).p;return navT;}
@@ -1081,7 +1091,8 @@ function landed(s){
     if(s.ap!==dest()){msg('Esto es '+s.name+'. Tu destino es '+dest().n,3);return;}
     mission.q=Math.max(mission.leg?mission.q:0,P.q);mission.leg++;
     if(mission.leg>=mission.def.stops.length){mission.leg--;finish(true);}
-    else{msg(lab+' Ahora despega hacia '+dest().n,3.5);beep(660,990,.3,.12);updObjective();}
+    else{let part=0;if(mission.def.long){part=Math.round(mission.def.reward*.6/mission.def.stops.length/10)*10;mission.paid=(mission.paid||0)+part;save.money+=part;persist();}
+      msg(lab+(part?' +'+fmt(part):'')+' Ahora despega hacia '+dest().n,3.8);beep(660,990,.3,.12);updObjective();}
   }else{msg(nw?'Aeropuerto nuevo: '+s.name+'  +$150':lab+' en '+s.name,2.8);if(nw)beep(660,990,.3,.12);}
 }
 function showTrip(t){const e=$('trip');e.textContent=t;e.hidden=false;}
@@ -1235,7 +1246,7 @@ function guideUpdate(dt,cur){
   const el=$('guide');
   if(!mission||state!=='fly'){el.hidden=true;return;}
   const d=dest(),far=d.city!==CITY.id;let ang=0,line1,line2,pitch=0,yawT=P.yaw;
-  if(far){line1='Hacia '+CITIES[d.city].name;const need=600-P.pos.y;
+  if(far){line1='Hacia '+CITIES[d.city].name+(mission.def.stops.length>1?' ('+(mission.leg+1)+'/'+mission.def.stops.length+')':'');const need=600-P.pos.y;
     line2=P.ground?'Despega y sube a 600 m':need>0?'Sube a 600 m · faltan '+Math.round(need)+' m':'Altura lista…';pitch=P.ground?0:.9;}
   else{const dx=cur.p.x-P.pos.x,dz=cur.p.z-P.pos.z,dist=Math.hypot(dx,dz),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
     ang=Math.atan2(dx*fz*-1+dz*fx,dx*fx+dz*fz);          // + = a tu derecha
@@ -1288,12 +1299,14 @@ function renderMenu(){
   if(tab==='mis'){
     if(result){const r=result;
       if(r.ok)h+='<div class="result"><h3>Vuelo completado</h3><dl><dt>'+esc(r.name)+'</dt><dd class="num">'+fmt(r.base)+'</dd><dt>Bono por tiempo</dt><dd class="num">'+fmt(r.time)+'</dd>'+
-        (r.land?'<dt>'+(r.q===0?'Aterrizaje suave':'Aterrizaje brusco')+'</dt><dd class="num">'+(r.land<0?'−':'')+fmt(Math.abs(r.land))+'</dd>':'')+(r.cargo?'<dt>Bonificación del avión</dt><dd class="num">'+fmt(r.cargo)+'</dd>':'')+'<dt class="tot">Cobrado</dt><dd class="tot num">'+fmt(r.total)+'</dd></dl></div>';
-      else h+='<div class="result bad"><h3>'+(r.reason==='crash'?'Accidente':r.reason==='quit'?'Vuelo abandonado':'Se acabó el tiempo')+'</h3><dl><dt>'+esc(r.name)+'</dt><dd></dd>'+(r.fee?'<dt>Reparación del avión</dt><dd class="num">−'+fmt(r.fee)+'</dd>':'')+'</dl>'+(r.tip?'<p style="margin:6px 0 0">'+esc(r.tip)+'</p>':'')+'</div>';}
+        (r.paid?'<dt>Cobrado en el camino</dt><dd class="num">'+fmt(r.paid)+'</dd>':'')+(r.land?'<dt>'+(r.q===0?'Aterrizaje suave':'Aterrizaje brusco')+'</dt><dd class="num">'+(r.land<0?'−':'')+fmt(Math.abs(r.land))+'</dd>':'')+(r.cargo?'<dt>Bonificación del avión</dt><dd class="num">'+fmt(r.cargo)+'</dd>':'')+'<dt class="tot">Cobrado</dt><dd class="tot num">'+fmt(r.total)+'</dd></dl></div>';
+      else h+='<div class="result bad"><h3>'+(r.reason==='crash'?'Accidente':r.reason==='quit'?'Vuelo abandonado':'Se acabó el tiempo')+'</h3><dl><dt>'+esc(r.name)+'</dt><dd></dd>'+(r.fee?'<dt>Reparación del avión</dt><dd class="num">−'+fmt(r.fee)+'</dd>':'')+(r.paid?'<dt>Ya cobrado en el camino</dt><dd class="num">'+fmt(r.paid)+'</dd>':'')+'</dl>'+(r.tip?'<p style="margin:6px 0 0">'+esc(r.tip)+'</p>':'')+'</div>';}
     const S=planeById(save.sel);
     h+='<div class="cities">'+Object.keys(CITIES).map(k=>'<button type="button" data-city="'+k+'"'+(k===CITY.id?' class="on"':'')+'>'+CITIES[k].name+'</button>').join('')+'</div>';
     h+='<p style="margin:0;color:var(--dim)">Estás en <b style="color:var(--fg)">'+CITY.name+'</b> con el <b style="color:var(--fg)">'+S.name+'</b> ('+roleOf(S.id).n+'). Estos vuelos son para tu tipo de avión:</p>';
-    offers.forEach((m,i)=>{h+='<article class="card"><div class="card-top"><span class="kind">'+m.kind+'</span>'+starsH(m.stars)+'</div><h3>'+esc(m.name)+'</h3><p>'+esc(m.desc)+'</p>'+
+    let shownLong=false;
+    offers.forEach((m,i)=>{if(m.long&&!shownLong){shownLong=true;h+='<p class="sect">Misiones largas · cobras en cada aterrizaje</p>';}
+      h+='<article class="card"><div class="card-top"><span class="kind">'+m.kind+'</span>'+starsH(m.stars)+'</div><h3>'+esc(m.name)+'</h3><p>'+esc(m.desc)+'</p>'+
       '<div class="card-foot"><span class="pay num">'+fmt(m.reward)+'</span><span class="tm num">Tiempo '+tfmt(m.time)+'</span><button class="go" type="button" data-m="'+i+'">Volar</button></div></article>';});
     h+='<article class="card"><div class="card-top"><span class="kind">Sin reloj</span></div><h3>Vuelo libre</h3><p>Recorre '+CITY.name+' a tu ritmo: busca sus monumentos, atrapa estrellas de $50 y gana $150 la primera vez que aterrizas en cada aeropuerto.</p><div class="card-foot"><button class="go alt" type="button" data-m="free">Despegar</button></div></article>';
   }else{
