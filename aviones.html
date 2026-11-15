@@ -243,7 +243,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 
 <section id="menu" aria-label="Hangar">
   <header class="m-head">
-    <h1><small>4 CIUDADES · 21 AVIONES</small>Alas del Mundo</h1>
+    <h1><small>4 CIUDADES · 27 AVIONES</small>Alas del Mundo</h1>
     <div class="wallet"><span>Tu dinero</span><b class="num" id="money">$0</b><span id="saveSt" style="color:var(--sea);margin-top:4px;letter-spacing:.06em"></span></div>
   </header>
   <nav class="tabs" role="tablist">
@@ -290,6 +290,18 @@ function saveLabel(){const e=document.getElementById('saveSt');if(e)e.textConten
 
 /* ================= Aviones ================= */
 const PLANES=[
+ {id:'c17',name:'Boeing C-17 Globemaster III',tag:'Carguero militar pesado',price:45000,cruise:132,max:186,min:56,turn:.95,acc:34,bonus:.8,perk:'Carguero a reacción de cuatro motores: cobras 80 % más.',
+  b:{len:26,rad:1.9,span:28,rc:5.2,tc:2.0,sw:2.6,high:1,eng:'fan',n:4,ttail:1,cargo:1,winglet:1,body:0x8b9096,wing:0x8b9096,acc:0x4a5057}},
+ {id:'f35',name:'F-35 Lightning II',tag:'Caza furtivo monomotor',price:95000,cruise:240,max:360,min:98,turn:1.8,acc:95,perk:'Caza furtivo muy ágil y rápido: 1.300 km/h.',
+  b:{len:17,rad:.9,span:11.6,eng:'fgt',single:1,body:0x7b838d,wing:0x7b838d,acc:0x3a79c4}},
+ {id:'su57',name:'Sukhoi Su-57',tag:'Caza de superioridad aérea',price:110000,cruise:255,max:390,min:100,turn:1.9,acc:100,perk:'Maniobrabilidad extrema: el caza más ágil del juego.',
+  b:{len:20,rad:.95,span:14.2,eng:'fgt',body:0x5d6b5a,wing:0x5d6b5a,acc:0xc0392b}},
+ {id:'sr71',name:'Lockheed SR-71 Blackbird',tag:'Reconocimiento a Mach 3',price:140000,cruise:300,max:460,min:105,turn:1.2,acc:110,perk:'El avión más rápido de su época: más de 1.600 km/h.',
+  b:{len:32,rad:.9,span:17,eng:'bb',body:0x15181d,wing:0x1a1e24,acc:0x3a79c4}},
+ {id:'b2',name:'Northrop B-2 Spirit',tag:'Bombardero furtivo, ala volante',price:190000,cruise:210,max:300,min:78,turn:1.0,acc:60,bonus:1.5,perk:'Ala volante furtiva: cobras 150 % más en cada vuelo.',
+  b:{len:15,rad:1.0,span:33,eng:'wing',body:0x2d3138,acc:0x9aa3ab}},
+ {id:'x90',name:'Aurora X-90',tag:'Hipersónico experimental',price:300000,cruise:380,max:620,min:120,turn:1.35,acc:150,perk:'Prototipo hipersónico: más de 2.200 km/h y postquemador azul.',
+  b:{len:34,rad:.95,span:15,eng:'bb',body:0xe9edf2,wing:0xcfd6de,acc:0x39d0c8,glowc:0x7fe3ff}},
  {id:'q400',name:'Bombardier Q400',tag:'Turbohélice regional',price:2000,cruise:78,max:105,min:38,turn:1.05,acc:22,perk:'Hélices potentes y despegues cortos: ideal para rutas de reparto.',
   b:{len:16,rad:1.15,span:17,rc:2.3,tc:1.2,sw:.6,high:1,eng:'tp',n:2,ttail:1,body:0xf6f7f8,wing:0xe9edf0,acc:0xd7263d}},
  {id:'learjet',name:'Learjet 75',tag:'Jet ejecutivo',price:3200,cruise:106,max:152,min:44,turn:1.45,acc:38,vip:.25,perk:'El ejecutivo más ágil: traslados médicos y VIP veloces. VIP paga 25 % más.',
@@ -336,7 +348,7 @@ const PLANES=[
 const PAINTS=[{n:'De fábrica',acc:null,name:'AEROALAS'},{n:'Pacífico Air',acc:0x0b7a75,name:'PACÍFICO'},{n:'Nórdica',acc:0xc0392b,name:'NÓRDICA'},{n:'Solaris',acc:0xf08a24,name:'SOLARIS'},
   {n:'Titán',acc:0x1d3f8f,name:'TITÁN'},{n:'Violeta',acc:0x6a1fa2,name:'VIOLETA'},{n:'Esmeralda',acc:0x1e8a4c,name:'ESMERALDA'},{n:'Ónix',acc:0x2a2f38,name:'ÓNIX'}];
 PLANES.sort((a,b)=>a.price-b.price);
-const ROLE={gorrion:'reg',q400:'reg',pelicano:'jet',a220:'jet',citation:'biz',learjet:'biz',g650:'biz',halcon:'air',b737:'air',b757:'air',albatros:'heavy',b777:'heavy',centella:'heavy',a350:'heavy',a380:'heavy',herc:'cargo',a400:'cargo',an225:'cargo',tormenta:'super',f22:'fgt',typhoon:'fgt'};
+const ROLE={gorrion:'reg',q400:'reg',pelicano:'jet',a220:'jet',citation:'biz',learjet:'biz',g650:'biz',halcon:'air',b737:'air',b757:'air',albatros:'heavy',b777:'heavy',centella:'heavy',a350:'heavy',a380:'heavy',herc:'cargo',a400:'cargo',an225:'cargo',tormenta:'super',f22:'fgt',typhoon:'fgt',f35:'fgt',su57:'fgt',c17:'cargo',sr71:'recon',b2:'stealth',x90:'hyper'};
 const planeById=id=>PLANES.find(p=>p.id===id)||PLANES[0];
 const paintOf=id=>(save.paint&&save.paint[id])||0;
 
@@ -719,7 +731,7 @@ const water=new T.Mesh(new T.PlaneGeometry(70000,70000).rotateX(-PI/2),new T.Sha
 scene.add(water);
 
 /* ================= Modelos de avión ================= */
-const PROFS={cargo:[[0,.05],[.03,.52],[.08,.86],[.15,1],[.62,1],[.74,.92],[.88,.66],[1,.34]],fgt:[[0,.03],[.1,.28],[.25,.62],[.45,.9],[.62,1],[.85,.9],[1,.66]],tube:[[0,.05],[.02,.42],[.06,.8],[.12,1],[.66,1],[.84,.6],[1,.12]],conc:[[0,.02],[.07,.3],[.2,.78],[.34,1],[.78,1],[.93,.6],[1,.22]]};
+const PROFS={bb:[[0,.015],[.08,.14],[.22,.34],[.4,.55],[.6,.68],[.82,.62],[1,.34]],cargo:[[0,.05],[.03,.52],[.08,.86],[.15,1],[.62,1],[.74,.92],[.88,.66],[1,.34]],fgt:[[0,.03],[.1,.28],[.25,.62],[.45,.9],[.62,1],[.85,.9],[1,.66]],tube:[[0,.05],[.02,.42],[.06,.8],[.12,1],[.66,1],[.84,.6],[1,.12]],conc:[[0,.02],[.07,.3],[.2,.78],[.34,1],[.78,1],[.93,.6],[1,.22]]};
 // perfil alar (NACA simétrico aplanado por abajo)
 const AF=(()=>{const M=8,p=[],nt=t=>5*(.2969*Math.sqrt(t)-.126*t-.3516*t*t+.2843*t*t*t-.1015*t*t*t*t);
   for(let i=0;i<=M;i++){const t=(1-Math.cos(PI*i/M))/2;p.push([t,nt(t)]);}for(let i=M-1;i>=1;i--){const t=(1-Math.cos(PI*i/M))/2;p.push([t,-nt(t)*.6]);}return p;})();
@@ -757,6 +769,8 @@ const discTex=(()=>{const cv=document.createElement('canvas');cv.width=cv.height
   c.fillStyle=g;c.fillRect(0,0,128,128);return new T.CanvasTexture(cv);})();
 function buildPlane(spec){
   if(spec.b.eng==='fgt')return buildFighter(spec);
+  if(spec.b.eng==='bb')return buildBlackbird(spec);
+  if(spec.b.eng==='wing')return buildBomber(spec);
   const b=spec.b,g=new T.Group(),conc=b.eng==='conc',tp=b.eng==='tp',rear=b.eng==='rear',SH=conc?{lift:.15,droop:.3,sy:1.05}:b.cargo?{lift:.95,droop:0,sy:1}:{lift:.55,droop:.12,sy:b.sy||1},L=b.len,R=b.rad,big=L>21;
   const prof=new T.SplineCurve(PROFS[conc?'conc':b.cargo?'cargo':'tube'].map(q=>new T.Vector2(q[0],q[1]))).getPoints(64);
   const pr=t=>{t=clamp(t,0,1);for(let i=1;i<prof.length;i++)if(t<=prof[i].x){const a=prof[i-1],c=prof[i];return lerp(a.y,c.y,(t-a.x)/Math.max(1e-6,c.x-a.x));}return prof[prof.length-1].y;};
@@ -842,6 +856,68 @@ function buildPlane(spec){
   g.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.material.isMeshBasicMaterial)o.castShadow=true;});
   return g;
 }
+// ---- SR-71 y prototipo hipersónico: fuselaje larguísimo, alas delta, dos motores grandes con conos de entrada
+function buildBlackbird(spec){
+  const b=spec.b,g=new T.Group(),L=b.len,R=b.rad,zt=t=>-L/2+t*L,hx=n=>'#'+n.toString(16).padStart(6,'0'),dark=b.body<0x404040;
+  const cv=document.createElement('canvas');cv.width=256;cv.height=1024;const c=cv.getContext('2d');c.fillStyle=hx(b.body);c.fillRect(0,0,256,1024);
+  c.strokeStyle=dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.12)';c.lineWidth=2;for(let y=40;y<1024;y+=64){c.beginPath();c.moveTo(0,y);c.lineTo(256,y);c.stroke();}
+  c.fillStyle=hx(b.acc);c.fillRect(0,.4*1024,256,10);c.fillRect(0,.425*1024,256,4);c.fillRect(0,.9*1024,256,6);
+  const tex=new T.CanvasTexture(cv);tex.flipY=false;tex.anisotropy=MAXA;
+  const std=o=>new T.MeshStandardMaterial(Object.assign({metalness:.5,roughness:.35,envMapIntensity:.9,side:T.DoubleSide},o));
+  const mBody=std({map:tex}),mPaint=std({color:b.body}),mWing=std({vertexColors:true}),mDark=new T.MeshStandardMaterial({color:0x101317,metalness:.7,roughness:.5,side:T.DoubleSide}),mTire=new T.MeshStandardMaterial({color:0x101214,roughness:.95}),
+    mGrey=new T.MeshStandardMaterial({color:0xaab1b8,metalness:.8,roughness:.3}),mGlass=new T.MeshStandardMaterial({color:0x1b2a3a,metalness:.95,roughness:.05});
+  g.userData={spin:[],glow:[],len:L*.8,eng:[],blink:[],gk:1,sk:0,flaps:[],spoil:[]};
+  const add=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;};
+  const prof=new T.SplineCurve(PROFS.bb.map(q=>new T.Vector2(q[0],q[1]))).getPoints(56),fg=new T.LatheGeometry(prof.map(q=>new T.Vector2(Math.max(.002,q.y*R*1.2),L/2-q.x*L)),30).rotateX(-PI/2),fp=fg.attributes.position;
+  for(let i=0;i<fp.count;i++)fp.setXYZ(i,fp.getX(i)*1.15,fp.getY(i)*.78,fp.getZ(i));fg.computeVertexNormals();add(fg,mBody);
+  const cn=add(new T.SphereGeometry(1,16,10),mGlass,0,R*.5,zt(.2));cn.scale.set(R*.34,R*.22,L*.045);
+  const wc=new T.Color(b.wing);
+  add(wing({span:b.span,rc:L*.58,tc:1.6,sw:L*.36,th:.06,dih:0,col:b.wing,tip:b.wing,ogive:true}),mWing,0,-R*.12,zt(.3));
+  add(wing({span:R*3.6,rc:L*.5,tc:.3,sw:L*.34,th:.04,dih:0,col:b.wing,tip:b.wing,ogive:true}),mWing,0,R*.02,zt(.03));
+  const nl=L*.38,ner=R*1.05,nx=b.span*.2,ny=-R*.1,nz=zt(.66);
+  for(const sx of[-1,1]){const x=sx*nx;
+    add(new T.CylinderGeometry(ner,ner*.9,nl,20).rotateX(PI/2),mPaint,x,ny,nz);
+    add(new T.ConeGeometry(ner*.52,nl*.42,14).rotateX(-PI/2),mGrey,x,ny,nz-nl/2-nl*.13);
+    add(new T.CylinderGeometry(ner*1.02,ner*1.02,.45,20,1,true).rotateX(PI/2),mDark,x,ny,nz-nl/2+.2);
+    add(new T.CylinderGeometry(ner*.86,ner*.66,1.1,18,1,true).rotateX(PI/2),mDark,x,ny,nz+nl/2+.4);
+    g.userData.eng.push(new T.Vector3(x,ny,nz+nl/2+2));
+    for(const[rr,ll,cc,op]of[[.66,8,b.glowc||0xff8a2a,.55],[.34,4.6,0xffffff,.85]]){const gl=add(new T.ConeGeometry(ner*rr,ll,12,1,true).rotateX(PI/2).translate(0,0,ll/2),new T.MeshBasicMaterial({color:cc,transparent:true,opacity:op,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}),x,ny,nz+nl/2+.7);g.userData.glow.push(gl);}
+    const f=add(wing({span:6.8,rc:6.2,tc:2.1,sw:3.4,th:.06,col:b.acc,tip:b.acc},true).rotateZ(PI/2),mWing,x,ny+ner*.7,nz+nl*.12);f.rotation.z=-sx*.3;
+    const tip=add(new T.SphereGeometry(.14,8,6),new T.MeshBasicMaterial({color:sx<0?0xff2a2a:0x2aff5a}),sx*(b.span/2+.05),-R*.12,zt(.3)+L*.36+1.2);
+    const st=add(new T.SphereGeometry(.18,8,6),new T.MeshBasicMaterial({color:0xffffff}),x+(-sx)*.9,ny+ner*.7+3.2,nz+nl*.12+2.6);g.userData.blink.push([st,1.4,sx<0?0:.7,.07]);}
+  const gr=new T.Group(),gy=-R-1,wr=.48;
+  const leg=(x,z)=>{for(const o of[-.3,.3]){const w=new T.Mesh(new T.CylinderGeometry(wr,wr,.3,16).rotateZ(PI/2),mTire);w.position.set(x+o,gy,z);gr.add(w);}const st=new T.Mesh(new T.CylinderGeometry(.09,.11,-gy-R*.3,8),mGrey);st.position.set(x,(gy-R*.3)/2,z);gr.add(st);};
+  leg(0,zt(.17));leg(-nx*.6,zt(.58));leg(nx*.6,zt(.58));g.add(gr);g.userData.gear=gr;
+  const ll=new T.Group(),cone=new T.Mesh(new T.ConeGeometry(2.2,28,12,1,true).rotateX(PI/2).translate(0,0,-14),new T.MeshBasicMaterial({color:0xfff6d8,transparent:true,opacity:.1,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));cone.position.set(0,-R*.4,zt(.2));ll.add(cone);g.add(ll);g.userData.ll=ll;
+  g.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.material.isMeshBasicMaterial)o.castShadow=true;});
+  return g;
+}
+// ---- bombardero furtivo de ala volante
+function buildBomber(spec){
+  const b=spec.b,g=new T.Group(),L=b.len,R=b.rad,h=b.span/2,D=L;
+  const std=o=>new T.MeshStandardMaterial(Object.assign({metalness:.35,roughness:.5,envMapIntensity:.8,side:T.DoubleSide},o));
+  const mBody=std({color:b.body}),mDark=new T.MeshStandardMaterial({color:0x0c0e11,metalness:.7,roughness:.5,side:T.DoubleSide}),mTire=new T.MeshStandardMaterial({color:0x101214,roughness:.95}),
+    mGrey=new T.MeshStandardMaterial({color:b.acc,metalness:.8,roughness:.3}),mGlass=new T.MeshStandardMaterial({color:0x1b2a3a,metalness:.95,roughness:.05});
+  g.userData={spin:[],glow:[],len:Math.max(L,b.span*.85),eng:[],blink:[],gk:1,sk:0,flaps:[],spoil:[]};
+  const add=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;};
+  const pts=[[0,0],[h,D*.74],[h*1.01,D*.84],[h*.74,D*.7],[h*.53,D*.94],[h*.3,D*.77],[h*.17,D],[0,D*.86]],sh=new T.Shape();
+  sh.moveTo(0,0);for(let i=1;i<pts.length;i++)sh.lineTo(pts[i][0],pts[i][1]);for(let i=pts.length-2;i>=1;i--)sh.lineTo(-pts[i][0],pts[i][1]);sh.closePath();
+  const geo=new T.ExtrudeGeometry(sh,{depth:.5,bevelEnabled:true,bevelSize:.22,bevelThickness:.16,bevelSegments:2}).rotateX(PI/2).translate(0,.25,-L/2);geo.computeVertexNormals();add(geo,mBody);
+  const zt=t=>-L/2+t*D;
+  const hump=add(new T.SphereGeometry(1,22,14),mBody,0,.05,zt(.4));hump.scale.set(2.5,1.0,D*.34);
+  for(const sx of[-1,1]){add(new T.BoxGeometry(1.5,.18,2.0),mDark,sx*1.5,.88,zt(.22));add(new T.BoxGeometry(2.4,.12,.55),mDark,sx*1.6,.18,zt(.93));}
+  const wd=add(new T.SphereGeometry(1,12,8),mGlass,0,.72,zt(.13));wd.scale.set(.9,.3,1.1);
+  for(const sx of[-1,1]){const x=sx*1.5;g.userData.eng.push(new T.Vector3(x,.2,zt(1)+1.5));
+    for(const[rr,ll,cc,op]of[[.7,4.5,0xff8a2a,.4],[.35,2.6,0xffffff,.6]]){const gl=add(new T.ConeGeometry(rr,ll,10,1,true).rotateX(PI/2).translate(0,0,ll/2),new T.MeshBasicMaterial({color:cc,transparent:true,opacity:op,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}),x,.2,zt(.97)+.4);g.userData.glow.push(gl);}}
+  add(new T.SphereGeometry(.14,8,6),new T.MeshBasicMaterial({color:0xff2a2a}),-h,.2,zt(.8));add(new T.SphereGeometry(.14,8,6),new T.MeshBasicMaterial({color:0x2aff5a}),h,.2,zt(.8));
+  for(const sx of[-1,1]){const st=add(new T.SphereGeometry(.18,8,6),new T.MeshBasicMaterial({color:0xffffff}),sx*h*.6,.3,zt(.82));g.userData.blink.push([st,1.4,sx<0?0:.7,.07]);}
+  const gr=new T.Group(),gy=-R-1,wr=.48;
+  const leg=(x,z)=>{for(const o of[-.3,.3]){const w=new T.Mesh(new T.CylinderGeometry(wr,wr,.3,16).rotateZ(PI/2),mTire);w.position.set(x+o,gy,z);gr.add(w);}const st=new T.Mesh(new T.CylinderGeometry(.09,.11,-gy-.3,8),mGrey);st.position.set(x,(gy-.3)/2,z);gr.add(st);};
+  leg(0,zt(.14));leg(-2.6,zt(.5));leg(2.6,zt(.5));g.add(gr);g.userData.gear=gr;
+  const ll=new T.Group(),cone=new T.Mesh(new T.ConeGeometry(2.2,26,12,1,true).rotateX(PI/2).translate(0,0,-13),new T.MeshBasicMaterial({color:0xfff6d8,transparent:true,opacity:.1,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));cone.position.set(0,-.5,zt(.14));ll.add(cone);g.add(ll);g.userData.ll=ll;
+  g.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.material.isMeshBasicMaterial)o.castShadow=true;});
+  return g;
+}
 // ---- caza furtivo
 function buildFighter(spec){
   const b=spec.b,g=new T.Group(),L=b.len,R=b.rad,zt=t=>-L/2+t*L,hx=n=>'#'+n.toString(16).padStart(6,'0');
@@ -862,9 +938,10 @@ function buildFighter(spec){
   add(wing({span:8.6,rc:3.8,tc:1.0,sw:2.7,th:.05,dih:0,col:b.wing,tip:b.wing}),mWing,0,-R*.05,zt(.76));
   for(const sx of[-1,1]){const f=add(wing({span:6.4,rc:4.3,tc:1.6,sw:2.9,th:.06,col:b.wing,tip:b.acc},true).rotateZ(PI/2),mWing,sx*R*1.05,R*.25,zt(.66));f.rotation.z=-sx*.5;
     add(new T.BoxGeometry(R*.62,R*.62,L*.2),mBody,sx*R*1.18,-R*.1,zt(.4));add(new T.PlaneGeometry(R*.5,R*.5).rotateY(PI),mDark,sx*R*1.18,-R*.1,zt(.4)-L*.1-.02);
-    add(new T.CylinderGeometry(R*.38,R*.44,1.7,16,1,true).rotateX(PI/2),mDark,sx*R*.55,0,L/2-.2);
-    for(const[rr,ll,cc,op]of[[.34,6,0xff7a2a,.55],[.18,3.4,0xfff0c8,.85]]){const gl=add(new T.ConeGeometry(R*rr,ll,12,1,true).rotateX(PI/2).translate(0,0,ll/2),new T.MeshBasicMaterial({color:cc,transparent:true,opacity:op,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}),sx*R*.55,0,L/2+.5);g.userData.glow.push(gl);}
-    g.userData.eng.push(new T.Vector3(sx*R*.55,0,L/2+1.5));
+    const ex=b.single?0:sx*R*.55,mkE=!b.single||sx>0;
+    if(mkE)add(new T.CylinderGeometry(R*(b.single?.5:.38),R*(b.single?.58:.44),1.7,16,1,true).rotateX(PI/2),mDark,ex,0,L/2-.2);
+    if(mkE)for(const[rr,ll,cc,op]of[[.34,6,0xff7a2a,.55],[.18,3.4,0xfff0c8,.85]]){const gl=add(new T.ConeGeometry(R*rr,ll,12,1,true).rotateX(PI/2).translate(0,0,ll/2),new T.MeshBasicMaterial({color:cc,transparent:true,opacity:op,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}),ex,0,L/2+.5);g.userData.glow.push(gl);}
+    if(mkE)g.userData.eng.push(new T.Vector3(ex,0,L/2+1.5));
     const lm=add(new T.SphereGeometry(.14,8,6),new T.MeshBasicMaterial({color:sx<0?0xff2a2a:0x2aff5a}),sx*(b.span/2+.05),wy,zt(.33)+4.9+1.2);
     const st=add(new T.SphereGeometry(.18,8,6),new T.MeshBasicMaterial({color:0xffffff}),sx*R*1.95,R*.25+3.1,zt(.66)+3);g.userData.blink.push([st,1.4,sx<0?0:.7,.07]);}
   const gr=new T.Group(),gy=-R*.7-1.0,wr=.42;
@@ -910,10 +987,10 @@ const PAY=[500,1400,3600],BONUS=[5,12,26];
 const MT={pax:{kind:'Pasajeros',mul:1,slack:1.4,n:1},cargo:{kind:'Carga urgente',mul:1.25,slack:1.12,n:1},multi:{kind:'Vuelo con escalas',mul:1.15,slack:1.4,n:'m'},
   vip:{kind:'Taxi aéreo VIP',mul:1.2,slack:1.6,n:1,soft:1},medevac:{kind:'Traslado médico',mul:1.55,slack:1.0,n:1,soft:1},milk:{kind:'Ruta de reparto',mul:1.25,slack:1.45,n:'k'},
   intl:{kind:'Vuelo internacional',mul:1.35,slack:1.4,n:1,intl:1},longhaul:{kind:'Largo recorrido',mul:1.7,slack:1.4,n:1,intl:1},freight:{kind:'Flete pesado',mul:1.6,slack:1.5,n:2},
-  relief:{kind:'Ayuda humanitaria',mul:1.9,slack:1.5,n:1,intl:1},scramble:{kind:'Alerta de intercepción',mul:1.9,slack:.8,n:1,fast:1},patrol:{kind:'Patrulla aérea',mul:1.5,slack:.92,n:4,fast:1}};
+  relief:{kind:'Ayuda humanitaria',mul:1.9,slack:1.5,n:1,intl:1},strategic:{kind:'Misión estratégica',mul:2.4,slack:1.1,n:1,intl:1,fast:1},recon:{kind:'Reconocimiento rápido',mul:1.9,slack:.85,n:3,fast:1},scramble:{kind:'Alerta de intercepción',mul:1.9,slack:.8,n:1,fast:1},patrol:{kind:'Patrulla aérea',mul:1.5,slack:.92,n:4,fast:1}};
 const ROLES={reg:{n:'Regional',t:['pax','milk','medevac']},jet:{n:'Jet regional',t:['pax','medevac','cargo','intl']},biz:{n:'Jet ejecutivo',t:['vip','medevac','cargo','intl']},
   air:{n:'Avión de línea',t:['pax','multi','intl','cargo']},heavy:{n:'Largo alcance',t:['longhaul','pax','intl','multi']},cargo:{n:'Carguero',t:['freight','relief','cargo','multi']},
-  super:{n:'Supersónico',t:['vip','intl','pax','cargo']},fgt:{n:'Caza',t:['scramble','patrol']}};
+  super:{n:'Supersónico',t:['vip','intl','pax','cargo']},fgt:{n:'Caza',t:['scramble','patrol']},recon:{n:'Reconocimiento',t:['recon','strategic','scramble']},stealth:{n:'Bombardero furtivo',t:['strategic','patrol']},hyper:{n:'Hipersónico',t:['recon','strategic','scramble','patrol']}};
 const roleOf=id=>ROLES[ROLE[id]||'air'];
 const roleLine=id=>{const r=roleOf(id);return r.n+' · Misiones: '+r.t.map(t=>MT[t].kind).join(', ');};
 const yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
@@ -934,6 +1011,8 @@ function genMission(type,stars){
     freight:['Flete pesado '+ids,'Maquinaria y contenedores: entrega la carga en '+stops.length+' aeropuertos. Los cargueros cobran más.'],
     relief:['Ayuda humanitaria a '+dn,'Lleva víveres y medicinas a '+dest.n+'. Es la misión mejor pagada para un carguero.'],
     scramble:['Intercepción en '+dn,'Un avión sospechoso se acerca a '+dest.n+'. Llega a tiempo: solo un caza es lo bastante rápido.'],
+    strategic:['Misión estratégica a '+dn,'Vuelo de largo alcance y máxima prioridad hacia '+dest.n+'. La misión mejor pagada del juego.'],
+    recon:['Reconocimiento '+ids,'Recorre '+stops.length+' aeropuertos a toda velocidad: aterriza en cada uno antes de que se agote el tiempo.'],
     patrol:['Patrulla '+ids,'Patrulla '+stops.length+' bases en poco tiempo, aterrizando en cada una para repostar.']}[type];
   let desc=D[1];if(intl)desc+=' Despega, sube a 600 m y el avión toma la ruta a '+CITIES[dest.city].name+'.';
   return{type,kind:mt.kind,stars,name:D[0],desc,from,stops,time,reward,intl};
@@ -1221,7 +1300,7 @@ function renderMenu(){
     for(const p of PLANES){const own=save.owned.includes(p.id),sel=save.sel===p.id,can=save.money>=p.price;
       const bar=(l,v)=>'<span>'+l+'</span><div class="bar"><i style="width:'+Math.round(clamp(v,.06,1)*100)+'%"></i></div>';
       h+='<article class="card'+(previewId===p.id?' sel':'')+'" data-p="'+p.id+'"><div class="card-top"><span class="kind">'+p.tag+'</span>'+(sel?'<span class="stars">EN USO</span>':'')+'</div><h3>'+p.name+'</h3>'+
-        '<div class="bars">'+bar('Velocidad',p.max/340)+bar('Giro',p.turn/1.75)+bar('Paga extra',((p.bonus||0)+(p.vip||0))/1)+'</div><p class="perk">'+p.perk+'</p><p class="roles">'+roleLine(p.id)+'</p>'+(own&&previewId===p.id?'<div class="paints" aria-label="Pintura">'+PAINTS.map((q,i)=>'<button type="button" title="'+q.n+'" data-paint="'+i+'" class="'+(paintOf(p.id)===i?'on':'')+'" style="background:#'+((q.acc||p.b.acc)+0x1000000).toString(16).slice(1)+'"></button>').join('')+'</div>':'')+
+        '<div class="bars">'+bar('Velocidad',p.max/650)+bar('Giro',p.turn/1.75)+bar('Paga extra',((p.bonus||0)+(p.vip||0))/1)+'</div><p class="perk">'+p.perk+'</p><p class="roles">'+roleLine(p.id)+'</p>'+(own&&previewId===p.id?'<div class="paints" aria-label="Pintura">'+PAINTS.map((q,i)=>'<button type="button" title="'+q.n+'" data-paint="'+i+'" class="'+(paintOf(p.id)===i?'on':'')+'" style="background:#'+((q.acc||p.b.acc)+0x1000000).toString(16).slice(1)+'"></button>').join('')+'</div>':'')+
         '<div class="card-foot">'+(own?'<span class="tm">Ya es tuyo</span>':'<span class="pay num">'+fmt(p.price)+'</span>')+
         (sel?'<button class="go" type="button" disabled>En uso</button>':own?'<button class="go" type="button" data-use="'+p.id+'">Usar</button>':can?'<button class="go" type="button" data-buy="'+p.id+'">Comprar</button>':'<button class="go" type="button" disabled>Te faltan '+fmt(p.price-save.money)+'</button>')+'</div></article>';}
   }
