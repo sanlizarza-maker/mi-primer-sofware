@@ -148,7 +148,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
   </nav>
   <div id="list"></div>
   <footer class="m-foot">
-    <div class="keys"><kbd>←</kbd><kbd>→</kbd> girar · <kbd>↑</kbd><kbd>↓</kbd> subir y bajar · <kbd>Espacio</kbd> turbo · <kbd>X</kbd> freno</div>
+    <div class="keys"><kbd>←</kbd><kbd>→</kbd> girar · <kbd>↑</kbd><kbd>↓</kbd> subir y bajar · <kbd>Espacio</kbd> acelerar y turbo · <kbd>X</kbd> freno</div>
     <div class="opts">
       <button type="button" id="oInv"></button>
       <button type="button" id="oSnd"></button>
@@ -170,7 +170,7 @@ const fmt=n=>'$'+Math.round(n).toLocaleString('es');
 
 /* ================= Partida guardada ================= */
 const KEY='alas-archipielago-v1';
-let save={money:0,owned:['gorrion'],sel:'gorrion',done:0,inv:false,snd:true};
+let save={money:0,owned:['gorrion'],sel:'gorrion',done:0,visited:[],inv:false,snd:true};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&Array.isArray(s.owned)) save=Object.assign(save,s);}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(e){}}
 
@@ -232,6 +232,12 @@ const ISL=[
  {n:'Roca del Faro',x:350,z:-3500,r:360,h:150,t:'n',s:67,rock:1,light:1},
  {n:'Atolón Coral',x:-3900,z:900,r:620,h:30,t:'a',s:71,palm:1},
 ];
+// Pistas de aterrizaje: una por isla, en la costa y paralela a ella
+for(const I of ISL){const a=I.s*1.3+2.2,d=(I.t==='a'?.68:.74)*I.r,x=I.x+Math.cos(a)*d,z=I.z+Math.sin(a)*d;
+  I.strip={x,z,a,ux:-Math.sin(a),uz:Math.cos(a),hl:Math.min(340,I.r*.8)/2,hw:15,y:8,name:I.n,p:new T.Vector3(x,8,z)};}
+function inStrip(s,x,z,m){const dx=x-s.x,dz=z-s.z;return Math.abs(dx*s.ux+dz*s.uz)<=s.hl+m&&Math.abs(-dx*s.uz+dz*s.ux)<=s.hw+m;}
+function stripAt(x,z,m){for(const I of ISL)if(inStrip(I.strip,x,z,m))return I.strip;return null;}
+function nearestStrip(x,z){let b=null,bd=1e18;for(const I of ISL){const s=I.strip,d=(s.x-x)*(s.x-x)+(s.z-z)*(s.z-z);if(d<bd){bd=d;b=s;}}b.d2=bd;return b;}
 function islandH(I,x,z){
   const dx=x-I.x,dz=z-I.z;let d=Math.sqrt(dx*dx+dz*dz)/I.r;if(d>1.25)return -6;
   d+=(vnoise(x*.0035+I.s,z*.0035-I.s)-.5)*.32;
@@ -239,6 +245,10 @@ function islandH(I,x,z){
   if(I.t==='a'){const g=(d-.68)/.14;h=I.h*Math.exp(-g*g)*(.5+n)-4;}
   else if(I.t==='v'){const c=Math.max(0,1-d);h=I.h*Math.pow(c,1.15)*(.85+.3*n)*1.15-5;const cr=Math.max(0,1-d/.13);h-=I.h*.3*cr*cr*(3-2*cr);}
   else{const f=clamp(1-d,0,1),s=f*f*(3-2*f);h=I.h*Math.pow(s,1.25)*(.35+1.3*n)-5;}
+  const s=I.strip,sx=x-s.x,sz=z-s.z,o=Math.max(Math.abs(sx*s.ux+sz*s.uz)-s.hl-25,Math.abs(-sx*s.uz+sz*s.ux)-s.hw-34);
+  if(o<70)h=lerp(s.y,h,sstep(0,70,o));
+  // corredor despejado para despegar y aproximarse por los dos extremos
+  const ab=Math.max(0,Math.abs(sx*s.ux+sz*s.uz)-s.hl-25);if(ab<600){const cap=s.y+ab*.05,w=Math.max(sstep(0,90,Math.abs(-sx*s.uz+sz*s.ux)-s.hw-55),sstep(430,600,ab));h=Math.min(h,lerp(cap,h,w));}
   return Math.max(h,-6);
 }
 function terrainH(x,z){let m=-6;for(const I of ISL){const dx=x-I.x,dz=z-I.z,R=I.r*1.25;if(dx*dx+dz*dz<R*R){const h=islandH(I,x,z);if(h>m)m=h;}}return m;}
@@ -288,14 +298,14 @@ scene.add(water);
     const tries=Math.round(I.r*(I.t==='a'?.5:.75));
     for(let i=0;i<tries;i++){
       const a=hash(i,I.s)*PI*2,d=Math.sqrt(hash(I.s,i+.5))*I.r,x=I.x+Math.cos(a)*d,z=I.z+Math.sin(a)*d,h=terrainH(x,z),k=h/I.h;
-      if(h<6||I.rock&&k>.3)continue;const sc=1+hash(i*3.3,I.s)*.9;
+      if(h<6||I.rock&&k>.3||inStrip(I.strip,x,z,48))continue;const sc=1+hash(i*3.3,I.s)*.9;
       if(I.palm||I.t==='a'||h<16){if(h<60)palms.push([x,h,z,sc]);}
       else if(k<(I.t==='v'?.3:I.snow?.55:.75))pines.push([x,h,z,sc]);
     }
     if(I.village){let c=0;for(let i=0;i<400&&c<16;i++){const a=I.s*1.3+(hash(i,I.s*2)-.5)*1.6,d=(.55+hash(I.s*2,i)*.3)*I.r,x=I.x+Math.cos(a)*d,z=I.z+Math.sin(a)*d,h=terrainH(x,z);
-      if(h>5&&h<34){houses.push([x,h,z,hash(i,7)*PI]);c++;}}}
+      if(h>5&&h<34&&!inStrip(I.strip,x,z,50)){houses.push([x,h,z,hash(i,7)*PI]);c++;}}}
     if(I.light){for(let i=0;i<60;i++){const a=I.s+2+i*.11,d=(.5+i*.008)*I.r,x=I.x+Math.cos(a)*d,z=I.z+Math.sin(a)*d,h=terrainH(x,z);
-      if(h>6&&h<60){const g=new T.Group();
+      if(h>6&&h<60&&!inStrip(I.strip,x,z,50)){const g=new T.Group();
         const t1=new T.Mesh(new T.CylinderGeometry(3.2,4.6,34,10),new T.MeshLambertMaterial({color:0xf7f7f2}));t1.position.y=17;
         const t2=new T.Mesh(new T.CylinderGeometry(3.9,4.2,8,10),new T.MeshLambertMaterial({color:0xd7263d}));t2.position.y=15;
         const t3=new T.Mesh(new T.SphereGeometry(3.4,10,8),new T.MeshBasicMaterial({color:0xfff2a8}));t3.position.y=36;
@@ -312,6 +322,20 @@ scene.add(water);
   const hs=it=>{P.set(it[0],it[1]-1,it[2]);E.set(0,it[3],0);Q.setFromEuler(E);S.set(1,1,1);};
   inst(new T.BoxGeometry(9,7,8).translate(0,3.5,0),new T.MeshLambertMaterial({color:0xf3ecdd}),houses,hs);
   inst(new T.ConeGeometry(7.6,5,4).rotateY(PI/4).translate(0,9.5,0),new T.MeshLambertMaterial({color:0xc2452d,flatShading:true}),houses,hs);
+  // Pistas: asfalto con marcas, hangar y manga de viento
+  const cv=document.createElement('canvas');cv.width=64;cv.height=512;const cx=cv.getContext('2d');
+  cx.fillStyle='#3b4046';cx.fillRect(0,0,64,512);cx.fillStyle='#f2f2ee';cx.fillRect(3,0,2,512);cx.fillRect(59,0,2,512);
+  for(let y=70;y<442;y+=44)cx.fillRect(30,y,4,24);for(let i=0;i<6;i++){cx.fillRect(9+i*8.4,10,5,34);cx.fillRect(9+i*8.4,468,5,34);}
+  const stripM=new T.MeshLambertMaterial({map:new T.CanvasTexture(cv),polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  const hanM=new T.MeshLambertMaterial({color:0xd9dde2}),roofM=new T.MeshLambertMaterial({color:0xff6a2b});
+  for(const I of ISL){const s=I.strip,rot=Math.atan2(s.ux,s.uz);
+    const m=new T.Mesh(new T.PlaneGeometry(s.hw*2,s.hl*2).rotateX(-PI/2),stripM);m.position.set(s.x,s.y+.3,s.z);m.rotation.y=rot;scene.add(m);
+    const g=new T.Group();g.position.set(s.x,s.y,s.z);g.rotation.y=rot;
+    const hb=new T.Mesh(new T.BoxGeometry(15,7,22),hanM);hb.position.set(s.hw+21,3.5,0);
+    const hr=new T.Mesh(new T.CylinderGeometry(7.5,7.5,22,12,1,false,0,PI).rotateX(PI/2).rotateZ(PI/2),roofM);hr.position.set(s.hw+21,7,0);
+    const pole=new T.Mesh(new T.CylinderGeometry(.25,.25,9,5),hanM);pole.position.set(-s.hw-9,4.5,s.hl-30);
+    const sock=new T.Mesh(new T.ConeGeometry(1.1,5,8).rotateX(PI/2),roofM);sock.position.set(-s.hw-9,8.6,s.hl-27.5);
+    g.add(hb,hr,pole,sock);scene.add(g);}
   // Lava en el cráter
   const V=ISL[1],lava=new T.Mesh(new T.CircleGeometry(V.r*.09,20).rotateX(-PI/2),new T.MeshBasicMaterial({color:0xff5a14}));
   lava.position.set(V.x,terrainH(V.x,V.z)+14,V.z);scene.add(lava);
@@ -372,8 +396,10 @@ function buildPlane(spec){
     for(const sx of[-1,1]){const it=new T.Mesh(new T.BoxGeometry(.55,R*.9,L*.22),mDark);it.position.set(sx*R*.92,-R*.1,-L*.05);g.add(it);}}
   if(b.floats){for(const sx of[-1,1]){const x=sx*b.span*.16;const fl=new T.Mesh(new T.SphereGeometry(1,12,8),mAcc);fl.scale.set(.55,.5,L*.4);fl.position.set(x,-R-1.7,-L*.05);g.add(fl);
       for(const dz of[-1.4,1.2]){const st=new T.Mesh(new T.BoxGeometry(.14,1.7,.3),mDark);st.position.set(x*.8,-R-.8,dz-L*.05);st.rotation.z=sx*.25;g.add(st);}}}
-  if(b.gear){for(const sx of[-1,1]){const w=new T.Mesh(new T.CylinderGeometry(.48,.48,.3,12).rotateZ(PI/2),mDark);w.position.set(sx*1.3,-R-1,-L*.14);g.add(w);
-      const st=new T.Mesh(new T.BoxGeometry(.12,1.1,.2),mDark);st.position.set(sx*1.05,-R-.45,-L*.14);st.rotation.z=sx*.4;g.add(st);}}
+  if(!b.floats){const gr=new T.Group(),tri=jet||b.eng==='twin',gx=b.eng==='twin'?b.span*.21:Math.max(1.3,R*1.4),gz=tri?L*.05:-L*.14;
+    const leg=(x,z)=>{const w=new T.Mesh(new T.CylinderGeometry(.48,.48,.3,12).rotateZ(PI/2),mDark);w.position.set(x,-R-1,z);
+      const st=new T.Mesh(new T.BoxGeometry(.14,R+.8,.22),mDark);st.position.set(x,-(R+1.2)/2,z);gr.add(w,st);};
+    leg(-gx,gz);leg(gx,gz);if(tri)leg(0,-L*.3);g.add(gr);g.userData.gear=gr;g.userData.fixed=!!b.gear;}
   return g;
 }
 let planeObj=null,planeSpec=null;
@@ -410,40 +436,41 @@ const REF=[62,100,150],PAY=[450,1300,3400],BONUS=[6,14,30],HINT=['Sirve cualquie
 const KIND={ring:'Carrera de aros',mail:'Correo aéreo',balloon:'Caza de globos',fire:'Bombero del aire'};
 const yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
 function genMission(type,stars){
-  const s=stars-1,tg=[];let name,desc,ordered=true,slack,start;
+  const s=stars-1,tg=[];let name,desc,ordered=true,slack,home;
   const pick=f=>{const l=ISL.filter(f||(()=>1));return l[Math.floor(Math.random()*l.length)];};
   if(type==='ring'){
     const n=[8,11,14][s];
-    if(Math.random()<.55){const I=pick(i=>i.t!=='a'||1),a0=rnd(0,6.28),dir=Math.random()<.5?1:-1,ph=rnd(0,6);
+    if(Math.random()<.55){const I=pick(),dir=Math.random()<.5?1:-1,a0=I.strip.a+dir*.55,ph=rnd(0,6);home=I;
       for(let i=0;i<n;i++){const a=a0+dir*i*(PI*1.7/n),rr=I.r*(1+.22*Math.sin(i*1.7+ph)),x=I.x+Math.cos(a)*rr,z=I.z+Math.sin(a)*rr;
         tg.push({kind:'ring',r:30,p:new T.Vector3(x,Math.max(terrainH(x,z)+60,75+55*(Math.sin(i*1.3+ph)+1)),z)});}
       name='Vuelta a '+I.n;desc='Cruza '+n+' aros en orden rodeando la isla.';}
-    else{const A=pick();let B;do{B=pick();}while(B===A);const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz),ux=dx/L,uz=dz/L,ph=rnd(0,6);
+    else{const A=pick();let B;do{B=pick();}while(B===A);home=A;const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz),ux=dx/L,uz=dz/L,ph=rnd(0,6);
       for(let i=0;i<n;i++){const t=(i+.5)/n,lat=(i%2?1:-1)*(110+s*30),x=A.x+dx*t-uz*lat,z=A.z+dz*t+ux*lat;
         tg.push({kind:'ring',r:30,p:new T.Vector3(x,Math.max(terrainH(x,z)+60,90+60*(Math.sin(i*.9+ph)+1)),z)});}
       name='Eslalon '+A.n.split(' ').pop()+' – '+B.n.split(' ').pop();desc='Zigzaguea por '+n+' aros de '+A.n+' a '+B.n+'.';}
     for(let i=0;i<tg.length;i++){const a=tg[Math.max(0,i-1)].p,b=tg[Math.min(tg.length-1,i+1)].p;tg[i].dir=b.clone().sub(a).normalize();}
-    const d0=tg[0].dir,sp=tg[0].p.clone().addScaledVector(d0,-520);start={pos:sp,yaw:yawTo(d0.x,d0.z)};slack=1.32;
+    slack=1.32;
   }else if(type==='mail'){
-    const n=[2,3,5][s],list=ISL.slice().sort(()=>Math.random()-.5).slice(0,n);
+    const n=[2,3,5][s],sh=ISL.slice().sort(()=>Math.random()-.5),list=sh.slice(0,n);home=sh[n];
     for(const I of list)tg.push({kind:'mail',r:55,p:I.port.clone(),label:I.n});
     ordered=false;name='Correo para '+n+' islas';desc='Pasa por el haz de luz de cada isla, en el orden que quieras: '+list.map(i=>i.n).join(', ')+'.';slack=1.25;
   }else if(type==='balloon'){
-    const n=[8,12,16][s],I=pick(i=>i.t!=='v');
+    const n=[8,12,16][s],I=pick(i=>i.t!=='v');home=I;
     for(let i=0;i<n;i++){const a=rnd(0,6.28),d=I.r*rnd(.35,1.05),x=I.x+Math.cos(a)*d,z=I.z+Math.sin(a)*d;tg.push({kind:'balloon',r:17,p:new T.Vector3(x,Math.max(terrainH(x,z),0)+rnd(45,120),z)});}
     ordered=false;name='Globos sobre '+I.n;desc='Revienta '+n+' globos volando contra ellos. Frena para girar más cerrado.';slack=1.75;
   }else{
-    const n=[2,3,4][s],I=pick(i=>i.t==='n'&&!i.palm&&!i.rock),a0=rnd(0,6.28);
+    const n=[2,3,4][s],I=pick(i=>i.t==='n'&&!i.palm&&!i.rock),a0=rnd(0,6.28);home=I;
     for(let i=0;i<n;i++){const a=a0+i*(6.28/n)+rnd(-.3,.3);let d=.5,x,z,h;for(let k=0;k<12;k++){x=I.x+Math.cos(a)*I.r*d;z=I.z+Math.sin(a)*I.r*d;h=terrainH(x,z);if(h>12)break;d-=.04;}
       tg.push({kind:'water',r:42,p:new T.Vector3(I.x+Math.cos(a)*I.r*1.3,3,I.z+Math.sin(a)*I.r*1.3)});
       tg.push({kind:'fire',r:48,p:new T.Vector3(x,h+4,z)});}
     name='Incendio en '+I.n;desc='Carga agua volando a ras del mar sobre el círculo azul y suéltala sobre cada uno de los '+n+' fuegos.';slack=1.5;
   }
-  if(!start){const f=tg[0].p,I=ISL.reduce((a,b)=>Math.hypot(f.x-a.x,f.z-a.z)<Math.hypot(f.x-b.x,f.z-b.z)?a:b);let ox=f.x-I.x,oz=f.z-I.z;const l=Math.hypot(ox,oz)||1;ox/=l;oz/=l;
-    const sp=new T.Vector3(f.x+ox*650,0,f.z+oz*650);sp.y=Math.max(140,terrainH(sp.x,sp.z)+90);start={pos:sp,yaw:yawTo(-ox,-oz)};}
+  const start={strip:home.strip,pos:home.strip.p};
   if(!ordered){const rest=tg.slice(),out=[];let c=start.pos;while(rest.length){let bi=0,bd=1e9;rest.forEach((t,i)=>{const d=t.p.distanceTo(c);if(d<bd){bd=d;bi=i;}});c=rest[bi].p;out.push(rest.splice(bi,1)[0]);}tg.length=0;tg.push(...out);}
   let len=0,c=start.pos;for(const t of tg){len+=t.p.distanceTo(c);c=t.p;}
-  const time=Math.ceil((len/REF[s]*slack+tg.length*2.5+8)/5)*5;
+  const time=Math.ceil((len/REF[s]*slack+tg.length*2.5+22)/5)*5;
+  start.sign=(tg[0].p.x-home.strip.x)*home.strip.ux+(tg[0].p.z-home.strip.z)*home.strip.uz>=0?1:-1;
+  desc+=' Despegas de '+home.n+' y cobras al aterrizar en cualquier pista.';
   return{type,stars,name,desc,ordered,targets:tg,start,time,reward:Math.round(PAY[s]*rnd(.88,1.15)/10)*10};
 }
 let offers=[];
@@ -468,85 +495,118 @@ function hitTest(t,p){const dx=p.x-t.p.x,dy=p.y-t.p.y,dz=p.z-t.p.z,h2=dx*dx+dz*d
   switch(t.kind){case'ring':case'balloon':return h2+dy*dy<r2;case'mail':return h2<r2&&Math.abs(dy)<170;case'fire':return h2<r2&&dy>-10&&dy<170;default:return h2<r2&&p.y<34;}}
 
 /* ================= Estado de vuelo ================= */
-const P={pos:new T.Vector3(-900,150,1150),yaw:.6,pitch:0,roll:0,speed:70,boost:0};
+const P={pos:new T.Vector3(),yaw:0,pitch:0,roll:0,speed:0,boost:0,ground:true,touch:false,hint:false};
+const HOME=ISL[0].strip;
 let state='menu',mission=null,result=null,tab='mis',previewId=save.sel,endT=0,time=0,msgT=0,edge=false,trailT=0,smokeT=0;
 const keys={},stick={x:0,y:0},tb={boost:false,brake:false};
 const fwd=new T.Vector3(),tmp=new T.Vector3(),camT=new T.Vector3();
 function getFwd(o){const cp=Math.cos(P.pitch);return o.set(-Math.sin(P.yaw)*cp,Math.sin(P.pitch),-Math.cos(P.yaw)*cp);}
+const gearH=()=>planeSpec.b.rad+(planeSpec.b.floats?2.2:1.5);
+function park(s,sign){P.pos.set(s.x-s.ux*sign*(s.hl-22),s.y+gearH(),s.z-s.uz*sign*(s.hl-22));P.yaw=yawTo(s.ux*sign,s.uz*sign);P.pitch=P.roll=P.speed=P.boost=0;P.ground=true;P.touch=P.hint=false;}
 function msg(text,sec){const e=$('hMsg');e.textContent=text;e.style.opacity=1;msgT=sec||2;}
 
 function startFlight(m){
   audioInit();if(AC&&AC.state==='suspended')AC.resume();
   setPlane(save.sel);previewId=save.sel;mission=null;result=null;
   if(m){mission={def:m,targets:m.targets.map(t=>Object.assign({},t,{done:false})),idx:0,left:m.targets.length,tLeft:m.time,carry:false};
-    mission.targets.forEach(makeTargetMesh);P.pos.copy(m.start.pos);P.yaw=m.start.yaw;}
-  else{P.pos.set(-700,160,1300);P.yaw=yawTo(700,-1300);}
-  P.pitch=0;P.roll=0;P.speed=planeSpec.cruise;P.boost=0;edge=false;
-  getFwd(fwd);cam.position.copy(P.pos).addScaledVector(fwd,-30).y+=8;
+    mission.targets.forEach(makeTargetMesh);park(m.start.strip,m.start.sign);}
+  else park(HOME,1);
+  edge=false;getFwd(fwd);cam.position.copy(P.pos).addScaledVector(fwd,-30).y+=8;
   state='fly';$('menu').hidden=true;$('hud').hidden=false;$('hTime').hidden=!m;
-  msg(m?'¡Despega!':'Vuelo libre: atrapa las estrellas',2.2);updObjective();
+  msg(document.body.classList.contains('touch')?'Mantén TURBO y luego sube':'Mantén ESPACIO y luego sube',4);updObjective();
 }
 function finish(ok,reason){
   const m=mission.def;let res;
   if(ok){const tb_=Math.round(mission.tLeft*BONUS[m.stars-1]/10)*10,cg=planeSpec.bonus?Math.round((m.reward+tb_)*planeSpec.bonus/10)*10:0,tot=m.reward+tb_+cg;
     save.money+=tot;save.done++;res={ok:true,name:m.name,base:m.reward,time:tb_,cargo:cg,total:tot};offers=offers.filter(o=>o!==m);if(offers.length<4)refill();
-    beep(660,1320,.5,.14);state='win';endT=2;msg('¡Misión cumplida!  +'+fmt(tot),2);}
+    beep(660,1320,.5,.14);state='win';endT=2.2;msg('¡Misión cumplida!  +'+fmt(tot),2.2);}
   else{const fee=reason==='crash'?Math.min(save.money,100*m.stars):0;save.money-=fee;res={ok:false,name:m.name,reason,fee};
     if(reason==='crash'){state='crash';endT=1.7;}else{state='win';endT=1.6;msg('Se acabó el tiempo',1.6);beep(300,120,.6,.12,'sawtooth');}}
   result=res;persist();
 }
 function refill(){const have=offers.map(o=>o.type),types=['ring','mail','balloon','fire'].filter(t=>!have.includes(t));const t=types[0]||'ring';
   const st=save.done<2?1:Math.random()<.4?1:Math.random()<.6?2:3;offers.push(genMission(t,st));offers.sort((a,b)=>a.stars-b.stars);}
-function crash(){
+function crash(tip){
   burst(P.pos,0xff8a2b,22,45,5);burst(P.pos,0xfff0a0,10,25,4);for(let i=0;i<8;i++)spawnP(P.pos.x,P.pos.y,P.pos.z,rnd(-12,12),rnd(8,25),rnd(-12,12),0x333333,6,rnd(1,1.8),14,false);
   planeObj.visible=false;beep(180,40,.8,.25,'sawtooth');
-  if(mission&&state==='fly')finish(false,'crash');else if(mission){state='crash';endT=1.6;}else{state='crash';endT=1.6;result={ok:false,name:'Vuelo libre',reason:'crash',fee:0};}
+  if(mission&&state==='fly'){finish(false,'crash');result.tip=tip;}else if(mission){state='crash';endT=1.6;}else{state='crash';endT=1.6;result={ok:false,name:'Vuelo libre',reason:'crash',fee:0};if(tip)msg(tip,1.6);}
 }
 function toMenu(){
   if(mission){mission.targets.forEach(clearTarget);mission=null;}
-  state='menu';planeObj.visible=true;P.pos.set(-900,150,1150);P.pitch=0;P.roll=0;engSet(false,0,false);
+  state='menu';planeObj.visible=true;park(HOME,1);engSet(false,0,false);
   $('menu').hidden=false;$('hud').hidden=true;tab='mis';renderMenu();
 }
 function updObjective(){
   const n=$('oName'),t=$('oText');
-  if(!mission){n.textContent='Vuelo libre';t.textContent='Cada estrella dorada vale $50.';return;}
+  if(!mission){n.textContent='Vuelo libre';t.textContent='Estrella dorada: $50 · Primera vez que aterrizas en una isla: $150';return;}
   const tot=mission.targets.length,done=tot-mission.left;n.textContent=mission.def.name;
+  if(mission.landing){t.textContent='Aterriza en una pista para cobrar: despacio, nivelado y alineado. Frena al tocar.';return;}
   const cur=currentTarget();
   if(!cur){t.textContent='';return;}
   t.textContent=cur.kind==='ring'?'Aro '+(done+1)+' de '+tot:cur.kind==='mail'?'Entregas '+done+' de '+tot+' · siguiente: '+cur.label:cur.kind==='balloon'?'Globos '+done+' de '+tot:
     cur.kind==='water'?'Carga agua: vuela a ras del mar por el círculo azul':'Suelta el agua sobre el fuego ('+(done>>1)+' de '+(tot>>1)+' apagados)';
 }
+const navT={p:null,kind:'strip'};
 function currentTarget(){
+  if(mission&&mission.landing){navT.p=nearestStrip(P.pos.x,P.pos.z).p;return navT;}
   if(!mission||!mission.left)return null;
   if(mission.def.ordered)return mission.targets[mission.idx];
   let b=null,bd=1e12;for(const t of mission.targets)if(!t.done){const d=t.p.distanceToSquared(P.pos);if(d<bd){bd=d;b=t;}}return b;
 }
 
+function landed(s){
+  let nw=false;if(!save.visited.includes(s.name)){save.visited.push(s.name);save.money+=150;persist();nw=true;}
+  if(mission&&mission.landing&&state==='fly')finish(true);
+  else{msg(nw?'Pista nueva: '+s.name+'  +$150':'Aterrizaste en '+s.name,2.6);if(nw)beep(660,990,.3,.12);}
+}
+function liftoff(){P.ground=false;P.touch=false;P.hint=false;P.pitch=.14;P.pos.y+=.3;}
 function updateFlight(dt,ctrl){
-  const S=planeSpec;let ix=0,iy=0,boost=false,brake=false;
+  const S=planeSpec,gh=gearH();let ix=0,iy=0,boost=false,brake=false;
   if(ctrl){ix=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0)+stick.x;iy=(keys.ArrowUp||keys.KeyW?1:0)-(keys.ArrowDown||keys.KeyS?1:0)-stick.y;
     if(save.inv)iy=-iy;ix=clamp(ix,-1,1);iy=clamp(iy,-1,1);boost=keys.Space||keys.ShiftLeft||keys.ShiftRight||tb.boost;brake=keys.KeyX||keys.KeyC||tb.brake;}
-  // límite del mundo
-  const far=Math.hypot(P.pos.x,P.pos.z);
-  if(far>7200){const want=yawTo(-P.pos.x,-P.pos.z);let d=want-P.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));ix=clamp(-d*2,-1,1);if(!edge){edge=true;msg('Fin del mapa: dando la vuelta',2.5);}}else if(far<6800)edge=false;
-  if(P.pos.y>1350&&iy>-.3)iy=-.4;
-  const slow=brake?1.25:1;
-  P.roll+=(-ix*1.08-P.roll)*Math.min(1,dt*3.4*S.turn);
-  P.yaw+=P.roll*.82*S.turn*slow*dt;
-  P.pitch+=(iy*.72-P.pitch)*Math.min(1,dt*2.6);
-  let tgt=boost?S.max:brake?S.min:S.cruise;tgt-=Math.sin(P.pitch)*18;
-  P.speed+=clamp(tgt-P.speed,-S.acc*1.6*dt,S.acc*dt);
-  P.boost+=((boost?1:0)-P.boost)*Math.min(1,dt*4);
-  getFwd(fwd);P.pos.addScaledVector(fwd,P.speed*dt);
-  // colisiones
-  if(P.pos.y<1.6){if(S.floats){P.pos.y=1.6;if(P.pitch<.04)P.pitch=.04;if(Math.random()<.5)spawnP(P.pos.x,.5,P.pos.z,rnd(-6,6),rnd(4,10),rnd(-6,6),0xffffff,2,.5,5,false);}else{crash();return;}}
-  if(P.pos.y<terrainH(P.pos.x,P.pos.z)+1.8){crash();return;}
+  if(P.ground){
+    // rodaje por la pista
+    const Vr=S.min*.85,st=stripAt(P.pos.x,P.pos.z,6),k=Math.min(1,dt*8);
+    P.roll-=P.roll*k;P.pitch-=P.pitch*k;P.boost-=P.boost*Math.min(1,dt*4);P.yaw-=ix*.75*dt;
+    if(boost)P.speed=Math.min(S.cruise,P.speed+S.acc*1.2*dt);else P.speed=Math.max(0,P.speed-(brake||!ctrl?75:P.touch?26:10)*dt);
+    if(!st){if(P.speed>=Vr)liftoff();else if(P.speed>24){crash('Te saliste de la pista.');return;}else P.speed=Math.min(P.speed,9);}
+    P.pos.x-=Math.sin(P.yaw)*P.speed*dt;P.pos.z-=Math.cos(P.yaw)*P.speed*dt;
+    if(P.ground){const th=terrainH(P.pos.x,P.pos.z);if(th<.5){crash('Te caíste al mar.');return;}P.pos.y=th+gh;
+      if(P.speed>=Vr){if(iy>.2)liftoff();else if(!P.hint&&!P.touch){P.hint=true;msg('¡Ya puedes subir!',1.6);}}
+      if(P.touch&&P.speed<3&&st){P.touch=false;landed(st);}}
+    getFwd(fwd);
+  }else{
+    // límite del mundo
+    const far=Math.hypot(P.pos.x,P.pos.z);
+    if(far>7200){const want=yawTo(-P.pos.x,-P.pos.z);let d=want-P.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));ix=clamp(-d*2,-1,1);if(!edge){edge=true;msg('Fin del mapa: dando la vuelta',2.5);}}else if(far<6800)edge=false;
+    if(P.pos.y>1350&&iy>-.3)iy=-.4;
+    const slow=brake?1.25:1;
+    P.roll+=(-ix*1.08-P.roll)*Math.min(1,dt*3.4*S.turn);
+    P.yaw+=P.roll*.82*S.turn*slow*dt;
+    P.pitch+=(iy*.72-P.pitch)*Math.min(1,dt*2.6);
+    let tgt=boost?S.max:brake?S.min:S.cruise;tgt-=Math.sin(P.pitch)*18;
+    P.speed+=clamp(tgt-P.speed,-S.acc*1.6*dt,S.acc*dt);
+    P.boost+=((boost?1:0)-P.boost)*Math.min(1,dt*4);
+    getFwd(fwd);P.pos.addScaledVector(fwd,P.speed*dt);
+    // mar y tierra
+    if(P.pos.y<1.6){if(S.floats){P.pos.y=1.6;if(P.pitch<.04)P.pitch=.04;if(Math.random()<.5)spawnP(P.pos.x,.5,P.pos.z,rnd(-6,6),rnd(4,10),rnd(-6,6),0xffffff,2,.5,5,false);}else{crash();return;}}
+    const th=terrainH(P.pos.x,P.pos.z);
+    if(P.pos.y<th+gh){const st=stripAt(P.pos.x,P.pos.z,4);
+      if(!st){crash();return;}
+      const al=Math.abs(-Math.sin(P.yaw)*st.ux-Math.cos(P.yaw)*st.uz);
+      if(P.pitch<-.24){crash('Llegaste en picada. Baja más suave.');return;}
+      if(Math.abs(P.roll)>.5){crash('Tocaste pista con las alas inclinadas.');return;}
+      if(P.speed>S.cruise*1.25){crash('Demasiado rápido para aterrizar. Usa el freno.');return;}
+      if(al<.7){crash('Hay que entrar alineado con la pista.');return;}
+      P.ground=true;P.touch=true;P.hint=false;P.pos.y=th+gh;beep(140,90,.15,.12,'square');
+      for(let i=0;i<6;i++)spawnP(P.pos.x,th+.5,P.pos.z,rnd(-4,4),rnd(1,3),rnd(-4,4),0xdddddd,.6,.45,1.6,false);}
+  }
   // estela con turbo
   trailT-=dt;if(P.boost>.5&&trailT<=0){trailT=.03;const L=planeObj.userData.len/2;spawnP(P.pos.x-fwd.x*L,P.pos.y-fwd.y*L,P.pos.z-fwd.z*L,0,0,0,0xffffff,1.2,.7,3,false);}
   // monedas
   for(const c of coins)if(c.cd<=0&&c.m.position.distanceToSquared(P.pos)<24*24){c.cd=70;c.m.visible=false;save.money+=50;persist();burst(c.m.position,0xffc83d,10,30,3);beep(990,1480,.18,.1);msg('+$50',.9);}
   // objetivos
-  if(mission&&state==='fly'){
+  if(mission&&state==='fly'&&!mission.landing){
     mission.tLeft-=dt;
     const list=mission.def.ordered?[mission.targets[mission.idx]]:mission.targets;
     for(const t of list){if(!t||t.done||!hitTest(t,P.pos))continue;
@@ -555,7 +615,8 @@ function updateFlight(dt,ctrl){
       if(t.kind==='water'){msg('¡Agua cargada!',1.2);beep(500,900,.2,.1);}else if(t.kind==='fire'){msg('¡Fuego apagado!',1.2);beep(700,1100,.25,.1);for(let i=0;i<10;i++)spawnP(P.pos.x,P.pos.y,P.pos.z,rnd(-10,10),rnd(-45,-25),rnd(-10,10),0x7fdcff,3,.9,4,false);}
       else beep(780,1180,.16,.1);
       clearTarget(t);updObjective();}
-    if(!mission.left)finish(true);else if(mission.tLeft<=0)finish(false,'time');
+    if(!mission.left){mission.landing=true;msg('¡Listo! Ahora aterriza para cobrar',3.2);beep(660,1100,.35,.12);updObjective();}
+    else if(mission.tLeft<=0)finish(false,'time');
   }
 }
 function updateCam(dt,snap){
@@ -567,9 +628,9 @@ function updateCam(dt,snap){
   const fov=62+P.boost*13;if(Math.abs(cam.fov-fov)>.05){cam.fov=lerp(cam.fov,fov,Math.min(1,dt*4));cam.updateProjectionMatrix();}
 }
 function updateMenuCam(dt){
-  P.pos.y=150+Math.sin(time*.8)*1.2;P.yaw=.6;P.roll=Math.sin(time*.5)*.08;P.pitch=.03;
+  P.pos.y=HOME.y+gearH();
   const a=time*.22,d=planeObj.userData.len*1.55+6,narrow=innerWidth<=760;
-  cam.position.set(P.pos.x+Math.cos(a)*d,P.pos.y+d*.24,P.pos.z+Math.sin(a)*d);cam.up.set(0,1,0);cam.lookAt(P.pos);
+  cam.position.set(P.pos.x+Math.cos(a)*d,P.pos.y+d*.22,P.pos.z+Math.sin(a)*d);cam.position.y=Math.max(cam.position.y,terrainH(cam.position.x,cam.position.z)+2.5);cam.up.set(0,1,0);cam.lookAt(P.pos);
   if(cam.fov!==50){cam.fov=50;cam.updateProjectionMatrix();}
   // desplaza la vista para que el avión no quede tapado por el panel
   if(narrow)cam.setViewOffset(innerWidth,innerHeight,0,innerHeight*.3,innerWidth,innerHeight);else cam.setViewOffset(innerWidth,innerHeight,-Math.min(450,innerWidth)/2,0,innerWidth,innerHeight);
@@ -588,13 +649,15 @@ function drawHud(dt){
     ptr.lastElementChild.textContent=Math.round(cur.p.distanceTo(P.pos))+' m';
   }else ptr.hidden=true;
   hudT-=dt;if(hudT>0)return;hudT=.1;
-  $('gSpd').textContent=Math.round(P.speed*3.6);$('gAlt').textContent=Math.max(0,Math.round(P.pos.y));$('hMoney').textContent=fmt(save.money);
+  $('gSpd').textContent=Math.round(P.speed*3.6);$('gAlt').textContent=P.ground?'PISTA':Math.max(0,Math.round(P.pos.y));$('hMoney').textContent=fmt(save.money);
   if(mission){const s=Math.max(0,Math.ceil(mission.tLeft)),e=$('hTime');e.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');e.className='h num'+(s<=10?' low':'');}
   // minimapa (arriba = hacia donde vuelas)
   const W=248,c=W/2,sc=c/4200,cy=Math.cos(P.yaw),sy=Math.sin(P.yaw);
   const tx=(x,z)=>{const dx=x-P.pos.x,dz=z-P.pos.z;return[c+(dx*cy-dz*sy)*sc,c+(dx*sy+dz*cy)*sc];};
   mx.clearRect(0,0,W,W);mx.save();mx.beginPath();mx.arc(c,c,c,0,6.3);mx.clip();
   for(const I of ISL){const q=tx(I.x,I.z);mx.fillStyle=I.t==='v'?'#8a5a48':I.t==='a'?'#d9cf9a':'#5fae55';mx.beginPath();mx.arc(q[0],q[1],I.r*.82*sc,0,6.3);mx.fill();}
+  mx.strokeStyle='#ffffff';mx.lineWidth=4;for(const I of ISL){const s=I.strip,q=tx(s.x,s.z),ex=(s.ux*cy-s.uz*sy)*7,ey=(s.ux*sy+s.uz*cy)*7;mx.beginPath();mx.moveTo(q[0]-ex,q[1]-ey);mx.lineTo(q[0]+ex,q[1]+ey);mx.stroke();}
+  if(cur===navT){let q=tx(cur.p.x,cur.p.z);const dx=q[0]-c,dy=q[1]-c,l=Math.hypot(dx,dy);if(l>c-10)q=[c+dx/l*(c-10),c+dy/l*(c-10)];mx.strokeStyle='#ffc83d';mx.lineWidth=4;mx.beginPath();mx.arc(q[0],q[1],13,0,6.3);mx.stroke();}
   mx.fillStyle='#ffc83d';for(const k of coins)if(k.cd<=0){const q=tx(k.m.position.x,k.m.position.z);mx.fillRect(q[0]-2,q[1]-2,4,4);}
   if(mission)for(const t of mission.targets)if(!t.done){let q=tx(t.p.x,t.p.z);const dx=q[0]-c,dy=q[1]-c,l=Math.hypot(dx,dy);if(l>c-8){q=[c+dx/l*(c-8),c+dy/l*(c-8)];}
     mx.fillStyle=t===cur?'#ffffff':t.kind==='water'?'#5fe8ff':t.kind==='fire'?'#ff5a1f':'#ff8a2b';mx.beginPath();mx.arc(q[0],q[1],t===cur?8:5,0,6.3);mx.fill();}
@@ -612,12 +675,12 @@ function renderMenu(){
   if(tab==='mis'){
     if(result){const r=result;
       if(r.ok)h+='<div class="result"><h3>Misión cumplida</h3><dl><dt>'+esc(r.name)+'</dt><dd class="num">'+fmt(r.base)+'</dd><dt>Bono por tiempo</dt><dd class="num">'+fmt(r.time)+'</dd>'+(r.cargo?'<dt>Bodega del Albatros</dt><dd class="num">'+fmt(r.cargo)+'</dd>':'')+'<dt class="tot">Cobrado</dt><dd class="tot num">'+fmt(r.total)+'</dd></dl></div>';
-      else h+='<div class="result bad"><h3>'+(r.reason==='crash'?'Te estrellaste':r.reason==='quit'?'Misión abandonada':'Se acabó el tiempo')+'</h3><dl><dt>'+esc(r.name)+'</dt><dd></dd>'+(r.fee?'<dt>Reparación del avión</dt><dd class="num">−'+fmt(r.fee)+'</dd>':'')+'</dl></div>';}
+      else h+='<div class="result bad"><h3>'+(r.reason==='crash'?'Te estrellaste':r.reason==='quit'?'Misión abandonada':'Se acabó el tiempo')+'</h3><dl><dt>'+esc(r.name)+'</dt><dd></dd>'+(r.fee?'<dt>Reparación del avión</dt><dd class="num">−'+fmt(r.fee)+'</dd>':'')+'</dl>'+(r.tip?'<p style="margin:6px 0 0">'+esc(r.tip)+'</p>':'')+'</div>';}
     const S=planeById(save.sel);
     h+='<p style="margin:0;color:var(--dim)">Vuelas el <b style="color:var(--fg)">'+S.name+'</b>. Elige un encargo:</p>';
     offers.forEach((m,i)=>{h+='<article class="card"><div class="card-top"><span class="kind">'+KIND[m.type]+'</span>'+starsH(m.stars)+'</div><h3>'+esc(m.name)+'</h3><p>'+esc(m.desc)+' '+HINT[m.stars-1]+'</p>'+
       '<div class="card-foot"><span class="pay num">'+fmt(m.reward)+'</span><span class="tm num">Tiempo '+tfmt(m.time)+'</span><button class="go" type="button" data-m="'+i+'">Volar</button></div></article>';});
-    h+='<article class="card"><div class="card-top"><span class="kind">Sin reloj</span></div><h3>Vuelo libre</h3><p>Explora las ocho islas y atrapa estrellas doradas de $50.</p><div class="card-foot"><button class="go alt" type="button" data-m="free">Despegar</button></div></article>';
+    h+='<article class="card"><div class="card-top"><span class="kind">Sin reloj</span></div><h3>Vuelo libre</h3><p>Explora las ocho islas, atrapa estrellas de $50 y gana $150 la primera vez que aterrizas en cada pista.</p><div class="card-foot"><button class="go alt" type="button" data-m="free">Despegar</button></div></article>';
   }else{
     for(const p of PLANES){const own=save.owned.includes(p.id),sel=save.sel===p.id,can=save.money>=p.price;
       const bar=(l,v)=>'<span>'+l+'</span><div class="bar"><i style="width:'+Math.round(clamp(v,.06,1)*100)+'%"></i></div>';
@@ -640,7 +703,7 @@ $('tabH').onclick=()=>{tab='han';result=null;renderMenu();$('list').scrollTop=0;
 $('oInv').onclick=()=>{save.inv=!save.inv;persist();renderMenu();};
 $('oSnd').onclick=()=>{save.snd=!save.snd;persist();renderMenu();};
 let resetArm=0;
-$('oReset').onclick=function(){if(Date.now()-resetArm<4000){save={money:0,owned:['gorrion'],sel:'gorrion',done:0,inv:save.inv,snd:save.snd};persist();previewId='gorrion';setPlane('gorrion');result=null;newOffers();this.textContent='Borrar partida';resetArm=0;renderMenu();}
+$('oReset').onclick=function(){if(Date.now()-resetArm<4000){save={money:0,owned:['gorrion'],sel:'gorrion',done:0,visited:[],inv:save.inv,snd:save.snd};persist();previewId='gorrion';setPlane('gorrion');result=null;newOffers();this.textContent='Borrar partida';resetArm=0;renderMenu();}
   else{resetArm=Date.now();this.textContent='¿Seguro? Toca otra vez para borrar';setTimeout(()=>{if(resetArm){this.textContent='Borrar partida';resetArm=0;}},4000);}};
 function quit(){if(state!=='fly')return;if(mission){result={ok:false,name:mission.def.name,reason:'quit',fee:0};}else result=null;toMenu();}
 $('quit').onclick=quit;
@@ -671,13 +734,14 @@ function frame(now){
     if(cam.view&&cam.view.enabled)cam.clearViewOffset();
     if(state==='fly'){updateFlight(dt,true);if(state!=='crash')updateCam(dt);}
     else if(state==='win'){updateFlight(dt,false);if(state==='win')updateCam(dt);endT-=dt;if(endT<=0&&state==='win')toMenu();}
-    if(state==='crash'){endT-=dt;if(endT<=0){if(result&&result.name==='Vuelo libre'){result=null;planeObj.visible=true;startFlight(null);}else toMenu();}}
+    if(state==='crash'){endT-=dt;if(endT<=0){if(!mission&&result&&result.name==='Vuelo libre'){result=null;planeObj.visible=true;startFlight(null);}else toMenu();}}
     if(state!=='menu'){drawHud(dt);engSet(state!=='crash',P.speed,planeSpec.b.eng==='jet');}
     if(msgT>0){msgT-=dt;if(msgT<=0)$('hMsg').style.opacity=0;}
   }
   // avión
   planeObj.position.copy(P.pos);planeObj.rotation.set(P.pitch,P.yaw,P.roll*1.15,'YXZ');
-  for(const s of planeObj.userData.spin)s.rotation.z+=dt*38;
+  for(const s of planeObj.userData.spin)s.rotation.z+=dt*(state==='menu'?7:38);
+  if(planeObj.userData.gear)planeObj.userData.gear.visible=planeObj.userData.fixed||P.ground||(P.pos.y<110&&nearestStrip(P.pos.x,P.pos.z).d2<640000);
   for(const g of planeObj.userData.glow)g.scale.set(1,1,.45+P.boost*1.3+Math.random()*.15);
   // objetivos
   if(mission){const cur=currentTarget();smokeT-=dt;const sm=smokeT<=0;if(sm)smokeT=.12;
@@ -692,7 +756,7 @@ function frame(now){
   water.material.uniforms.t.value=time;water.material.uniforms.camPos.value.copy(cam.position);
   renderer.render(scene,cam);
 }
-setPlane(save.sel);newOffers();resize();renderMenu();requestAnimationFrame(frame);
-window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,terrainH};
+setPlane(save.sel);park(HOME,1);newOffers();resize();renderMenu();requestAnimationFrame(frame);
+window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,terrainH,ISL,keys};
 })();
 </script>
