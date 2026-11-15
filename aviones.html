@@ -196,6 +196,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 @media (max-width:560px){#cockpit{top:calc(150px + env(safe-area-inset-top,0px));gap:5px}#cockpit .hb.sm{min-height:42px;padding:4px 4px;font-size:13px}#cockpit .hb kbd{display:none}#guide{left:10px;transform:none;max-width:calc(100vw - 172px)}#hObj{max-width:34vw}}
 @media (max-height:480px) and (min-width:561px){#cockpit{top:calc(146px + env(safe-area-inset-top,0px));right:max(112px,calc(100px + env(safe-area-inset-right,0px)))}#cockpit .hb.sm{min-height:38px}}
 .touch #cockpit .hb kbd{display:none}
+.roles{margin:0;font-size:12.5px;color:var(--sea);line-height:1.35}
 </style>
 
 <canvas id="c" aria-label="Vista 3D del juego"></canvas>
@@ -242,7 +243,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 
 <section id="menu" aria-label="Hangar">
   <header class="m-head">
-    <h1><small>4 CIUDADES · 14 AVIONES</small>Alas del Mundo</h1>
+    <h1><small>4 CIUDADES · 21 AVIONES</small>Alas del Mundo</h1>
     <div class="wallet"><span>Tu dinero</span><b class="num" id="money">$0</b><span id="saveSt" style="color:var(--sea);margin-top:4px;letter-spacing:.06em"></span></div>
   </header>
   <nav class="tabs" role="tablist">
@@ -289,6 +290,20 @@ function saveLabel(){const e=document.getElementById('saveSt');if(e)e.textConten
 
 /* ================= Aviones ================= */
 const PLANES=[
+ {id:'q400',name:'Bombardier Q400',tag:'Turbohélice regional',price:2000,cruise:78,max:105,min:38,turn:1.05,acc:22,perk:'Hélices potentes y despegues cortos: ideal para rutas de reparto.',
+  b:{len:16,rad:1.15,span:17,rc:2.3,tc:1.2,sw:.6,high:1,eng:'tp',n:2,ttail:1,body:0xf6f7f8,wing:0xe9edf0,acc:0xd7263d}},
+ {id:'learjet',name:'Learjet 75',tag:'Jet ejecutivo',price:3200,cruise:106,max:152,min:44,turn:1.45,acc:38,vip:.25,perk:'El ejecutivo más ágil: traslados médicos y VIP veloces. VIP paga 25 % más.',
+  b:{len:10.5,rad:.78,span:9.8,rc:2.3,tc:.8,sw:2.4,eng:'rear',n:2,ttail:1,winglet:1,body:0xf6f7f8,wing:0xe3e7ea,acc:0xc0392b}},
+ {id:'a220',name:'Airbus A220-300',tag:'Jet regional moderno',price:3600,cruise:100,max:140,min:46,turn:1.25,acc:30,perk:'130 pasajeros, silencioso y muy ágil para su tamaño.',
+  b:{len:16.5,rad:1.2,span:15,rc:3.3,tc:.9,sw:3.5,eng:'fan',n:2,winglet:1,body:0xf6f7f8,wing:0xdfe4e8,acc:0x0b3d91}},
+ {id:'b757',name:'Boeing 757-200',tag:'Avión de línea',price:7000,cruise:116,max:164,min:54,turn:1.1,acc:34,perk:'200 pasajeros y una potencia enorme para su tamaño.',
+  b:{len:21,rad:1.25,span:19,rc:4.2,tc:1.0,sw:4.6,eng:'fan',n:2,winglet:1,body:0xf6f7f8,wing:0xdfe4e8,acc:0x2e7d32}},
+ {id:'a350',name:'Airbus A350-900',tag:'Largo alcance',price:22000,cruise:138,max:190,min:60,turn:1.05,acc:30,bonus:.45,perk:'320 pasajeros con alas muy flexibles: cobras 45 % más.',
+  b:{len:24.5,rad:1.7,span:23.5,rc:4.8,tc:.9,sw:6.4,eng:'fan',n:2,rake:2.6,flex:.09,winglet:1,body:0xf6f7f8,wing:0xdfe4e8,acc:0x0d2b6b}},
+ {id:'a400',name:'Airbus A400M',tag:'Carguero moderno',price:24000,cruise:104,max:140,min:38,turn:1.0,acc:26,bonus:.5,perk:'Cuatro hélices y bodega enorme: cobras 50 % más.',
+  b:{len:22,rad:1.65,span:26,rc:4.2,tc:2.4,sw:.6,high:1,eng:'tp',n:4,ttail:1,cargo:1,body:0x7b8794,wing:0x7b8794,acc:0x3f4a55}},
+ {id:'typhoon',name:'Eurofighter Typhoon',tag:'Caza multipropósito',price:65000,cruise:215,max:320,min:88,turn:1.7,acc:80,perk:'Caza muy ágil, más económico que el F-22.',
+  b:{len:18,rad:.9,span:12.4,eng:'fgt',body:0x8a9099,wing:0x8a9099,acc:0xd7263d}},
  {id:'gorrion',name:'ATR 72',tag:'Turbohélice regional',price:0,cruise:70,max:95,min:38,turn:1.0,acc:16,perk:'70 pasajeros. Noble y fácil: perfecto para empezar.',
   b:{len:14,rad:1.05,span:14.5,rc:2.0,tc:1.1,sw:.5,high:1,eng:'tp',n:2,ttail:1,body:0xf6f7f8,wing:0xe9edf0,acc:0x1f6fb5}},
  {id:'pelicano',name:'Embraer E190',tag:'Jet regional',price:1500,cruise:85,max:120,min:42,turn:1.1,acc:22,perk:'100 pasajeros: tu primer jet de línea, muy ágil.',
@@ -320,6 +335,8 @@ const PLANES=[
 ];
 const PAINTS=[{n:'De fábrica',acc:null,name:'AEROALAS'},{n:'Pacífico Air',acc:0x0b7a75,name:'PACÍFICO'},{n:'Nórdica',acc:0xc0392b,name:'NÓRDICA'},{n:'Solaris',acc:0xf08a24,name:'SOLARIS'},
   {n:'Titán',acc:0x1d3f8f,name:'TITÁN'},{n:'Violeta',acc:0x6a1fa2,name:'VIOLETA'},{n:'Esmeralda',acc:0x1e8a4c,name:'ESMERALDA'},{n:'Ónix',acc:0x2a2f38,name:'ÓNIX'}];
+PLANES.sort((a,b)=>a.price-b.price);
+const ROLE={gorrion:'reg',q400:'reg',pelicano:'jet',a220:'jet',citation:'biz',learjet:'biz',g650:'biz',halcon:'air',b737:'air',b757:'air',albatros:'heavy',b777:'heavy',centella:'heavy',a350:'heavy',a380:'heavy',herc:'cargo',a400:'cargo',an225:'cargo',tormenta:'super',f22:'fgt',typhoon:'fgt'};
 const planeById=id=>PLANES.find(p=>p.id===id)||PLANES[0];
 const paintOf=id=>(save.paint&&save.paint[id])||0;
 
@@ -889,27 +906,44 @@ function beep(f1,f2,d,vol,type){if(!AC||!save.snd)return;try{const o=AC.createOs
 
 
 /* ================= Vuelos (misiones sin checkpoints) ================= */
-const REF=[62,100,150],PAY=[500,1400,3600],BONUS=[5,12,26],HINT=['Sirve cualquier avión.','Mejor con un A320 o superior.','Necesitas un 747 o el Concorde para llegar a tiempo.'];
-const KIND={pax:'Pasajeros',cargo:'Carga urgente',multi:'Vuelo con escalas',vip:'Taxi aéreo VIP'};
+const PAY=[500,1400,3600],BONUS=[5,12,26];
+const MT={pax:{kind:'Pasajeros',mul:1,slack:1.4,n:1},cargo:{kind:'Carga urgente',mul:1.25,slack:1.12,n:1},multi:{kind:'Vuelo con escalas',mul:1.15,slack:1.4,n:'m'},
+  vip:{kind:'Taxi aéreo VIP',mul:1.2,slack:1.6,n:1,soft:1},medevac:{kind:'Traslado médico',mul:1.55,slack:1.0,n:1,soft:1},milk:{kind:'Ruta de reparto',mul:1.25,slack:1.45,n:'k'},
+  intl:{kind:'Vuelo internacional',mul:1.35,slack:1.4,n:1,intl:1},longhaul:{kind:'Largo recorrido',mul:1.7,slack:1.4,n:1,intl:1},freight:{kind:'Flete pesado',mul:1.6,slack:1.5,n:2},
+  relief:{kind:'Ayuda humanitaria',mul:1.9,slack:1.5,n:1,intl:1},scramble:{kind:'Alerta de intercepción',mul:1.9,slack:.8,n:1,fast:1},patrol:{kind:'Patrulla aérea',mul:1.5,slack:.92,n:4,fast:1}};
+const ROLES={reg:{n:'Regional',t:['pax','milk','medevac']},jet:{n:'Jet regional',t:['pax','medevac','cargo','intl']},biz:{n:'Jet ejecutivo',t:['vip','medevac','cargo','intl']},
+  air:{n:'Avión de línea',t:['pax','multi','intl','cargo']},heavy:{n:'Largo alcance',t:['longhaul','pax','intl','multi']},cargo:{n:'Carguero',t:['freight','relief','cargo','multi']},
+  super:{n:'Supersónico',t:['vip','intl','pax','cargo']},fgt:{n:'Caza',t:['scramble','patrol']}};
+const roleOf=id=>ROLES[ROLE[id]||'air'];
+const roleLine=id=>{const r=roleOf(id);return r.n+' · Misiones: '+r.t.map(t=>MT[t].kind).join(', ');};
 const yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
-function genMission(type,stars,intl){
-  const s=stars-1,from=AP[Math.floor(Math.random()*AP.length)],stops=[];intl=intl&&type!=='multi';const n=type==='multi'?(stars>=3?3:2):1;let prev=from,len=0;
+function genMission(type,stars){
+  const mt=MT[type],s=stars-1,from=AP[Math.floor(Math.random()*AP.length)],stops=[],intl=!!mt.intl,n=mt.n==='m'?(stars>=3?3:2):mt.n==='k'?(stars>=3?4:3):mt.n;let prev=from,len=0,cnt=intl?1:n;
   if(intl){const ids=Object.keys(CITIES).filter(k=>k!==CITY.id),C=CITIES[ids[Math.floor(Math.random()*ids.length)]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=7000;}
   else for(let i=0;i<n;i++){let A;do{A=AP[Math.floor(Math.random()*AP.length)];}while(A===prev);stops.push(A);len+=Math.hypot(A.x-prev.x,A.z-prev.z);prev=A;}
-  const slack=type==='cargo'?1.12:type==='vip'?1.6:1.4,time=Math.ceil((len/REF[s]*slack+n*50)/5)*5,dest=stops[n-1],dn=dest.n+(intl?' ('+CITIES[dest.city].name+')':'');
-  const reward=Math.round(PAY[s]*(type==='cargo'?1.25:type==='vip'?1.1:type==='multi'?1.15:1)*(intl?1.35:1)*(.7+Math.min(len,4500)/9000)*rnd(.93,1.08)/10)*10;
-  let name,desc;
-  if(type==='pax'){name='Pasajeros a '+dn;desc='Lleva a los pasajeros de '+from.n+' a '+dest.n+'.';}
-  else if(type==='cargo'){name='Paquetes urgentes a '+dn;desc='Carga con poco margen de tiempo desde '+from.n+'. Paga más.';}
-  else if(type==='vip'){name='Cliente VIP a '+dn;desc='Sale de '+from.n+'. Sin prisa, pero un aterrizaje suave paga 50 % extra y uno brusco te quita 40 %.';}
-  else{name='Ruta '+[from].concat(stops).map(a=>a.id).join(' → ');desc='Sales de '+from.n+' y aterrizas en '+stops.map(a=>a.n).join(' y luego en ')+'.';}
-  if(intl)desc+=' Vuelo internacional: despega, sube a 600 m y el avión toma la ruta a '+CITIES[dest.city].name+'.';
-  return{type,stars,name,desc,from,stops,time,reward,intl:!!intl};
+  const ref=planeSpec.cruise*[.86,.9,.95][s],time=Math.ceil((len/ref*mt.slack+cnt*(mt.fast?25:50))/5)*5,dest=stops[stops.length-1],dn=dest.n+(intl?' ('+CITIES[dest.city].name+')':''),ids=[from].concat(stops).map(a=>a.id).join(' → ');
+  const reward=Math.round(PAY[s]*mt.mul*(.7+Math.min(len,4500)/9000)*rnd(.93,1.08)/10)*10;
+  const D={pax:['Pasajeros a '+dn,'Lleva a los pasajeros de '+from.n+' a '+dest.n+'.'],
+    cargo:['Paquetes urgentes a '+dn,'Carga con poco margen de tiempo desde '+from.n+'. Paga más.'],
+    vip:['Cliente VIP a '+dn,'Sale de '+from.n+'. Sin prisa, pero un aterrizaje suave paga 50 % extra y uno brusco te quita 40 %.'],
+    medevac:['Traslado médico a '+dn,'Un paciente espera en '+dest.n+'. Despega ya y aterriza con suavidad: un toque suave paga 50 % extra y uno brusco te quita 40 %.'],
+    milk:['Reparto '+ids,'Reparte correo y paquetes en '+stops.length+' aeropuertos cortos de '+CITY.name+'. Aterriza en cada uno, en el orden de la guía.'],
+    multi:['Ruta '+ids,'Sales de '+from.n+' y aterrizas en '+stops.map(a=>a.n).join(' y luego en ')+'.'],
+    intl:['Pasajeros a '+dn,'Vuelo internacional con pasajeros desde '+from.n+'.'],
+    longhaul:['Largo recorrido a '+dn,'Cruza el mundo con un avión de largo alcance. Paga mucho más que un vuelo normal.'],
+    freight:['Flete pesado '+ids,'Maquinaria y contenedores: entrega la carga en '+stops.length+' aeropuertos. Los cargueros cobran más.'],
+    relief:['Ayuda humanitaria a '+dn,'Lleva víveres y medicinas a '+dest.n+'. Es la misión mejor pagada para un carguero.'],
+    scramble:['Intercepción en '+dn,'Un avión sospechoso se acerca a '+dest.n+'. Llega a tiempo: solo un caza es lo bastante rápido.'],
+    patrol:['Patrulla '+ids,'Patrulla '+stops.length+' bases en poco tiempo, aterrizando en cada una para repostar.']}[type];
+  let desc=D[1];if(intl)desc+=' Despega, sube a 600 m y el avión toma la ruta a '+CITIES[dest.city].name+'.';
+  return{type,kind:mt.kind,stars,name:D[0],desc,from,stops,time,reward,intl};
 }
 let offers=[];
-function newOffers(){const t=['pax','cargo','multi','vip'].sort(()=>Math.random()-.5);offers=[genMission('pax',1),genMission('pax',1,true),genMission(t[1],2,Math.random()<.4),genMission(t[2]==='vip'||t[2]==='multi'?'cargo':t[2],3,Math.random()<.5)];}
-function refill(){const have=offers.map(o=>o.stars),st=!have.includes(1)?1:!have.includes(2)?2:!have.includes(3)?3:1+Math.floor(Math.random()*3),types=['pax','cargo','multi','vip'];
-  offers.push(genMission(types[Math.floor(Math.random()*4)],st,Math.random()<.4));offers.sort((a,b)=>a.stars-b.stars);}
+const shuf=a=>a.slice().sort(()=>Math.random()-.5);
+function newOffers(){const types=roleOf(save.sel).t,order=[];while(order.length<5)order.push(...shuf(types));
+  offers=[1,1,2,2,3].map((st,i)=>genMission(order[i],st));offers.sort((a,b)=>a.stars-b.stars);}
+function refill(){const have=offers.map(o=>o.stars),st=!have.includes(1)?1:!have.includes(2)?2:!have.includes(3)?3:1+Math.floor(Math.random()*3),types=roleOf(save.sel).t;
+  offers.push(genMission(types[Math.floor(Math.random()*types.length)],st));offers.sort((a,b)=>a.stars-b.stars);}
 
 /* ================= Estado de vuelo ================= */
 const P={pos:new T.Vector3(),yaw:0,pitch:0,roll:0,speed:0,boost:0,ground:true,touch:false,hint:false,q:1,thr:0};
@@ -935,9 +969,9 @@ function startFlight(m){
 }
 function finish(ok,reason){
   const m=mission.def;let res;
-  if(ok){const tb_=Math.round(mission.tLeft*BONUS[m.stars-1]/10)*10,q=mission.q,vip=m.type==='vip';
+  if(ok){const tb_=Math.round(mission.tLeft*BONUS[m.stars-1]/10)*10,q=mission.q,vip=!!MT[m.type].soft;
     const lb=Math.round(m.reward*(q===0?(vip?.5:.15):q===2?(vip?-.4:0):0)/10)*10,bon=(planeSpec.bonus||0)+(vip?(planeSpec.vip||0):0),cg=bon?Math.round((m.reward+tb_+lb)*bon/10)*10:0,tot=m.reward+tb_+lb+cg;
-    save.money+=tot;save.done++;res={ok:true,name:m.name,base:m.reward,time:tb_,land:lb,q,cargo:cg,total:tot};offers=offers.filter(o=>o!==m);if(offers.length<4)refill();
+    save.money+=tot;save.done++;res={ok:true,name:m.name,base:m.reward,time:tb_,land:lb,q,cargo:cg,total:tot};offers=offers.filter(o=>o!==m);while(offers.length<5)refill();
     beep(660,1320,.5,.14);state='win';endT=2.4;msg('¡Vuelo completado!  +'+fmt(tot),2.4);}
   else{const fee=reason==='crash'?Math.min(save.money,100*m.stars):0;save.money-=fee;res={ok:false,name:m.name,reason,fee};
     if(reason==='crash'){state='crash';endT=1.7;}else{state='win';endT=1.6;msg('Se acabó el tiempo',1.6);beep(300,120,.6,.12,'sawtooth');}}
@@ -1179,15 +1213,15 @@ function renderMenu(){
       else h+='<div class="result bad"><h3>'+(r.reason==='crash'?'Accidente':r.reason==='quit'?'Vuelo abandonado':'Se acabó el tiempo')+'</h3><dl><dt>'+esc(r.name)+'</dt><dd></dd>'+(r.fee?'<dt>Reparación del avión</dt><dd class="num">−'+fmt(r.fee)+'</dd>':'')+'</dl>'+(r.tip?'<p style="margin:6px 0 0">'+esc(r.tip)+'</p>':'')+'</div>';}
     const S=planeById(save.sel);
     h+='<div class="cities">'+Object.keys(CITIES).map(k=>'<button type="button" data-city="'+k+'"'+(k===CITY.id?' class="on"':'')+'>'+CITIES[k].name+'</button>').join('')+'</div>';
-    h+='<p style="margin:0;color:var(--dim)">Estás en <b style="color:var(--fg)">'+CITY.name+'</b> con el <b style="color:var(--fg)">'+S.name+'</b>. Elige un vuelo:</p>';
-    offers.forEach((m,i)=>{h+='<article class="card"><div class="card-top"><span class="kind">'+(m.intl?'Internacional · ':'')+KIND[m.type]+'</span>'+starsH(m.stars)+'</div><h3>'+esc(m.name)+'</h3><p>'+esc(m.desc)+' '+HINT[m.stars-1]+'</p>'+
+    h+='<p style="margin:0;color:var(--dim)">Estás en <b style="color:var(--fg)">'+CITY.name+'</b> con el <b style="color:var(--fg)">'+S.name+'</b> ('+roleOf(S.id).n+'). Estos vuelos son para tu tipo de avión:</p>';
+    offers.forEach((m,i)=>{h+='<article class="card"><div class="card-top"><span class="kind">'+m.kind+'</span>'+starsH(m.stars)+'</div><h3>'+esc(m.name)+'</h3><p>'+esc(m.desc)+'</p>'+
       '<div class="card-foot"><span class="pay num">'+fmt(m.reward)+'</span><span class="tm num">Tiempo '+tfmt(m.time)+'</span><button class="go" type="button" data-m="'+i+'">Volar</button></div></article>';});
     h+='<article class="card"><div class="card-top"><span class="kind">Sin reloj</span></div><h3>Vuelo libre</h3><p>Recorre '+CITY.name+' a tu ritmo: busca sus monumentos, atrapa estrellas de $50 y gana $150 la primera vez que aterrizas en cada aeropuerto.</p><div class="card-foot"><button class="go alt" type="button" data-m="free">Despegar</button></div></article>';
   }else{
     for(const p of PLANES){const own=save.owned.includes(p.id),sel=save.sel===p.id,can=save.money>=p.price;
       const bar=(l,v)=>'<span>'+l+'</span><div class="bar"><i style="width:'+Math.round(clamp(v,.06,1)*100)+'%"></i></div>';
       h+='<article class="card'+(previewId===p.id?' sel':'')+'" data-p="'+p.id+'"><div class="card-top"><span class="kind">'+p.tag+'</span>'+(sel?'<span class="stars">EN USO</span>':'')+'</div><h3>'+p.name+'</h3>'+
-        '<div class="bars">'+bar('Velocidad',p.max/340)+bar('Giro',p.turn/1.75)+bar('Paga extra',((p.bonus||0)+(p.vip||0))/1)+'</div><p class="perk">'+p.perk+'</p>'+(own&&previewId===p.id?'<div class="paints" aria-label="Pintura">'+PAINTS.map((q,i)=>'<button type="button" title="'+q.n+'" data-paint="'+i+'" class="'+(paintOf(p.id)===i?'on':'')+'" style="background:#'+((q.acc||p.b.acc)+0x1000000).toString(16).slice(1)+'"></button>').join('')+'</div>':'')+
+        '<div class="bars">'+bar('Velocidad',p.max/340)+bar('Giro',p.turn/1.75)+bar('Paga extra',((p.bonus||0)+(p.vip||0))/1)+'</div><p class="perk">'+p.perk+'</p><p class="roles">'+roleLine(p.id)+'</p>'+(own&&previewId===p.id?'<div class="paints" aria-label="Pintura">'+PAINTS.map((q,i)=>'<button type="button" title="'+q.n+'" data-paint="'+i+'" class="'+(paintOf(p.id)===i?'on':'')+'" style="background:#'+((q.acc||p.b.acc)+0x1000000).toString(16).slice(1)+'"></button>').join('')+'</div>':'')+
         '<div class="card-foot">'+(own?'<span class="tm">Ya es tuyo</span>':'<span class="pay num">'+fmt(p.price)+'</span>')+
         (sel?'<button class="go" type="button" disabled>En uso</button>':own?'<button class="go" type="button" data-use="'+p.id+'">Usar</button>':can?'<button class="go" type="button" data-buy="'+p.id+'">Comprar</button>':'<button class="go" type="button" disabled>Te faltan '+fmt(p.price-save.money)+'</button>')+'</div></article>';}
   }
@@ -1198,8 +1232,8 @@ $('list').addEventListener('click',e=>{
   if(b&&b.dataset.city){goCity(b.dataset.city);return;}
   if(b&&b.dataset.m!==undefined){startFlight(b.dataset.m==='free'?null:offers[+b.dataset.m]);return;}
   if(b&&b.dataset.paint!==undefined){const id=card.dataset.p;save.paint=save.paint||{};save.paint[id]=+b.dataset.paint;persist();setPlane(id);const y=$('list').scrollTop;renderMenu();$('list').scrollTop=y;return;}
-  if(b&&b.dataset.buy){const p=planeById(b.dataset.buy);if(save.money>=p.price&&!save.owned.includes(p.id)){save.money-=p.price;save.owned.push(p.id);save.sel=p.id;previewId=p.id;setPlane(p.id);persist();audioInit();beep(520,1040,.4,.12);renderMenu();}return;}
-  if(b&&b.dataset.use){save.sel=previewId=b.dataset.use;setPlane(save.sel);persist();renderMenu();return;}
+  if(b&&b.dataset.buy){const p=planeById(b.dataset.buy);if(save.money>=p.price&&!save.owned.includes(p.id)){save.money-=p.price;save.owned.push(p.id);save.sel=p.id;previewId=p.id;setPlane(p.id);newOffers();persist();audioInit();beep(520,1040,.4,.12);renderMenu();}return;}
+  if(b&&b.dataset.use){save.sel=previewId=b.dataset.use;setPlane(save.sel);newOffers();persist();renderMenu();return;}
   if(card){previewId=card.dataset.p;setPlane(previewId);const y=$('list').scrollTop;renderMenu();$('list').scrollTop=y;}
 });
 $('tabM').onclick=()=>{tab='mis';previewId=save.sel;setPlane(save.sel);renderMenu();$('list').scrollTop=0;};
@@ -1308,10 +1342,10 @@ applyGfx();applyPad();buildWorld(CITIES[save.city]?save.city:'ny');setPlane(save
   cloud=ref;cloudOk=true;
   if(d&&Array.isArray(d.owned)&&(worth(d)>worth(save)||(worth(d)===worth(save)&&(d.t||0)>(save.t||0)))){
     Object.assign(save,d);try{localStorage.setItem(KEY,JSON.stringify(save));}catch(e){}
-    if(state==='menu'){previewId=save.sel;setPlane(save.sel);applyGfx();applyPad();renderMenu();}
+    if(state==='menu'){previewId=save.sel;setPlane(save.sel);newOffers();applyGfx();applyPad();renderMenu();}
   }else cloudPush();
   saveLabel();
 }catch(e){}})();
-window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,terrainH,get AP(){return AP;},keys,tb,dp,get nb(){return BLD.length;},get city(){return CITY.id;},get plane(){return planeObj;},goCity,CITIES,gen:genMission};
+window.__alas={P,get state(){return state;},get mission(){return mission;},save,start:startFlight,offers:()=>offers,no:newOffers,setPlane,terrainH,get AP(){return AP;},keys,tb,dp,get nb(){return BLD.length;},get city(){return CITY.id;},get plane(){return planeObj;},goCity,CITIES,gen:genMission};
 })();
 </script>
