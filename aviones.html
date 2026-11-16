@@ -244,7 +244,7 @@ h1 small{display:block;font-style:normal;font-weight:600;font-size:13px;letter-s
 
 <section id="menu" aria-label="Hangar">
   <header class="m-head">
-    <h1><small>4 CIUDADES · 27 AVIONES</small>Alas del Mundo</h1>
+    <h1><small>7 CIUDADES · 32 AVIONES</small>Alas del Mundo</h1>
     <div class="wallet"><span>Tu dinero</span><b class="num" id="money">$0</b><span id="saveSt" style="color:var(--sea);margin-top:4px;letter-spacing:.06em"></span></div>
   </header>
   <nav class="tabs" role="tablist">
@@ -303,6 +303,16 @@ const PLANES=[
   b:{len:15,rad:1.0,span:33,eng:'wing',body:0x2d3138,acc:0x9aa3ab}},
  {id:'x90',name:'Aurora X-90',tag:'Hipersónico experimental',price:300000,cruise:380,max:620,min:120,turn:1.35,acc:150,perk:'Prototipo hipersónico: más de 2.200 km/h y postquemador azul.',
   b:{len:34,rad:.95,span:15,eng:'bb',body:0xe9edf2,wing:0xcfd6de,acc:0x39d0c8,glowc:0x7fe3ff}},
+ {id:'a321',name:'Airbus A321neo XLR',tag:'Avión de línea de largo alcance',price:6200,cruise:112,max:158,min:52,turn:1.15,acc:31,perk:'Fuselaje largo y mucho alcance: 220 pasajeros.',
+  b:{len:20.5,rad:1.35,span:16.5,rc:3.6,tc:1.0,sw:4.0,eng:'fan',n:2,winglet:1,body:0xf6f7f8,wing:0xdfe4e8,acc:0xe94f37}},
+ {id:'beluga',name:'Airbus Beluga XL',tag:'La ballena voladora',price:50000,cruise:118,max:160,min:52,turn:.9,acc:30,bonus:.9,perk:'Su enorme panza lleva alas enteras: cobras 90 % más.',
+  b:{len:26,rad:2.0,span:27,rc:4.8,tc:2.1,sw:.8,high:1,eng:'fan',n:2,ttail:1,cargo:1,beluga:1,winglet:1,body:0xe9eef3,wing:0xdfe4e8,acc:0x2a62b0}},
+ {id:'overture',name:'Boom Overture',tag:'Aerolínea supersónica del futuro',price:70000,cruise:205,max:330,min:82,turn:1.25,acc:70,bonus:.5,perk:'El sucesor del Concorde: cobras 50 % más a más de 1.100 km/h.',
+  b:{len:28,rad:.9,span:12.5,rc:15,tc:.6,sw:13.5,eng:'conc',n:4,delta:1,ogive:1,body:0xf2f5f8,wing:0xe3e8ee,acc:0x1fb6a8}},
+ {id:'rafale',name:'Dassault Rafale',tag:'Caza multipropósito',price:88000,cruise:235,max:345,min:92,turn:1.85,acc:90,perk:'Caza ágil y muy rápido con doble cola.',
+  b:{len:17.5,rad:.88,span:11,eng:'fgt',body:0x9aa3ad,wing:0x9aa3ad,acc:0x2f5fb5}},
+ {id:'af1',name:'Boeing VC-25',tag:'Avión presidencial',price:120000,cruise:160,max:225,min:70,turn:1.0,acc:40,vip:1.0,bonus:.3,perk:'El 747 más famoso del mundo: los vuelos VIP pagan el doble.',
+  b:{len:26,rad:1.9,span:23,rc:5.4,tc:1.2,sw:7.2,eng:'fan',n:4,hump:1,winglet:1,body:0xf4f6f8,wing:0xdfe4e8,acc:0x5aa0e6}},
  {id:'q400',name:'Bombardier Q400',tag:'Turbohélice regional',price:2000,cruise:78,max:105,min:38,turn:1.05,acc:22,perk:'Hélices potentes y despegues cortos: ideal para rutas de reparto.',
   b:{len:16,rad:1.15,span:17,rc:2.3,tc:1.2,sw:.6,high:1,eng:'tp',n:2,ttail:1,body:0xf6f7f8,wing:0xe9edf0,acc:0xd7263d}},
  {id:'learjet',name:'Learjet 75',tag:'Jet ejecutivo',price:3200,cruise:106,max:152,min:44,turn:1.45,acc:38,vip:.25,perk:'El ejecutivo más ágil: traslados médicos y VIP veloces. VIP paga 25 % más.',
@@ -349,7 +359,7 @@ const PLANES=[
 const PAINTS=[{n:'De fábrica',acc:null,name:'AEROALAS'},{n:'Pacífico Air',acc:0x0b7a75,name:'PACÍFICO'},{n:'Nórdica',acc:0xc0392b,name:'NÓRDICA'},{n:'Solaris',acc:0xf08a24,name:'SOLARIS'},
   {n:'Titán',acc:0x1d3f8f,name:'TITÁN'},{n:'Violeta',acc:0x6a1fa2,name:'VIOLETA'},{n:'Esmeralda',acc:0x1e8a4c,name:'ESMERALDA'},{n:'Ónix',acc:0x2a2f38,name:'ÓNIX'}];
 PLANES.sort((a,b)=>a.price-b.price);
-const ROLE={gorrion:'reg',q400:'reg',pelicano:'jet',a220:'jet',citation:'biz',learjet:'biz',g650:'biz',halcon:'air',b737:'air',b757:'air',albatros:'heavy',b777:'heavy',centella:'heavy',a350:'heavy',a380:'heavy',herc:'cargo',a400:'cargo',an225:'cargo',tormenta:'super',f22:'fgt',typhoon:'fgt',f35:'fgt',su57:'fgt',c17:'cargo',sr71:'recon',b2:'stealth',x90:'hyper'};
+const ROLE={gorrion:'reg',q400:'reg',pelicano:'jet',a220:'jet',citation:'biz',learjet:'biz',g650:'biz',halcon:'air',b737:'air',b757:'air',albatros:'heavy',b777:'heavy',centella:'heavy',a350:'heavy',a380:'heavy',herc:'cargo',a400:'cargo',an225:'cargo',tormenta:'super',f22:'fgt',typhoon:'fgt',f35:'fgt',su57:'fgt',a321:'air',beluga:'cargo',overture:'super',rafale:'fgt',af1:'biz',c17:'cargo',sr71:'recon',b2:'stealth',x90:'hyper'};
 const planeById=id=>PLANES.find(p=>p.id===id)||PLANES[0];
 const paintOf=id=>(save.paint&&save.paint[id])||0;
 
@@ -398,6 +408,9 @@ function polyD(x,z,p){let d=1e9;for(let i=1;i<p.length;i++)d=Math.min(d,segD(x,z
 const gauss=(x,z,cx,cz,r)=>Math.exp(-((x-cx)*(x-cx)+(z-cz)*(z-cz))/(r*r));
 const SEINE=[[-7700,1700],[-4200,900],[-2600,-200],[-1500,-500],[-600,300],[500,600],[1600,100],[2900,800],[4600,300],[7700,900]];
 const CREEK=[[2500,-1800],[2450,-900],[2900,-250],[3600,250]];
+const LONR=[[-7700,1100],[-4800,1500],[-3000,800],[-1700,250],[-500,-250],[500,100],[1500,650],[3000,1100],[4800,1700],[7700,1300]];
+const TOKR=[[-600,-4500],[0,-2500],[500,-800],[800,800],[1500,1800],[2500,2500]];
+const NILE=[[300,-7700],[200,-4000],[600,-1500],[300,1500],[500,4000],[300,7700]];
 let CITY=null,AP=[],STRIPS=[],HOME=null,worldG=null,mapImg=null,PAPI=null;
 const SOLIDS=[],cellMap=new Map(),reserved=new Set(),BLD=[],coins=[];
 const PAL=[0xb9a58c,0x9a6a52,0xa7a9ab,0xcfc8b8,0x8fb0cc,0x6f8aa3,0xa9bcc6,0xc9b08f,0xe9e2d0,0xd9c7a3].map(h=>new T.Color(h));
@@ -420,8 +433,9 @@ function bridge(x0,x1,z,deckY,towerH,color,w){const L=x1-x0,g=new T.Group(),mat=
   const cab=(xa,ya,xb,yb,sag)=>{const n=9;for(let k=0;k<n;k++){const t0=k/n,t1=(k+1)/n,f=t=>lerp(ya,yb,t)-sag*4*t*(1-t),ax=lerp(xa,xb,t0),bx=lerp(xa,xb,t1),ay=f(t0),by=f(t1),len=Math.hypot(bx-ax,by-ay);
       for(const s of[-1,1]){const c=add(new T.BoxGeometry(len,.9,.9),mat,(ax+bx)/2,(ay+by)/2,z+s*(w/2+1));c.rotation.z=Math.atan2(by-ay,bx-ax);c.castShadow=false;}}};
   cab(tx[0],towerH-3,tx[1],towerH-3,towerH-deckY-8);cab(x0,deckY+2,tx[0],towerH-3,6);cab(tx[1],towerH-3,x1,deckY+2,6);
-  worldG.add(g);}
-
+  worldG.add(g);return g;}
+function bridgeZ(X,z0,z1,deckY,towerH,color,w){const n=SOLIDS.length,g=bridge(z0,z1,-X,deckY,towerH,color,w);g.rotation.y=-PI/2;   // puente que cruza un río de este a oeste
+  for(let i=n;i<SOLIDS.length;i++){const q=SOLIDS[i];SOLIDS[i]={x0:-q.z1,x1:-q.z0,z0:q.x0,z1:q.x1,y0:q.y0,y1:q.y1};}}
 function lowBridge(x,z,ang,len,color){const m=put(new T.BoxGeometry(len,5,18),color,x,GY+4.5,z);m.rotation.y=ang;for(const s of[-1,1]){const p=put(new T.BoxGeometry(8,12,20),color,x+Math.cos(ang)*s*len*.2,GY,z-Math.sin(ang)*s*len*.2);p.rotation.y=ang;}}
 
 const CITIES={
@@ -531,6 +545,73 @@ const CITIES={
       SOLIDS.push({x0:X-118,x1:X+118,z0:Z-97,z1:Z+97,y0:0,y1:GY+26});}
     bridge(1880,3960,-1300,48,150,0xd8dde2,24);
   }},
+ london:{name:'Londres',fog:0xc3cbd2,ts:{wall:0xe8e4dc,roof:0xf2f2f2,glass:0x3a5a78},ground:[.66,.69,.62],pal:[0,1,1,2,3,0,1],trees:['leafy','leafy'],
+  ap:[{id:'LHR',n:'Heathrow',x:-4300,z:-1500,r:820,rw:[{a:.02,len:960},{a:.02,len:900,ox:540}]},
+      {id:'LCY',n:'London City',x:3300,z:-300,r:420,rw:[{a:.05,len:520}]},
+      {id:'LGW',n:'Gatwick',x:-1500,z:4300,r:600,rw:[{a:.2,len:780}]},
+      {id:'STN',n:'Stansted',x:2800,z:-4300,r:620,rw:[{a:.1,len:800}]}],
+  parks:[{x0:-1500,x1:-900,z0:-1100,z1:-620},{x0:-150,x1:250,z0:-1750,z1:-1250},{x0:-3400,x1:-2800,z0:1800,z1:2300}],
+  land(x,z,nz){return polyD(x,z,LONR)-120+nz*30;},
+  hills(x,z){return 90*fbm(x*.0014+11,z*.0014)*sstep(4200,6500,Math.hypot(x,z));},
+  height(cx,cz,r,r2){const c1=gauss(cx,cz,1700,300,480),c2=gauss(cx,cz,3700,1050,340),d=Math.hypot(cx,cz);
+    if(c1>.3)return 60+Math.pow(r2,1.4)*190*c1;if(c2>.3)return 70+Math.pow(r2,1.3)*210*c2;
+    if(d>5200)return r>.2?0:9+r2*9;if(d>3300)return r>.55?0:12+r2*14;return r>.92?0:20+r2*18;},
+  coins:[[-715,-315,150],[-640,20,80],[1265,105,330],[1850,-60,200],[1000,-300,120],[2200,860,70],[0,-1500,90],[3700,1050,260],[-4300,-1500,70]],
+  build(){
+    let q=lm(-7,-5,[[22,22,52],[17,17,40],[13,13,18]],9);topper(new T.ConeGeometry(11,24,4).rotateY(PI/4),0x7d8a96,q[0],q[1]+12,q[2]);   // torre del reloj
+    put(new T.BoxGeometry(84,18,24),0xd9c9a3,-830,GY+9,-345);SOLIDS.push({x0:-872,x1:-788,z0:-357,z1:-333,y0:0,y1:GY+20});
+    {const X=-640,Z=20,g=new T.Group(),m=lamb(0xf2f4f6);const ring=new T.Mesh(new T.TorusGeometry(40,1.1,6,44),m);ring.position.y=46;g.add(ring);
+      for(let k=0;k<16;k++){const a=k/16*PI*2,sp=new T.Mesh(new T.BoxGeometry(.3,.3,80),m);sp.position.y=46;sp.rotation.x=0;sp.rotation.z=a;const sp2=new T.Mesh(new T.CylinderGeometry(.25,.25,80,4),m);sp2.position.y=46;sp2.rotation.z=a;g.add(sp2);
+        const cap=new T.Mesh(new T.SphereGeometry(2.1,8,6),lamb(0xdde6ee));cap.position.set(Math.sin(a)*40,46+Math.cos(a)*40,3);g.add(cap);}
+      const leg=new T.Mesh(new T.BoxGeometry(2.2,48,2.2),m);leg.position.set(-9,22,-6);leg.rotation.z=.4;g.add(leg);const leg2=leg.clone();leg2.position.x=9;leg2.rotation.z=-.4;g.add(leg2);
+      g.traverse(o=>{if(o.isMesh)o.castShadow=true;});g.position.set(X,GY,Z);g.rotation.y=.4;worldG.add(g);SOLIDS.push({x0:X-30,x1:X+30,z0:Z-10,z1:Z+10,y0:0,y1:92});}   // la noria
+    q=lm(11,1,[[30,30,120],[22,22,110],[14,14,80]],4);topper(new T.ConeGeometry(7,70,4).rotateY(PI/4),0xc9d6e0,q[0],q[1]+35,q[2]);   // la Shard
+    reserved.add('16,-1');{const pts=[[0,0],[14,0],[19,40],[21,95],[17,150],[9,180],[0,196]].map(a=>new T.Vector2(a[0],a[1])),gk=put(new T.LatheGeometry(pts,18),new T.MeshStandardMaterial({color:0x8fb8c9,metalness:.6,roughness:.2}),1815,GY,-35);SOLIDS.push({x0:1795,x1:1835,z0:-55,z1:-15,y0:0,y1:GY+196});}   // el pepinillo
+    reserved.add('9,-5');{const X=1045,Z=-315,st=0xe9e6dc;put(new T.BoxGeometry(70,34,40),st,X,GY+17,Z);put(new T.CylinderGeometry(15,15,16,20),st,X,GY+42,Z);put(new T.SphereGeometry(16,18,12,0,PI*2,0,PI/2),0xb9c0c6,X,GY+50,Z);put(new T.CylinderGeometry(.6,.6,14,5),0xdddddd,X,GY+72,Z);SOLIDS.push({x0:X-36,x1:X+36,z0:Z-22,z1:Z+22,y0:0,y1:GY+60});}   // catedral de San Pablo
+    bridgeZ(2200,640,1100,36,70,0x6f86a6,22);
+    lowBridge(-1000,-50,.4,300,0xb9c0c6);lowBridge(-300,-100,.35,300,0x9aa7b4);lowBridge(900,330,.5,320,0xb9c0c6);lowBridge(3100,1150,.55,360,0x9aa7b4);
+  }},
+ tokyo:{name:'Tokio',fog:0xcfd9e2,ts:{wall:0xe9edf1,roof:0xf7f8f9,glass:0x2f5878,curved:1},ground:[.7,.7,.69],pal:[2,3,5,6,2,8,4],trees:['pine','leafy'],patchT:.84,patch:(x,z)=>Math.abs(x)>3000||Math.abs(z)>4500,
+  ap:[{id:'HND',n:'Haneda',x:2100,z:1800,r:780,rw:[{a:.12,len:960},{a:1.7,len:760,oz:-220}]},
+      {id:'NRT',n:'Narita',x:-4300,z:-2600,r:820,rw:[{a:.1,len:960},{a:.1,len:900,ox:540}]},
+      {id:'CHO',n:'Chofu',x:-1400,z:3800,r:420,rw:[{a:.25,len:520}]}],
+  parks:[{x0:-500,x1:-100,z0:-1700,z1:-1200},{x0:200,x1:620,z0:-320,z1:100},{x0:900,x1:1200,z0:-1500,z1:-1100}],
+  land(x,z,nz){const sh=3600-2300*Math.exp(-Math.pow((z-800)/1700,2))+nz*120;return Math.min(sh-x,polyD(x,z,TOKR)-80+nz*20);},
+  hills(x,z){return 1150*gauss(x,z,-6300,3300,1250)+120*fbm(x*.0016+2,z*.0016)*sstep(-2500,-5000,x);},
+  height(cx,cz,r,r2){const sj=gauss(cx,cz,-700,-300,430),mr=gauss(cx,cz,700,200,380),d=Math.hypot(cx,cz);
+    if(sj>.3)return 60+Math.pow(r2,1.3)*220*sj;if(mr>.3)return 55+Math.pow(r2,1.3)*180*mr;
+    if(d>6000)return r>.35?0:9+r2*10;if(d>3800)return r>.5?0:20+r2*40;return r>.96?0:28+r2*r2*60;},
+  coins:[[400,-200,350],[1200,-1500,420],[-6300,3300,1180],[-6300,3300,900],[593,-300,50],[707,300,60],[-700,-300,260],[700,200,220],[1000,-900,90],[2100,1800,70],[-3300,3300,700]],
+  build(){
+    {const X=400,Z=-200,g=new T.Group(),mR=lamb(0xe8542b),mW=lamb(0xf4f4f0);   // Torre de Tokio
+      const leg=(y0,y1,r0,r1,w,m)=>{for(const sx of[-1,1])for(const sz of[-1,1]){const a=new T.Vector3(sx*r0,y0,sz*r0),b=new T.Vector3(sx*r1,y1,sz*r1),o=new T.Mesh(new T.CylinderGeometry(w*.7,w,a.distanceTo(b),5),m);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),b.clone().sub(a).normalize());o.castShadow=true;g.add(o);}};
+      leg(0,95,36,16,3.4,mR);leg(95,190,16,7,2.6,mW);leg(190,300,7,2,1.8,mR);
+      for(const pl of[[95,34,6],[190,16,5]]){const o=new T.Mesh(new T.BoxGeometry(pl[1],pl[2],pl[1]),mR);o.position.y=pl[0];o.castShadow=true;g.add(o);}
+      const an=new T.Mesh(new T.CylinderGeometry(.5,2,70,6),mW);an.position.y=330;g.add(an);g.position.set(X,GY,Z);worldG.add(g);SOLIDS.push({x0:X-20,x1:X+20,z0:Z-20,z1:Z+20,y0:0,y1:GY+365});}
+    {const X=1200,Z=-1500,w=lamb(0xe9edf2);put(new T.CylinderGeometry(5,11,250,14),w,X,GY+125,Z);put(new T.CylinderGeometry(16,16,10,18),w,X,GY+230,Z);put(new T.CylinderGeometry(11,11,9,16),w,X,GY+300,Z);   // Skytree
+      put(new T.CylinderGeometry(.6,3,110,6),w,X,GY+365,Z);SOLIDS.push({x0:X-12,x1:X+12,z0:Z-12,z1:Z+12,y0:0,y1:GY+420});}
+    {const X=1000,Z=-900,wd=0xb04a2e;for(let k=0;k<5;k++){const bw=26-k*3.4;put(new T.BoxGeometry(bw,7,bw),0xefe3c9,X,GY+4+k*10,Z);const rf=put(new T.ConeGeometry(bw*.85,5,4).rotateY(PI/4),wd,X,GY+9+k*10,Z);}put(new T.CylinderGeometry(.4,.4,10,5),0xd9b34a,X,GY+60,Z);SOLIDS.push({x0:X-14,x1:X+14,z0:Z-14,z1:Z+14,y0:0,y1:GY+66});}   // pagoda
+    bridge(500,920,300,60,110,0xf0f4f8,22);
+    lowBridge(593,-300,0,300,0xd8dde2);lowBridge(560,-1100,.1,300,0xd8dde2);lowBridge(1250,1450,.9,330,0xd8dde2);
+  }},
+ cairo:{name:'El Cairo',fog:0xe6dcc7,grass:0xc9b27a,ts:{wall:0xe9dbb8,roof:0xd9c089,glass:0x4f7a8e,curved:1},ground:[.84,.76,.6],hillCol:[.8,.68,.46],pal:[8,9,9,3,8],trees:['palm','palm'],patchT:.8,
+  ap:[{id:'CAI',n:'El Cairo Internacional',x:3300,z:-2600,r:800,rw:[{a:.15,len:960},{a:.15,len:860,ox:540}]},
+      {id:'SPX',n:'Sphinx',x:-2800,z:2800,r:520,rw:[{a:.7,len:700}]},
+      {id:'ALM',n:'Almaza',x:1800,z:3000,r:420,rw:[{a:1.2,len:520}]}],
+  parks:[{x0:700,x1:1000,z0:300,z1:600}],
+  land(x,z,nz){return Math.max(polyD(x,z,NILE)-140+nz*30,70-Math.hypot(x-489,(z+400)/3.4));},
+  hills(x,z){return 70*gauss(x,z,-4200,-800,1500)+40*fbm(x*.002+5,z*.002)*sstep(1500,3500,Math.abs(x));},
+  height(cx,cz,r,r2){const nl=Math.exp(-Math.pow(polyD(cx,cz,NILE)/1000,2)),c=gauss(cx,cz,700,-100,550);
+    if(c>.35)return 50+Math.pow(r2,1.4)*130*c;if(cx<-3000||cx>4200||Math.abs(cz)>5200)return r>.15?0:7+r2*6;return r>(.45+.5*(1-nl))?0:12+r2*28*nl;},
+  coins:[[-4200,-800,200],[-3850,-1100,190],[-3550,-1400,130],[-4050,-450,50],[489,-400,260],[900,-800,150],[600,-1500,60],[300,1500,60],[3300,-2600,70],[-2800,2800,70]],
+  build(){
+    const py=(X,Z,bs,h)=>{const y=Math.max(GY,terrainH(X,Z));const m=put(new T.ConeGeometry(bs/Math.SQRT2,h,4).rotateY(PI/4),0xdcc590,X,y+h/2-6,Z);SOLIDS.push({x0:X-bs/2,x1:X+bs/2,z0:Z-bs/2,z1:Z+bs/2,y0:0,y1:y+h-8});};
+    py(-4200,-800,230,139);py(-3850,-1100,215,136);py(-3550,-1400,104,66);
+    {const X=-4050,Z=-450,y=Math.max(GY,terrainH(X,Z)),c=0xd2b77c;put(new T.BoxGeometry(74,20,24),c,X,y+8,Z);put(new T.SphereGeometry(13,12,10),c,X-44,y+20,Z).scale.set(1,1.2,1);put(new T.BoxGeometry(24,10,30),c,X-46,y+6,Z);SOLIDS.push({x0:X-62,x1:X+38,z0:Z-16,z1:Z+16,y0:0,y1:y+30});}   // la Esfinge
+    {const X=489,Z=-400,m=lamb(0xd9d4c6);put(new T.CylinderGeometry(5,11,150,14),m,X,GY+75,Z);put(new T.CylinderGeometry(15,10,16,16),m,X,GY+158,Z);put(new T.ConeGeometry(8,24,12),0xcfd6dc,X,GY+178,Z);SOLIDS.push({x0:X-14,x1:X+14,z0:Z-14,z1:Z+14,y0:0,y1:GY+190});}   // Torre de El Cairo
+    {const X=900,Z=-800,s2=0xe3d6b2;put(new T.BoxGeometry(70,24,58),s2,X,GY+12,Z);put(new T.SphereGeometry(20,16,10,0,PI*2,0,PI/2),0xa9b7bf,X,GY+24,Z);for(const dx of[-42,42]){put(new T.CylinderGeometry(3,3.6,64,10),s2,X+dx,GY+32,Z-20);put(new T.ConeGeometry(4,10,10),0x9aa7ae,X+dx,GY+69,Z-20);}SOLIDS.push({x0:X-46,x1:X+46,z0:Z-34,z1:Z+30,y0:0,y1:GY+40});}   // mezquita de la ciudadela
+    bridge(380,820,-1500,40,95,0x9aa7b4,18);bridge(100,520,1500,40,95,0xb8a37d,18);lowBridge(400,500,.1,320,0xc9bba0);
+  }},
 };
 for(const id in CITIES){const C=CITIES[id];C.id=id;for(const A of C.ap){const m=A.rw[0],ux=Math.cos(m.a),uz=Math.sin(m.a);A.city=id;A.ux=ux;A.uz=uz;A.nx=uz;A.nz=-ux;A.strips=[];
   A.rw.forEach((r,i)=>{const cx=A.x+A.nx*(r.ox||0)+ux*(r.oz||0),cz=A.z+A.nz*(r.ox||0)+uz*(r.oz||0);
@@ -573,6 +654,7 @@ function buildWorld(id){
       if(isPatch(x,z)){r=.42;gg=.62;b=.36;}
       const hk=sstep(4,40,hl);gr[i]=1-Math.max(hk,isPatch(x,z)?.8:0);r=lerp(r,HC[0],hk);gg=lerp(gg,HC[1],hk);b=lerp(b,HC[2],hk);
       const rk=sstep(260,420,hl)*.75;r=lerp(r,.5,rk);gg=lerp(gg,.48,rk);b=lerp(b,.45,rk);
+      const sn=sstep(760,980,hl)*.95;r=lerp(r,.96,sn);gg=lerp(gg,.97,sn);b=lerp(b,.99,sn);
       const sh=1-sstep(8,45,d);r=lerp(r,.88,sh);gg=lerp(gg,.81,sh);b=lerp(b,.62,sh);
       col[i*3]=r+v;col[i*3+1]=gg+v;col[i*3+2]=b+v;}
     g.setAttribute('color',new T.BufferAttribute(col,3));g.setAttribute('grid',new T.BufferAttribute(gr,1));g.computeVertexNormals();
@@ -793,6 +875,7 @@ function buildPlane(spec){
   for(let i=0;i<fp.count;i++){const t=(fp.getZ(i)+L/2)/L;fp.setXYZ(i,fp.getX(i),fp.getY(i)*SH.sy+fy(t),fp.getZ(i));}
   fg.computeVertexNormals();add(fg,mBody);
   if(b.hump){const h=add(new T.SphereGeometry(1,24,16),mPaint,0,R*.58,zt(.215));h.scale.set(R*.78,R*.66,L*.2);}
+  if(b.beluga){const h=add(new T.SphereGeometry(1,30,20),mPaint,0,R*.78,zt(.3));h.scale.set(R*1.1,R*1.05,L*.34);}
   // parabrisas en relieve, sondas y antenas
   {const tt0=conc?.062:.05,py=pr(tt0)*R*SH.sy+fy(tt0)-R*(conc?.14:.2),gl=add(new T.SphereGeometry(1,16,10),mGlassD,0,py,zt(tt0)+L*.012);gl.scale.set(R*.52,R*.2,L*.032);gl.rotation.x=-.5;
     for(const sx of[-1,1])add(new T.CylinderGeometry(.03,.03,.9,5).rotateX(PI/2),mGrey,sx*R*.5,pr(.02)*R*.2+fy(.02),zt(.012)-.2);
@@ -990,8 +1073,11 @@ function beep(f1,f2,d,vol,type){if(!AC||!save.snd)return;try{const o=AC.createOs
 
 /* ================= Vuelos (misiones sin checkpoints) ================= */
 const CRS=5;   // metros de juego por cada kilómetro real de un trayecto entre ciudades
-const DK={ny:{paris:5837,dubai:11022,rio:7760},paris:{ny:5837,dubai:5240,rio:9150},dubai:{ny:11022,paris:5240,rio:12100},rio:{ny:7760,paris:9150,dubai:12100}};
-const BRG={'ny>paris':51,'ny>dubai':56,'ny>rio':150,'paris>dubai':128,'paris>rio':235,'dubai>rio':240};
+const PAIRS=[['ny','paris',5837,51],['ny','dubai',11022,56],['ny','rio',7760,150],['paris','dubai',5240,128],['paris','rio',9150,235],['dubai','rio',12100,240],
+  ['ny','london',5570,51],['ny','tokyo',10850,332],['ny','cairo',9030,50],['paris','london',345,330],['paris','tokyo',9720,35],['paris','cairo',3210,130],['dubai','london',5500,316],['dubai','tokyo',7970,77],['dubai','cairo',2400,287],
+  ['rio','london',9300,40],['rio','tokyo',18500,10],['rio','cairo',10200,55],['london','tokyo',9560,31],['london','cairo',3510,125],['tokyo','cairo',9570,315]];
+const DK={},BRG={};for(const q of PAIRS){(DK[q[0]]=DK[q[0]]||{})[q[1]]=q[2];(DK[q[1]]=DK[q[1]]||{})[q[0]]=q[2];BRG[q[0]+'>'+q[1]]=q[3];}
+const gm=(a,b)=>Math.min(DK[a][b],13000)*CRS;   // metros de juego de un trayecto (los más largos se acortan)
 const bearing=(a,b)=>BRG[a+'>'+b]!==undefined?BRG[a+'>'+b]:(BRG[b+'>'+a]+180)%360;
 const PAY=[500,1400,3600],BONUS=[5,12,26];
 const MT={pax:{kind:'Pasajeros',mul:1,slack:1.4,n:1},cargo:{kind:'Carga urgente',mul:1.25,slack:1.12,n:1},multi:{kind:'Vuelo con escalas',mul:1.15,slack:1.4,n:'m'},
@@ -1010,7 +1096,7 @@ function genMission(type,stars){
   if(mt.world){const oth=shuf(Object.keys(CITIES).filter(k=>k!==CITY.id));for(let i=0;i<n-1;i++){const C=CITIES[oth[i]];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);}stops.push(from);len=n*5000;}
   else if(intl){const role=ROLE[save.sel]||'air',ids=Object.keys(CITIES).filter(k=>k!==CITY.id).sort((a,b)=>DK[CITY.id][b]-DK[CITY.id][a]);
     const k=role==='reg'?ids[ids.length-1]:(type==='trans'||type==='longhaul'||type==='strategic')?ids[Math.random()<.65?0:Math.min(1,ids.length-1)]:ids[Math.floor(Math.random()*ids.length)];
-    const C=CITIES[k];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=DK[CITY.id][k]*CRS+4000;}
+    const C=CITIES[k];stops.push(C.ap[Math.floor(Math.random()*C.ap.length)]);len=gm(CITY.id,k)+4000;}
   else for(let i=0;i<n;i++){let A,tr=0;do{A=AP[Math.floor(Math.random()*AP.length)];tr++;}while((A===prev||(tr<25&&stops.slice(-2).includes(A)))&&tr<60);stops.push(A);len+=Math.hypot(A.x-prev.x,A.z-prev.z);prev=A;}
   const ref=planeSpec.cruise*[.86,.9,.95][s],time=Math.ceil((len/ref*mt.slack+cnt*(mt.fast?25:50))/5)*5,dest=stops[stops.length-1],dn=dest.n+(intl?' ('+CITIES[dest.city].name+')':''),ids=[from].concat(stops).map(a=>a.id).join(' → ');
   const reward=Math.round(PAY[s]*mt.mul*(.7+Math.min(len,4500)/9000)*(mt.long?Math.pow(cnt,.85):1)*(intl?.7+len/30000:1)*rnd(.93,1.08)/10)*10;
@@ -1031,7 +1117,7 @@ function genMission(type,stars){
     grand:['Gran ruta '+ids,'Un recorrido larguísimo: '+stops.length+' aterrizajes seguidos por '+CITY.name+'. Cobras una parte en cada aterrizaje y el resto al final.'],
     world:['Vuelta al mundo','Sales de '+from.n+' ('+CITY.name+'), visitas '+stops.slice(0,-1).map(a=>CITIES[a.city].name).join(', ')+' y regresas. Cobras una parte en cada aterrizaje y el resto al volver.'],
     patrol:['Patrulla '+ids,'Patrulla '+stops.length+' bases en poco tiempo, aterrizando en cada una para repostar.']}[type];
-  let desc=D[1];if(intl&&!mt.world){const km=DK[CITY.id][dest.city];desc+=' Vuelo real de '+km.toLocaleString('es')+' km: unos '+Math.max(1,Math.round(km*CRS/(planeSpec.cruise*.85)/60))+' minutos con tu avión. Despega, sube a 600 m y sigue el rumbo; usa el piloto automático (T) en el crucero.';}
+  let desc=D[1];if(intl&&!mt.world){const km=DK[CITY.id][dest.city];desc+=' Vuelo real de '+km.toLocaleString('es')+' km: unos '+Math.max(1,Math.round(gm(CITY.id,dest.city)/(planeSpec.cruise*.85)/60))+' minutos con tu avión. Despega, sube a 600 m y sigue el rumbo; usa el piloto automático (T) en el crucero.';}
   return{type,kind:mt.kind,stars,name:D[0],desc,from,stops,time,reward,intl,long:!!mt.long};
 }
 let offers=[];
@@ -1108,7 +1194,7 @@ function landed(s){
   }else{msg(nw?'Aeropuerto nuevo: '+s.name+'  +$150':lab+' en '+s.name,2.8);if(nw)beep(660,990,.3,.12);}
 }
 function showTrip(t){const e=$('trip');e.textContent=t;e.hidden=false;}
-function startCruise(){const to=dest().city,km=DK[CITY.id][to];mission.cr={rem:km*CRS,yawT:-bearing(CITY.id,to)*PI/180,km};
+function startCruise(){const to=dest().city,km=DK[CITY.id][to],tot=gm(CITY.id,to);mission.cr={rem:tot,tot,yawT:-bearing(CITY.id,to)*PI/180,km};
   msg('Rumbo a '+CITIES[to].name+': '+km.toLocaleString('es')+' km. Pulsa T para el piloto automático',4.5);updObjective();}
 function travel(){   // llegas a la otra ciudad ya enfilado hacia el aeropuerto de destino
   mission.cr=null;const A=dest();state='trip';engSet(false,0,false);showTrip('En ruta a '+CITIES[A.city].name+'…');
@@ -1261,7 +1347,7 @@ function guideUpdate(dt,cur){
   if(!mission||state!=='fly'){el.hidden=true;return;}
   const d=dest(),far=d.city!==CITY.id;let ang=0,line1,line2,pitch=0,yawT=P.yaw;
   if(far&&mission.cr){const cr=mission.cr;let dd=cr.yawT-P.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));ang=-dd;line1='Hacia '+CITIES[d.city].name;
-    const km=Math.max(0,Math.round(cr.rem/CRS)),eta=cr.rem/Math.max(P.speed,35);
+    const km=Math.max(0,Math.round(cr.rem/cr.tot*cr.km)),eta=cr.rem/Math.max(P.speed,35);
     const turn=Math.abs(ang)<.12?'Rumbo correcto':Math.abs(ang)>2.4?'Da la vuelta':ang>0?'Gira a la derecha':'Gira a la izquierda';
     line2=km.toLocaleString('es')+' km · '+Math.floor(eta/60)+':'+String(Math.floor(eta%60)).padStart(2,'0')+' · '+turn;}
   else if(far){line1='Hacia '+CITIES[d.city].name+(mission.def.stops.length>1?' ('+(mission.leg+1)+'/'+mission.def.stops.length+')':'');const need=600-P.pos.y;
