@@ -1,0 +1,650 @@
+<title>ATLAS Asistente</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: consola de mando — barra de estado arriba, bandeja a la izquierda, panel de respuesta a la derecha; una columna en móvil. Un solo look (holograma sobre azul profundo). */
+:root {
+  color-scheme: dark;
+  --bg: #07111c;
+  --panel: #0c1b2b;
+  --panel-2: #10243a;
+  --line: #1d3a57;
+  --fg: #d7e7f5;
+  --muted: #7f9bb5;
+  --cyan: #4fd1ff;
+  --cyan-dim: rgba(79, 209, 255, .14);
+  --amber: #ffb547;
+  --ok: #4ade9a;
+  --bad: #ff6b6b;
+  --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(1200px 500px at 70% -10%, rgba(79,209,255,.10), transparent 60%),
+    linear-gradient(rgba(79,209,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,209,255,.035) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+  color: var(--fg);
+  font: 15px/1.5 var(--f-body);
+}
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* cabecera */
+header.top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.core { width: 64px; height: 64px; flex: none; position: relative; }
+.core svg { width: 100%; height: 100%; }
+.core .spin { transform-origin: 50% 50%; animation: spin 14s linear infinite; }
+.core.busy .spin { animation-duration: 2.2s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .core .spin { animation: none; } }
+.ident { min-width: 0; flex: 1; }
+.ident h1 { font: 700 26px/1.1 var(--f-display); letter-spacing: .18em; margin: 0; color: var(--cyan); }
+.ident p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+#greeting { color: var(--fg); }
+.status { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { font: 500 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 7px 10px; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.chip.on i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.chip.warn i { background: var(--amber); }
+.chip.off i { background: var(--bad); }
+
+/* pestañas */
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+nav.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; font: 600 13px/1 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+/* comando */
+.cmd { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.cmd input { flex: 1 1 260px; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 11px 14px; }
+.cmd input::placeholder, textarea::placeholder { color: var(--muted); }
+
+.btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn:hover:not(:disabled) { border-color: var(--cyan); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--cyan); color: #04121d; border-color: var(--cyan); font-weight: 600; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.1); }
+.btn.warn { border-color: var(--amber); color: var(--amber); }
+.btn.danger { background: var(--amber); color: #1c1100; border-color: var(--amber); font-weight: 600; }
+.btn.icon { padding: 9px 11px; }
+.btn.mic.listening { border-color: var(--bad); color: var(--bad); box-shadow: 0 0 0 3px rgba(255,107,107,.15); }
+
+/* rejilla principal */
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.panel-h h2 { margin: 0; font: 600 13px/1 var(--f-display); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.panel-b { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { background: none; border: 1px solid var(--line); border-radius: 3px; padding: 5px 9px; font: 500 12px/1 var(--f-mono); color: var(--muted); }
+.filters button[aria-pressed="true"] { color: var(--cyan); border-color: var(--cyan); background: var(--cyan-dim); }
+
+ul.inbox { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
+ul.inbox li button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 14px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 10px; }
+ul.inbox li button:hover { background: var(--panel-2); }
+ul.inbox li button[aria-current="true"] { background: var(--cyan-dim); box-shadow: inset 3px 0 0 var(--cyan); }
+.from { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unread .from::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); margin-right: 7px; vertical-align: 1px; }
+.when { font: 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.subj { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.snip { grid-column: 1 / -1; color: var(--muted); font-size: 13px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tag { grid-column: 1 / -1; justify-self: start; font: 500 10.5px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 4px 6px; border-radius: 2px; margin-top: 4px; }
+.tag.reply { background: rgba(255,181,71,.15); color: var(--amber); }
+.tag.info { background: var(--cyan-dim); color: var(--cyan); }
+.tag.skip { background: rgba(127,155,181,.12); color: var(--muted); }
+
+.empty { padding: 26px 16px; color: var(--muted); text-align: center; font-size: 14px; }
+.notice { border: 1px solid var(--line); border-left: 3px solid var(--amber); background: rgba(255,181,71,.06); padding: 10px 12px; border-radius: 4px; font-size: 14px; }
+.notice.ok { border-left-color: var(--ok); background: rgba(74,222,154,.06); }
+.notice.bad { border-left-color: var(--bad); background: rgba(255,107,107,.06); }
+.notice a { color: var(--cyan); }
+
+.thread { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; }
+.msg { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; background: var(--bg); min-width: 0; }
+.msg .meta { font: 12px var(--f-mono); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.msg .body { white-space: pre-wrap; word-break: break-word; font-size: 14px; margin-top: 6px; max-height: 220px; overflow-y: auto; }
+.subject-line { font: 600 18px/1.3 var(--f-display); margin: 0; text-wrap: balance; }
+
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+label.lbl { font: 500 11px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+select, .field { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 9px 10px; }
+textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 12px; resize: vertical; min-height: 160px; line-height: 1.55; }
+.field { width: 100%; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 520px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+
+.confirm { border: 1px solid var(--amber); background: rgba(255,181,71,.07); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.confirm strong { color: var(--amber); }
+
+.brief { font-size: 15px; white-space: pre-wrap; }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt { border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.opt .k { font: 500 11px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--cyan); }
+.opt p { margin: 0; white-space: pre-wrap; }
+
+.log { font: 12px/1.6 var(--f-mono); color: var(--muted); max-height: 120px; overflow-y: auto; }
+.log b { color: var(--cyan); font-weight: 500; }
+footer { color: var(--muted); font-size: 12.5px; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="core" id="core" aria-hidden="true">
+      <svg viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="29" fill="none" stroke="#1d3a57" stroke-width="2"/>
+        <g class="spin">
+          <circle cx="32" cy="32" r="24" fill="none" stroke="#4fd1ff" stroke-width="2.5" stroke-dasharray="20 9 5 9"/>
+        </g>
+        <circle cx="32" cy="32" r="14" fill="rgba(79,209,255,.18)" stroke="#4fd1ff" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="6" fill="#4fd1ff"/>
+      </svg>
+    </div>
+    <div class="ident">
+      <h1>A.T.L.A.S.</h1>
+      <p id="greeting">Sistemas en línea.</p>
+    </div>
+    <div class="status" aria-label="Estado de los sistemas">
+      <span class="chip warn" id="st-gmail"><i></i>Gmail</span>
+      <span class="chip warn" id="st-ai"><i></i>IA</span>
+      <span class="chip warn" id="st-voice"><i></i>Voz</span>
+    </div>
+  </header>
+
+  <form class="cmd" id="cmd-form" autocomplete="off">
+    <input id="cmd" placeholder="Dame una orden: «resume mi bandeja», «busca correos de Juan», «correos de esta semana sin leer»…" aria-label="Orden para ATLAS">
+    <button type="button" class="btn icon mic" id="mic" title="Hablar" aria-label="Dictar orden" hidden>🎙</button>
+    <button type="submit" class="btn primary" id="cmd-go">Ejecutar</button>
+  </form>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-mail" aria-selected="true" aria-controls="view-mail">Correo</button>
+    <button role="tab" id="tab-msg" aria-selected="false" aria-controls="view-msg">Mensajes</button>
+    <button role="tab" id="tab-cfg" aria-selected="false" aria-controls="view-cfg">Ajustes</button>
+  </nav>
+
+  <!-- CORREO -->
+  <section id="view-mail" role="tabpanel">
+    <div class="notice" id="brief-box" hidden></div>
+    <div class="grid" style="margin-top:14px">
+      <div class="panel">
+        <div class="panel-h">
+          <h2>Bandeja</h2>
+          <div class="controls">
+            <button class="btn" id="btn-brief" title="Resumen y prioridades">Informe</button>
+            <button class="btn icon" id="btn-refresh" title="Actualizar" aria-label="Actualizar bandeja">↻</button>
+          </div>
+        </div>
+        <div class="panel-b" style="padding-bottom:0">
+          <div class="filters" id="filters">
+            <button data-q="in:inbox category:primary is:unread" aria-pressed="true">Sin leer</button>
+            <button data-q="in:inbox category:primary" aria-pressed="false">Principal</button>
+            <button data-q="in:inbox" aria-pressed="false">Todo</button>
+            <button data-q="is:starred" aria-pressed="false">Destacados</button>
+          </div>
+          <div class="notice" id="query-note" hidden></div>
+        </div>
+        <ul class="inbox" id="inbox"><li class="empty">Conectando con Gmail…</li></ul>
+      </div>
+
+      <div class="panel" id="reader">
+        <div class="panel-h"><h2>Respuesta</h2><span class="chip" id="reader-state">En espera</span></div>
+        <div class="panel-b" id="reader-body">
+          <div class="empty">Elige un correo de la bandeja y redactaré la respuesta por ti. Nada se envía sin que lo confirmes.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENSAJES -->
+  <section id="view-msg" role="tabpanel" hidden>
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-h"><h2>Mensaje recibido</h2></div>
+        <div class="panel-b">
+          <div class="notice">Para WhatsApp, Instagram, Telegram o SMS: pega aquí el mensaje y te doy respuestas listas para copiar. ATLAS no puede leer ni enviar en esas apps por ti.</div>
+          <div>
+            <label class="lbl" for="m-who">¿Quién te escribe?</label>
+            <input class="field" id="m-who" placeholder="Ej.: mi jefe, mi mamá, un cliente">
+          </div>
+          <div>
+            <label class="lbl" for="m-text">Mensaje</label>
+            <textarea id="m-text" placeholder="Pega el mensaje (o la conversación) aquí"></textarea>
+          </div>
+          <div>
+            <label class="lbl" for="m-intent">¿Qué quieres responder? (opcional)</label>
+            <input class="field" id="m-intent" placeholder="Ej.: dile que sí pero el jueves">
+          </div>
+          <div class="controls">
+            <select id="m-tone" aria-label="Tono">
+              <option value="cercano">Tono cercano</option>
+              <option value="formal">Tono formal</option>
+              <option value="breve">Muy breve</option>
+              <option value="divertido">Divertido</option>
+            </select>
+            <button class="btn icon mic" id="m-mic" title="Dictar" aria-label="Dictar qué responder" hidden>🎙</button>
+            <button class="btn primary" id="m-go">Proponer respuestas</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>Opciones</h2></div>
+        <div class="panel-b" id="m-out"><div class="empty">Aquí aparecerán tres respuestas para elegir.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-cfg" role="tabpanel" hidden>
+    <div class="panel" style="max-width:640px">
+      <div class="panel-h"><h2>Cómo te represento</h2></div>
+      <div class="panel-b">
+        <div class="row2">
+          <div><label class="lbl" for="c-name">Tu nombre (para firmar)</label><input class="field" id="c-name" placeholder="Ej.: Santiago"></div>
+          <div><label class="lbl" for="c-call">Cómo te llamo</label><input class="field" id="c-call" placeholder="Ej.: señor, jefe, Santi"></div>
+        </div>
+        <div><label class="lbl" for="c-style">Tu estilo al escribir</label><textarea id="c-style" style="min-height:90px" placeholder="Ej.: tuteo, frases cortas, saludo «Hola», me despido con «Saludos»"></textarea></div>
+        <div class="controls">
+          <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="c-speak"> Leer en voz alta los informes</label>
+        </div>
+        <div class="controls"><button class="btn primary" id="c-save">Guardar ajustes</button><span id="c-saved" class="when" hidden>Guardado en este navegador.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="panel">
+    <div class="panel-h"><h2>Registro</h2></div>
+    <div class="panel-b"><div class="log" id="log"></div></div>
+  </div>
+
+  <footer>ATLAS lee tu Gmail con tu permiso, redacta con Claude y solo envía cuando pulsas «Confirmar envío». Los borradores quedan en tu carpeta Borradores de Gmail.</footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const GMAIL = "Gmail";
+
+  // ---------- estado ----------
+  let mcp = null, sample = null, tts = null, dict = null;
+  let threads = [];          // lista visible
+  let triage = {};           // threadId -> {label, why}
+  let current = null;        // {thread, last, draft}
+  let query = "in:inbox category:primary is:unread";
+
+  // ---------- ajustes (comodidad local) ----------
+  const cfgDefault = { name: "", call: "señor", style: "", speak: false };
+  let cfg = { ...cfgDefault };
+  try { cfg = { ...cfgDefault, ...JSON.parse(localStorage.getItem("atlas-cfg") || "{}") }; } catch {}
+  $("c-name").value = cfg.name; $("c-call").value = cfg.call; $("c-style").value = cfg.style; $("c-speak").checked = cfg.speak;
+  $("c-save").onclick = () => {
+    cfg = { name: $("c-name").value.trim(), call: $("c-call").value.trim() || "señor", style: $("c-style").value.trim(), speak: $("c-speak").checked };
+    try { localStorage.setItem("atlas-cfg", JSON.stringify(cfg)); } catch {}
+    $("c-saved").hidden = false; setTimeout(() => $("c-saved").hidden = true, 2500);
+    greet();
+  };
+
+  function greet() {
+    const h = new Date().getHours();
+    const g = h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches";
+    $("greeting").textContent = `${g}, ${cfg.call || "señor"}. Todos los sistemas en línea.`;
+  }
+  greet();
+
+  // ---------- utilidades UI ----------
+  function log(t) {
+    const d = new Date();
+    const line = document.createElement("div");
+    line.innerHTML = `<b>${d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</b> ${esc(t)}`;
+    $("log").prepend(line);
+  }
+  let busyN = 0;
+  function busy(on) { busyN += on ? 1 : -1; $("core").classList.toggle("busy", busyN > 0); }
+  function chip(id, state, title) { const c = $(id); c.className = "chip " + state; if (title) c.title = title; }
+
+  function mcpMessage(e) {
+    const code = e && e.code;
+    switch (code) {
+      case "needs_reauth": return "Tu conexión con Gmail caducó. Vuelve a conectarla en claude.ai → Ajustes → Conectores.";
+      case "server_not_connected": return "Gmail no está conectado. Añádelo en claude.ai → Ajustes → Conectores.";
+      case "selection_required": return "Tienes más de un conector de Gmail. Elige cuál usar en el aviso de claude.ai.";
+      case "not_in_manifest": case "approval_required": return "No se dio permiso a ATLAS para usar Gmail. Puedes darlo desde el menú Permisos de esta página.";
+      case "blocked_by_policy": return "Tu organización bloquea esta acción de Gmail.";
+      case "server_unavailable": return "Gmail no responde ahora mismo. Prueba en unos segundos.";
+      case "tool_error": return "Gmail rechazó la operación: " + (e.message || "sin detalle");
+      default: return "No se pudo hablar con Gmail (" + (code || "error") + ").";
+    }
+  }
+  function aiMessage(e) {
+    const code = e && e.code;
+    if (code === "not_granted") return "No se dio permiso para usar Claude. Recarga la página si quieres permitirlo.";
+    if (code === "rate_limited") return "Demasiadas peticiones seguidas. Espera un momento.";
+    return "La IA no pudo responder (" + (code || "error") + ").";
+  }
+
+  async function speak(text) {
+    if (!tts || !text) return;
+    try { await tts.speak(String(text).slice(0, 1900), { language: "es" }); } catch {}
+  }
+
+  // ---------- pestañas ----------
+  const tabs = [["tab-mail", "view-mail"], ["tab-msg", "view-msg"], ["tab-cfg", "view-cfg"]];
+  tabs.forEach(([t, v]) => $(t).onclick = () => tabs.forEach(([t2, v2]) => {
+    $(t2).setAttribute("aria-selected", t2 === t); $(v2).hidden = v2 !== v;
+  }));
+
+  // ---------- bandeja ----------
+  function personName(m) {
+    const a = (m.addressDisplayNames || []).find(x => x.emailAddress === m.sender);
+    return (a && a.displayName) || m.sender || "Desconocido";
+  }
+  function shortDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso), now = new Date();
+    return d.toDateString() === now.toDateString()
+      ? d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })
+      : d.toLocaleDateString("es", { day: "numeric", month: "short" });
+  }
+
+  function renderInbox() {
+    const ul = $("inbox");
+    if (!threads.length) { ul.innerHTML = `<li class="empty">No hay correos con este filtro. Todo en orden.</li>`; return; }
+    ul.innerHTML = "";
+    threads.forEach(t => {
+      const m = (t.messages || [])[0] || {};
+      const unread = (m.labelIds || []).includes("UNREAD");
+      const tr = triage[t.id];
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      if (unread) b.classList.add("unread");
+      if (current && current.thread && current.thread.id === t.id) b.setAttribute("aria-current", "true");
+      b.innerHTML = `<span class="from">${esc(personName(m))}</span><span class="when">${esc(shortDate(m.date))}</span>
+        <span class="subj">${esc(m.subject || "(sin asunto)")}</span><span class="snip">${esc(m.snippet || "")}</span>
+        ${tr ? `<span class="tag ${tr.label}" title="${esc(tr.why || "")}">${tr.label === "reply" ? "Necesita respuesta" : tr.label === "info" ? "Para leer" : "Ignorable"}</span>` : ""}`;
+      b.onclick = () => openThread(t.id);
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  async function loadInbox() {
+    if (!mcp) return;
+    busy(true);
+    $("inbox").innerHTML = `<li class="empty">Escaneando bandeja…</li>`;
+    try {
+      const r = await mcp.callTool(GMAIL, "search_threads", { query, pageSize: 20, view: "THREAD_VIEW_SUMMARY" }, { cache: false });
+      threads = (r.payload && r.payload.threads) || [];
+      chip("st-gmail", "on", "Gmail conectado");
+      renderInbox();
+      log(`Bandeja: ${threads.length} hilos (${query}).`);
+    } catch (e) {
+      chip("st-gmail", "off", mcpMessage(e));
+      $("inbox").innerHTML = `<li class="empty">${esc(mcpMessage(e))}</li>`;
+      log("Error de Gmail: " + (e.code || e.message));
+    } finally { busy(false); }
+  }
+
+  $("filters").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-q]"); if (!b) return;
+    [...$("filters").children].forEach(x => x.setAttribute("aria-pressed", x === b));
+    query = b.dataset.q; $("query-note").hidden = true; loadInbox();
+  });
+  $("btn-refresh").onclick = loadInbox;
+
+  // ---------- informe / triaje ----------
+  $("btn-brief").onclick = async () => {
+    if (!sample) return;
+    if (!threads.length) { showBrief("No hay correos que revisar con este filtro."); return; }
+    busy(true); $("btn-brief").disabled = true;
+    const list = threads.map(t => { const m = (t.messages || [])[0] || {}; return { id: t.id, de: personName(m), asunto: m.subject, extracto: (m.snippet || "").slice(0, 240), etiquetas: m.labelIds }; });
+    try {
+      const out = await sample.json(
+        `Eres ATLAS, un mayordomo digital al estilo de un asistente de ciencia ficción: educado, preciso, con un toque de humor seco. Tratas al usuario de "${cfg.call || "señor"}".
+Analiza estos correos y devuelve SOLO JSON con esta forma:
+{"informe": "3-5 frases en español con lo importante y qué conviene hacer primero", "items": [{"id": "<id>", "label": "reply|info|skip", "why": "motivo en pocas palabras"}]}
+"reply" = una persona real espera respuesta; "info" = conviene leerlo; "skip" = publicidad o automático.
+Correos: ${JSON.stringify(list)}`,
+        { modelTier: "quick" }
+      );
+      triage = {};
+      (out.items || []).forEach(i => { if (i && i.id) triage[i.id] = { label: ["reply", "info", "skip"].includes(i.label) ? i.label : "info", why: i.why }; });
+      renderInbox();
+      showBrief(out.informe || "Informe listo.");
+      if (cfg.speak) speak(out.informe);
+      log("Informe de bandeja generado.");
+    } catch (e) { showBrief(aiMessage(e), true); }
+    finally { busy(false); $("btn-brief").disabled = false; }
+  };
+  function showBrief(text, bad) {
+    const b = $("brief-box");
+    b.className = "notice" + (bad ? " bad" : " ok");
+    b.innerHTML = `<div class="brief">${esc(text)}</div>${tts && !bad ? `<div class="controls" style="margin-top:8px"><button class="btn" id="brief-say">🔊 Escuchar</button></div>` : ""}`;
+    b.hidden = false;
+    const s = $("brief-say"); if (s) s.onclick = () => speak(text);
+  }
+
+  // ---------- leer hilo y redactar ----------
+  async function openThread(id) {
+    if (!mcp) return;
+    current = { thread: { id }, last: null, draft: "" };
+    renderInbox();
+    $("reader-state").textContent = "Leyendo";
+    $("reader-body").innerHTML = `<div class="empty">Leyendo el hilo…</div>`;
+    busy(true);
+    try {
+      const r = await mcp.callTool(GMAIL, "get_thread", { threadId: id, messageFormat: "PLAIN_TEXT" }, { cache: false });
+      const th = r.payload || {};
+      const msgs = th.messages || [];
+      current.thread = { id, messages: msgs, viewUrl: th.viewUrl };
+      current.last = msgs[msgs.length - 1] || null;
+      renderReader();
+    } catch (e) {
+      $("reader-body").innerHTML = `<div class="notice bad">${esc(mcpMessage(e))}</div>`;
+    } finally { busy(false); $("reader-state").textContent = "En espera"; }
+  }
+
+  function renderReader(notice) {
+    const { thread, last } = current;
+    const msgs = thread.messages || [];
+    const subj = (msgs[0] && msgs[0].subject) || "(sin asunto)";
+    $("reader-body").innerHTML = `
+      <p class="subject-line">${esc(subj)}</p>
+      <div class="thread">${msgs.slice(-4).map(m => `
+        <div class="msg"><div class="meta"><span>${esc(personName(m))} &lt;${esc(m.sender || "")}&gt;</span><span>${esc(shortDate(m.date))}</span></div>
+        <div class="body">${esc((m.plaintextBody || m.snippet || "").trim().slice(0, 4000))}</div></div>`).join("")}
+      </div>
+      ${thread.viewUrl ? `<a class="when" href="${esc(thread.viewUrl)}" target="_blank" rel="noopener" style="color:var(--cyan)">Abrir en Gmail ↗</a>` : ""}
+      <div class="row2">
+        <div><label class="lbl" for="r-tone">Tono</label>
+          <select id="r-tone" style="width:100%"><option value="profesional y cordial">Profesional</option><option value="cercano y amable">Cercano</option><option value="muy breve y directo">Breve</option><option value="formal">Formal</option></select></div>
+        <div><label class="lbl" for="r-intent">Instrucción (opcional)</label>
+          <div style="display:flex;gap:6px"><input class="field" id="r-intent" placeholder="Ej.: acepta, propón el martes 10am"><button class="btn icon mic" id="r-mic" aria-label="Dictar instrucción" ${dict ? "" : "hidden"}>🎙</button></div></div>
+      </div>
+      <div class="controls"><button class="btn primary" id="r-gen" ${sample ? "" : "disabled"}>Redactar respuesta</button>${sample ? "" : `<span class="when">La IA no está disponible en esta vista.</span>`}</div>
+      <div><label class="lbl" for="r-draft">Borrador</label><textarea id="r-draft" placeholder="Pulsa «Redactar respuesta» o escribe tú mismo.">${esc(current.draft)}</textarea></div>
+      <div class="controls">
+        <button class="btn" id="r-save">Guardar en Borradores de Gmail</button>
+        <button class="btn warn" id="r-send">Enviar…</button>
+        ${tts ? `<button class="btn icon" id="r-say" title="Escuchar borrador" aria-label="Escuchar borrador">🔊</button>` : ""}
+      </div>
+      <div id="r-confirm"></div>
+      ${notice ? `<div class="notice ${notice.cls}">${notice.html}</div>` : ""}`;
+    $("r-draft").oninput = (e) => current.draft = e.target.value;
+    $("r-gen").onclick = generateReply;
+    $("r-save").onclick = saveDraft;
+    $("r-send").onclick = askSend;
+    if ($("r-say")) $("r-say").onclick = () => speak($("r-draft").value);
+    if ($("r-mic")) wireMic($("r-mic"), $("r-intent"));
+  }
+
+  async function generateReply() {
+    if (!sample || !current || !current.last) return;
+    const out = $("r-draft"), btn = $("r-gen");
+    btn.disabled = true; busy(true); $("reader-state").textContent = "Redactando";
+    const msgs = (current.thread.messages || []).slice(-4).map(m => `De: ${personName(m)} <${m.sender}>\nFecha: ${m.date}\n${(m.plaintextBody || m.snippet || "").slice(0, 3000)}`).join("\n\n---\n\n");
+    const prompt = `Redacta la respuesta de correo que ${cfg.name || "el usuario"} enviará al último mensaje de este hilo.
+Tono: ${$("r-tone").value}.
+${$("r-intent").value.trim() ? "Lo que quiere decir: " + $("r-intent").value.trim() : "Decide la respuesta más sensata; si falta información que solo el usuario sabe, deja un hueco entre corchetes como [HORA]."}
+${cfg.style ? "Estilo personal del usuario: " + cfg.style : ""}
+Escribe en el idioma del último mensaje. Firma como ${cfg.name || "[TU NOMBRE]"}.
+Devuelve SOLO el cuerpo del correo, en texto plano, sin asunto ni markdown.
+
+HILO:
+${msgs}`;
+    try {
+      const r = await sample(prompt, { cache: false, onText: ({ text }) => { out.value = text; } });
+      out.value = r.text.trim(); current.draft = out.value;
+      log("Respuesta redactada.");
+    } catch (e) { out.value = e.text || ""; renderInlineNotice(aiMessage(e), "bad"); }
+    finally { btn.disabled = false; busy(false); $("reader-state").textContent = "Listo"; }
+  }
+
+  function renderInlineNotice(html, cls) {
+    $("r-confirm").innerHTML = `<div class="notice ${cls}">${html}</div>`;
+  }
+
+  async function saveDraft() {
+    const body = $("r-draft").value.trim(); if (!body) { renderInlineNotice("El borrador está vacío.", "bad"); return; }
+    const m = current.last; const subj = m.subject || "";
+    const btn = $("r-save"); btn.disabled = true; busy(true);
+    try {
+      const r = await mcp.callTool(GMAIL, "create_draft", {
+        to: [m.sender], subject: /^re:/i.test(subj) ? subj : "Re: " + subj, body, replyToMessageId: m.id
+      }, { cache: false });
+      const url = r.payload && r.payload.viewUrl;
+      renderInlineNotice(`Borrador guardado en Gmail.${url ? ` <a href="${esc(url)}" target="_blank" rel="noopener">Abrirlo ↗</a>` : ""}`, "ok");
+      log("Borrador guardado para " + m.sender);
+    } catch (e) {
+      renderInlineNotice(esc(mcpMessage(e)) + (e.code === "server_unavailable" || e.code === "upstream_error" ? " Revisa tu carpeta Borradores antes de reintentar: puede haberse guardado." : ""), "bad");
+    } finally { btn.disabled = false; busy(false); }
+  }
+
+  function askSend() {
+    const body = $("r-draft").value.trim(); if (!body) { renderInlineNotice("El borrador está vacío.", "bad"); return; }
+    const m = current.last;
+    $("r-confirm").innerHTML = `<div class="confirm"><div><strong>¿Enviar ahora?</strong> Se responderá a <b>${esc(m.sender)}</b> desde tu cuenta. Esto no se puede deshacer.</div>
+      <div class="controls"><button class="btn danger" id="r-yes">Confirmar envío</button><button class="btn" id="r-no">Cancelar</button></div></div>`;
+    $("r-no").onclick = () => $("r-confirm").innerHTML = "";
+    $("r-yes").onclick = async () => {
+      $("r-yes").disabled = true; busy(true);
+      try {
+        await mcp.callTool(GMAIL, "reply", { messageId: m.id, body, replyAll: false }, { cache: false });
+        current.draft = "";
+        renderReader({ cls: "ok", html: `Enviado a ${esc(m.sender)}. Misión cumplida.` });
+        log("Respuesta enviada a " + m.sender);
+        if (cfg.speak) speak("Correo enviado.");
+      } catch (e) {
+        const unsure = e.code === "server_unavailable" || e.code === "upstream_error" || e.code === "cancelled";
+        renderInlineNotice(esc(mcpMessage(e)) + (unsure ? " No es seguro si salió: revisa tu carpeta Enviados antes de volver a enviarlo." : ""), "bad");
+      } finally { busy(false); }
+    };
+  }
+
+  // ---------- barra de órdenes ----------
+  $("cmd-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const text = $("cmd").value.trim(); if (!text) return;
+    if (/resum|informe|qué hay|que hay|novedades|prioridad/i.test(text) && !/de |busca/i.test(text)) { $("tab-mail").click(); $("btn-brief").click(); return; }
+    if (!sample) { query = text; return runQuery(text); }
+    busy(true); $("cmd-go").disabled = true;
+    try {
+      const out = await sample.json(`Convierte esta orden en una búsqueda de Gmail. Hoy es ${new Date().toISOString().slice(0, 10)}.
+Devuelve SOLO JSON: {"query": "<sintaxis de búsqueda de Gmail>", "explica": "frase corta en español de lo que buscarás"}.
+Orden: ${text}`, { modelTier: "quick" });
+      runQuery(out.query || text, out.explica);
+    } catch (e) { runQuery(text); }
+    finally { busy(false); $("cmd-go").disabled = false; }
+  });
+  function runQuery(q, why) {
+    $("tab-mail").click();
+    [...$("filters").children].forEach(x => x.setAttribute("aria-pressed", "false"));
+    query = q;
+    const n = $("query-note"); n.className = "notice"; n.innerHTML = `${esc(why || "Búsqueda")}: <code>${esc(q)}</code>`; n.hidden = false;
+    loadInbox();
+  }
+
+  // ---------- mensajes (WhatsApp, etc.) ----------
+  $("m-go").onclick = async () => {
+    const text = $("m-text").value.trim();
+    if (!text) { $("m-out").innerHTML = `<div class="notice bad">Pega primero el mensaje que recibiste.</div>`; return; }
+    if (!sample) { $("m-out").innerHTML = `<div class="notice bad">La IA no está disponible en esta vista.</div>`; return; }
+    busy(true); $("m-go").disabled = true; $("m-out").innerHTML = `<div class="empty">Analizando…</div>`;
+    try {
+      const out = await sample.json(`Ayuda a ${cfg.name || "el usuario"} a responder un mensaje de chat (WhatsApp/Instagram/SMS).
+Quién escribe: ${$("m-who").value.trim() || "no especificado"}.
+Tono deseado: ${$("m-tone").value}.
+${$("m-intent").value.trim() ? "Lo que quiere responder: " + $("m-intent").value.trim() : ""}
+${cfg.style ? "Estilo personal: " + cfg.style : ""}
+Escribe como se escribe en un chat (natural, sin firma), en el idioma del mensaje.
+Devuelve SOLO JSON: {"lectura": "una frase sobre qué te están pidiendo o cómo suena", "opciones": [{"etiqueta": "corta", "texto": "..."}, {"etiqueta": "...", "texto": "..."}, {"etiqueta": "...", "texto": "..."}]}
+
+MENSAJE:
+${text}`, { modelTier: "default", cache: false });
+      const opts = (out.opciones || []).slice(0, 3);
+      $("m-out").innerHTML = `${out.lectura ? `<div class="notice">${esc(out.lectura)}</div>` : ""}<div class="options">${opts.map((o, i) => `
+        <div class="opt"><span class="k">${esc(o.etiqueta || "Opción " + (i + 1))}</span><p id="opt-${i}">${esc(o.texto)}</p>
+        <div class="controls"><button class="btn" data-copy="${i}">Copiar</button>${tts ? `<button class="btn icon" data-say="${i}" aria-label="Escuchar">🔊</button>` : ""}</div></div>`).join("")}</div>`;
+      $("m-out").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b, $("opt-" + b.dataset.copy).textContent));
+      $("m-out").querySelectorAll("[data-say]").forEach(b => b.onclick = () => speak($("opt-" + b.dataset.say).textContent));
+      log("Respuestas de chat propuestas.");
+    } catch (e) { $("m-out").innerHTML = `<div class="notice bad">${esc(aiMessage(e))}</div>`; }
+    finally { busy(false); $("m-go").disabled = false; }
+  };
+  async function copy(btn, text) {
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Copiado"; }
+    catch {
+      const p = btn.closest(".opt").querySelector("p"); const r = document.createRange(); r.selectNodeContents(p);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Seleccionado: copia con Ctrl+C";
+    }
+    setTimeout(() => btn.textContent = "Copiar", 2500);
+  }
+
+  // ---------- voz ----------
+  let micTarget = null, micBtn = null;
+  function wireMic(btn, input) {
+    if (!dict) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.onclick = () => {
+      if (micBtn === btn && btn.classList.contains("listening")) { dict.stop().catch(() => {}); return; }
+      micTarget = input; micBtn = btn;
+      dict.start({ language: "es" }).catch(e => {
+        if (e && e.code === "not_granted") { document.querySelectorAll(".mic").forEach(m => m.hidden = true); chip("st-voice", "off", "Micrófono no permitido"); }
+      });
+    };
+  }
+
+  // ---------- arranque de capacidades ----------
+  (async () => {
+    const [m, s, t, d] = await Promise.all(["mcp", "sample", "tts", "dictation"].map(n => claude.use(n).catch(() => null)));
+    mcp = m; sample = s; tts = t; dict = d;
+    chip("st-ai", sample ? "on" : "off", sample ? "Claude disponible" : "Claude no disponible en esta vista");
+    chip("st-voice", (tts || dict) ? "on" : "off", (tts || dict) ? "Voz disponible" : "Voz no disponible aquí");
+    if (dict) {
+      dict.onPartial(({ text }) => { if (micTarget) micTarget.placeholder = text + "…"; });
+      dict.onFinal(({ text }) => { if (micTarget) { micTarget.value = (micTarget.value ? micTarget.value + " " : "") + text; micTarget.dispatchEvent(new Event("input")); } });
+      dict.onState(({ state }) => { if (micBtn) micBtn.classList.toggle("listening", state === "listening" || state === "starting"); });
+      wireMic($("mic"), $("cmd"));
+      wireMic($("m-mic"), $("m-intent"));
+    }
+    if (!mcp) {
+      chip("st-gmail", "off", "Gmail no disponible en esta vista");
+      $("inbox").innerHTML = `<li class="empty">Abre esta página dentro de claude.ai (o la app de Claude) con Gmail conectado para ver tu bandeja. La pestaña Mensajes funciona igual.</li>`;
+      return;
+    }
+    loadInbox();
+  })();
+})();
+</script>
