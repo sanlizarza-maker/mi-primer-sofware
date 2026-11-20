@@ -224,16 +224,16 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 (function () {
   // ---- Book: positions from the IBKR screenshot of Nov 5, 2026 (17:16). A newer screenshot replaces them. ----
   const DEFAULT_BOOK = {
-    asOf: "5-nov-2026 17:16",
-    cash: 110.93,
-    cashNote: "Efectivo de la venta de VXUS; el buying power mostraba $5.21, probablemente aún sin liquidar.",
-    dailyPL: -45, dailyPLpct: -3.91, realizedPL: -9,
+    asOf: "20-nov-2026 07:56 (pre-apertura)",
+    cash: 4.90,
+    cashNote: "Casi todo el efectivo de la venta de VXUS se usó para comprar 0.67 acciones más de NVIDIA (~$106, a ~$158 por acción).",
+    dailyPL: -11, dailyPLpct: -1.07, realizedPL: -9,
     positions: [
-      { t: "AAPL", n: "Apple", sh: 0.8, cost: 309.84, px: 342.26 },
-      { t: "AMZN", n: "Amazon", sh: 0.8, cost: 266.32, px: 256.60 },
-      { t: "VOO", n: "Vanguard S&P 500 ETF", sh: 0.3, cost: 687.55, px: 671.89 },
-      { t: "BRK.B", n: "Berkshire Hathaway B", sh: 0.3, cost: 510.85, px: 570.34 },
-      { t: "NVDA", n: "NVIDIA", sh: 0.8, cost: 211.97, px: 181.95 }
+      { t: "AAPL", n: "Apple", sh: 0.8, cost: 309.84, px: 349.93 },
+      { t: "AMZN", n: "Amazon", sh: 0.8, cost: 266.32, px: 252.01 },
+      { t: "VOO", n: "Vanguard S&P 500 ETF", sh: 0.3, cost: 687.55, px: 652.67 },
+      { t: "BRK.B", n: "Berkshire Hathaway B", sh: 0.3, cost: 510.85, px: 571.65 },
+      { t: "NVDA", n: "NVIDIA", sh: 1.47, cost: 187.49, px: 141.86 }
     ]
   };
   // The desk's view per ticker (consensus target as of Nov 4, 2026, from earlier reports).
@@ -246,18 +246,17 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     VXUS: { n: "Vanguard Total Intl Stock ETF", pt: null, rating: "Core", conv: "" }
   };
   const NOTES = [
-    { k: "alert", h: "NVIDIA −12% en dos días", b: "De $206.69 (3-nov) a $181.95 (5-nov). Reporta el 17-nov." },
+    { k: "alert", h: "NVIDIA −31% desde el 3-nov", b: "De $206.69 a $141.86 (20-nov, pre-apertura), por debajo de su mínimo de 52 semanas ($145.71). P/E futuro ~11. Ya reportó el 17-nov; el resultado no está en estas notas." },
     { k: "alert", h: "Concentración en tecnología", b: "Apple + Amazon + NVIDIA suman más de la mitad de la cartera, y VOO tiene esas mismas empresas arriba." },
-    { k: "watch", h: "Vendiste VXUS", b: "Era tu única diversificación fuera de EE.UU. Pérdida realizada −$9; queda efectivo." },
+    { k: "watch", h: "Promediaste a la baja en NVIDIA", b: "Compraste 0.67 acciones más (~$158 c/u). Costo promedio $187.49; necesita +32% para recuperar. Ya no queda efectivo." },
     { k: "watch", h: "Apple: márgenes a la baja", b: "Superó estimados en Q4, pero guió margen bruto de 45–46% en diciembre por el costo de la memoria." },
     { k: "", h: "Macro", b: "Fed en 3.75–4.00% con probabilidad alta de subida en diciembre. Petróleo ~$97–104 por Irán y Ormuz. Congreso demócrata desde enero." },
     { k: "", h: "Lectura positiva para IA", b: "AMD: data center +97% y guía de +66% para Q4. Amazon: AWS +39% y backlog de $578B." }
   ];
   const CAL = [
-    { d: "06 nov", e: "Empleo de EE.UU. (NFP)", r: "Alta" },
-    { d: "10 nov", e: "Inflación de EE.UU. (IPC)", r: "Alta" },
-    { d: "13 nov", e: "Precios al productor (PPI)", r: "Media" },
-    { d: "17 nov", e: "Resultados de NVIDIA", r: "Alta" }
+    { d: "dic", e: "Reunión de la Fed (confirma la fecha)", r: "Alta" },
+    { d: "dic", e: "Inflación de EE.UU. de noviembre (IPC)", r: "Alta" },
+    { d: "fin de año", e: "Revisión y rebalanceo de la cartera", r: "Media" }
   ];
   const STORE_KEY = "stockdesk-book-v1";
 
@@ -520,7 +519,7 @@ Usa "BRK.B" para "BRK B". Si no es una captura de posiciones de un broker, respo
     const m = addMsg("ai", `Hola. Tengo tu cartera cargada (**${usd(c.total)}**, captura del ${BOOK.asOf}).\n\nLo primero que veo: **${c.tech.toFixed(1)}%** en gran tecnología y **${usd(BOOK.cash)}** en efectivo sin decidir. Pregúntame lo que quieras. Si me das precios de hoy, mi análisis es mejor.`);
     m.append(el("div", "meta", "Analista senior · Stock Desk"));
   }
-  ["¿Qué hago con mis $110 en efectivo?", "NVIDIA cayó mucho: ¿mantengo, compro o vendo?", "Analiza mi concentración y propón un rebalanceo", "¿Qué pasa con mi cartera si la Fed sube en diciembre?", "Arma un plan de aportes mensuales de $100"]
+  ["NVIDIA está en mínimos: ¿mantengo o vendo?", "¿Cómo bajo mi 65% en tecnología sin vender con pérdida?", "Analiza mi concentración y propón un rebalanceo", "¿Qué pasa con mi cartera si la Fed sube en diciembre?", "Arma un plan de aportes mensuales de $100"]
     .forEach((s) => { const b = el("button", "chip", s); b.type = "button"; b.addEventListener("click", () => { q.value = s; ask(); }); chips.append(b); });
 
   function syncButtons(busy) {

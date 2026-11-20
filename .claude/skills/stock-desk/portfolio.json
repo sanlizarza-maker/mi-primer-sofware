@@ -1,8 +1,8 @@
 {
   "owner": "sanlizarza",
-  "broker": "Interactive Brokers (captura del 2026-11-05, 17:16)",
+  "broker": "Interactive Brokers (captura del 2026-11-20, 07:56, pre-apertura)",
   "base_currency": "USD",
-  "cash": 110.93,
+  "cash": 4.9,
   "positions": [
     {
       "ticker": "AAPL",
@@ -32,8 +32,8 @@
       "ticker": "NVDA",
       "name": "NVIDIA Corp.",
       "type": "stock",
-      "shares": 0.8,
-      "avg_cost": 211.97,
+      "shares": 1.47,
+      "avg_cost": 187.49,
       "rp_id": "E09E2B"
     },
     {
