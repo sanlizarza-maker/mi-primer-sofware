@@ -172,7 +172,7 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
       <section class="panel">
         <h2>Tu cartera</h2>
-        <p class="sub">Peso en rojo: pasa del 20% recomendado por posición.</p>
+        <p class="sub">Peso en rojo: pasa del 30% por posición que elegiste.</p>
         <div class="book"><table id="book">
           <thead><tr><th>Posición</th><th class="r">Precio</th><th class="r">Valor</th><th class="r">Peso</th><th class="r">Ganancia</th><th class="r">Objetivo analistas</th><th>Calificación</th></tr></thead>
           <tbody></tbody>
@@ -292,7 +292,7 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       { l: "Valor total", v: usd(c.total), n: "Incluye " + usd(BOOK.cash) + " en efectivo" },
       BOOK.dailyPL != null ? { l: "Día de la captura", v: sgn(BOOK.dailyPL, 0) + " USD", n: (BOOK.dailyPLpct != null ? sgn(BOOK.dailyPLpct, 2) + "%" : ""), cls: BOOK.dailyPL >= 0 ? "up" : "down" } : null,
       { l: "Ganancia sobre costo", v: (c.unreal >= 0 ? "+" : "−") + usd(Math.abs(c.unreal)), n: sgn(c.costSum ? c.unreal / c.costSum * 100 : 0, 2) + "% en lo invertido", cls: c.unreal >= 0 ? "up" : "down" },
-      { l: "En gran tecnología", v: c.tech.toFixed(1) + "%", n: "Límite prudente: 40%", cls: c.tech > 40 ? "warn" : "" },
+      { l: "En gran tecnología", v: c.tech.toFixed(1) + "%", n: "Tu límite: 75% (perfil agresivo)", cls: c.tech > 75 ? "warn" : "" },
       { l: "Efectivo", v: (BOOK.cash / c.total * 100).toFixed(1) + "%", n: "Pendiente de decidir" }
     ].filter(Boolean);
     items.forEach((k) => { const d = el("div", "kpi"); d.append(el("div", "tag", k.l), el("div", "v " + (k.cls || ""), k.v), el("div", "n", k.n)); kp.append(d); });
@@ -303,8 +303,8 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       const tr = el("tr");
       const c0 = el("td"); c0.append(el("span", "tk", r.t), el("span", "nm", r.n)); tr.append(c0);
       tr.append(el("td", "r num", usd(r.px)), el("td", "r num", usd(r.val)));
-      const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 20 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
-      wb.append(bar, el("span", "num" + (r.w > 20 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
+      const cw = el("td", "r"); const wb = el("div", "wbar"); const bar = el("i", r.w > 30 ? "hot" : ""); bar.style.width = Math.round(r.w / maxW * 60) + "px";
+      wb.append(bar, el("span", "num" + (r.w > 30 ? " down" : ""), r.w.toFixed(1) + "%")); cw.append(wb); tr.append(cw);
       tr.append(el("td", "r num " + (r.pl >= 0 ? "up" : "down"), sgn(r.pl) + "%"));
       tr.append(el("td", "r num", r.pt ? usd(r.pt) + " (" + sgn(r.up, 0) + "%)" : "—"));
       const cr = el("td"); cr.append(el("span", "pill " + (r.rating === "Overweight" ? "ow" : "nt"), r.rating + (r.conv ? " · " + r.conv : ""))); tr.append(cr);
@@ -328,7 +328,8 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 ${lines}
 Efectivo: ${usd(BOOK.cash)} (${(BOOK.cash / c.total * 100).toFixed(1)}%). ${BOOK.cashNote || ""}
 Valor total: ${usd(c.total)}. Costo de lo invertido: ${usd(c.costSum)}. P&L no realizado: ${sgn(c.unreal, 2)} USD (${sgn(c.costSum ? c.unreal / c.costSum * 100 : 0, 2)}%).${BOOK.realizedPL != null ? " P&L realizado: " + BOOK.realizedPL + " USD." : ""}${BOOK.dailyPL != null ? " P&L del día de la captura: " + BOOK.dailyPL + " USD." : ""}
-Exposición a gran tecnología (Apple, Amazon, NVIDIA y similares): ${c.tech.toFixed(1)}% (límite del desk 40%; máximo por posición 20%).
+Exposición a gran tecnología (Apple, Amazon, NVIDIA y similares): ${c.tech.toFixed(1)}%.
+PERFIL DEL USUARIO (decisión suya, respétala): es joven, con horizonte largo y tolerancia alta al riesgo. Acepta tener mucha tecnología y NO quiere vender Apple solo para bajar el porcentaje de tecnología, porque la considera un buen negocio. Límites que eligió: tecnología hasta ~75% y máximo ~30% por posición. No le insistas en diversificar por sector; sí señala el riesgo de una sola empresa (como NVIDIA), la falta de efectivo y las decisiones impulsivas (opciones, promediar a la baja sin tesis).
 
 NOTAS DEL DESK (reportes del 1 al 5 de noviembre de 2026)
 ${NOTES.map((n) => "- " + n.h + ": " + n.b).join("\n")}

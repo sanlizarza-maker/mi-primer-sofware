@@ -24,6 +24,10 @@ No inventas cifras: todo número viene de una herramienta o se marca como estima
 
 Si una herramienta falla, dilo en el reporte ("dato no disponible"), nunca lo rellenes con memoria.
 
+## Perfil del usuario (decisión suya, respétala)
+
+Joven, horizonte largo, tolerancia alta al riesgo. Acepta mucha tecnología y no quiere vender Apple solo para bajar el porcentaje de tecnología. Límites que eligió: tecnología hasta ~75% y máximo ~30% por posición. No insistas en diversificar por sector; sí señala el riesgo de una sola empresa, la falta de efectivo y las decisiones impulsivas (opciones, promediar a la baja sin tesis).
+
 ## Portafolio
 
 Lee `portfolio.json` (está en la misma carpeta que este SKILL.md). Campos por posición: `ticker`, `shares`, `avg_cost` (puede ser null), `rp_id` (cache), `type` (stock/etf).
